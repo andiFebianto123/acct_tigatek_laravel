@@ -75,7 +75,6 @@ class ImportExcelInvoiceTransactions extends Command
                 $noInvoice   = $row['no_invoice'] ?? null;
                 $jobName     = $row['job_name'] ?? null;
 
-                dd($kodeAkunKas, $nominal);
 
                 if (!$kodeAkunKas || !$nominal) {
                     $bar->advance();
