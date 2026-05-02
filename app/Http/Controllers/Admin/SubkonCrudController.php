@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Spk;
-use Dotenv\Parser\Entry;
-use App\Models\PurchaseOrder;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\DTOs\SubkonManagement\SubkonData;
+use App\Http\Controllers\Operation\PermissionAccess;
 use App\Http\Exports\ExportExcel;
 use App\Http\Helpers\CustomHelper;
-use Illuminate\Support\Facades\DB;
 use App\Http\Requests\SubkonRequest;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Http\Controllers\Operation\PermissionAccess;
+use App\Models\PurchaseOrder;
+use App\Models\Spk;
+use App\Repositories\SubkonManagement\SubkonRepository;
+use App\Services\SubkonManagement\SubkonService;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Class SubkonCrudController
@@ -29,6 +31,18 @@ class SubkonCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
 
+    protected $subkonService;
+    protected $subkonRepository;
+
+    public function __construct(
+        SubkonService $subkonService,
+        SubkonRepository $subkonRepository
+    ) {
+        parent::__construct();
+        $this->subkonService = $subkonService;
+        $this->subkonRepository = $subkonRepository;
+    }
+
     public $card, $modal, $script;
 
     /**
@@ -38,7 +52,6 @@ class SubkonCrudController extends CrudController
      */
     public function setup()
     {
-        // $this->crud->denyAllAccess(['create', 'update', 'delete', 'list', 'show']);
         CRUD::setModel(\App\Models\Subkon::class);
         CRUD::setRoute(config('backpack.base.route_prefix') . '/vendor/subkon');
         CRUD::setEntityNameStrings(trans('backpack::crud.subkon.title_header'), trans('backpack::crud.subkon.title_header'));
@@ -66,28 +79,9 @@ class SubkonCrudController extends CrudController
         ]);
     }
 
-    private function setupCard()
-    {
-        // $this->card->addCard([
-        //     'name' => 'first card',
-        //     'line' => 'top',
-        //     'title' => 'Hai namaku andi',
-        //     'wrapper' => 'col-md-4',
-        //     'view' => 'crud::components.card-1',
-        //     'params' => [
-        //         'name' => 'This is my card'
-        //     ]
-        // ]);
-    }
+    private function setupCard() {}
 
-    private function setupModal()
-    {
-        // $this->modal->addModal([
-        //     'name' => 'first_modal',
-        //     'title' => 'judul modal',
-        //     'view' => 'crud::components.modal-1',
-        // ]);
-    }
+    private function setupModal() {}
 
     public function setupComponent()
     {
@@ -97,14 +91,9 @@ class SubkonCrudController extends CrudController
 
     /**
      * Define what happens when the List operation is loaded.
-     *
-     * @see  https://backpackforlaravel.com/docs/crud-operation-list-entries
-     * @return void
      */
     protected function setupListOperation()
     {
-        // CRUD::setFromDb(); // set columns from db columns.
-
         CRUD::disableResponsiveTable();
         $request = request();
 
@@ -114,8 +103,6 @@ class SubkonCrudController extends CrudController
 
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
-
-        // CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
 
         $this->crud->addColumn([
             'name'      => 'row_number',
@@ -169,22 +156,6 @@ class SubkonCrudController extends CrudController
             'type'  => 'text',
         ]);
 
-        // CRUD::addColumn([
-        //     'name'     => 'list_po_number',
-        //     'label'    => trans('backpack::crud.subkon.column.list_po'),
-        //     'type'     => 'custom_html',
-        //     'value' => function($entry) {
-        //         return "".$entry->purchase_orders->map(function($item, $key){
-        //             return "<li>".$item->po_number."</li>";
-        //         })->implode('')."";
-        //     },
-        //     'searchLogic' => function ($query, $column, $searchTerm) {
-        //         $query->orWhereHas('purchase_orders', function ($q) use ($column, $searchTerm) {
-        //             $q->where('po_number', 'like', '%'.$searchTerm.'%');
-        //         });
-        //     }
-        // ]);
-
         CRUD::addColumn([
             'name'     => 'list_po_count',
             'label'    => trans('backpack::crud.subkon.column.count_po'),
@@ -198,29 +169,9 @@ class SubkonCrudController extends CrudController
             },
             'orderable'  => true,
             'orderLogic' => function ($query, $column, $columnDirection) {
-                $po = PurchaseOrder::select(DB::raw('subkon_id, count(po_number) as total_po'))
-                    ->groupBy('subkon_id');
-                return $query->leftJoinSub($po, 'po', function ($join) {
-                    $join->on('po.subkon_id', 'subkons.id');
-                })->select('subkons.*')->orderBy('po.total_po', $columnDirection);
+                return $this->subkonRepository->orderByPoCount($query, $columnDirection);
             }
         ]);
-
-        // CRUD::addColumn([
-        //     'name'     => 'list_spk_number',
-        //     'label'    => trans('backpack::crud.subkon.column.list_spk'),
-        //     'type'     => 'custom_html',
-        //     'value' => function($entry) {
-        //         return "".$entry->spks->map(function($item, $key){
-        //             return "<li>".$item->no_spk."</li>";
-        //         })->implode('')."";
-        //     },
-        //     'searchLogic' => function ($query, $column, $searchTerm) {
-        //         $query->orWhereHas('spks', function ($q) use ($column, $searchTerm) {
-        //             $q->where('no_spk', 'like', '%'.$searchTerm.'%');
-        //         });
-        //     }
-        // ]);
 
         CRUD::addColumn([
             'name'     => 'list_spk_count',
@@ -235,27 +186,12 @@ class SubkonCrudController extends CrudController
             },
             'orderable'  => true,
             'orderLogic' => function ($query, $column, $columnDirection) {
-                $spk = Spk::select(DB::raw('subkon_id, count(no_spk) as total_spk'))
-                    ->groupBy('subkon_id');
-                return $query->leftJoinSub($spk, 'spk', function ($join) {
-                    $join->on('spk.subkon_id', 'subkons.id');
-                })->select('subkons.*')->orderBy('spk.total_spk', $columnDirection);
+                return $this->subkonRepository->orderBySpkCount($query, $columnDirection);
             }
         ]);
 
         if ($request->has('filter_year')) {
-            if ($request->filter_year != 'all') {
-                $filterYear = $request->filter_year;
-                $this->crud->query = $this->crud->query
-                    ->where(function ($query) use ($filterYear) {
-                        $query->whereHas('purchase_orders', function ($q) use ($filterYear) {
-                            $q->where(DB::raw("YEAR(date_po)"), $filterYear);
-                        })
-                            ->orWhereHas('spks', function ($q) use ($filterYear) {
-                                $q->where(DB::raw("YEAR(date_spk)"), $filterYear);
-                            });
-                    });
-            }
+            $this->crud->query = $this->subkonRepository->applyYearFilter($this->crud->query, $request->filter_year);
         }
     }
 
@@ -266,14 +202,12 @@ class SubkonCrudController extends CrudController
 
     public function exportPdf()
     {
-
         $this->setupListExport();
 
         $columns = $this->crud->columns();
         $items =  $this->crud->getEntries();
 
         $row_number = 0;
-
         $all_items = [];
 
         foreach ($items as $item) {
@@ -281,24 +215,19 @@ class SubkonCrudController extends CrudController
             $row_number++;
             foreach ($columns as $column) {
                 $item_value = ($column['name'] == 'row_number') ? $row_number : $this->crud->getCellView($column, $item, $row_number);
-                $item_value = str_replace('<span>', '', $item_value);
-                $item_value = str_replace('</span>', '', $item_value);
-                $item_value = str_replace("\n", '', $item_value);
-                $item_value = CustomHelper::clean_html($item_value);
+                $item_value = CustomHelper::clean_html(strip_tags($item_value));
                 $row_items[] = trim($item_value);
             }
             $all_items[] = $row_items;
         }
 
-        $title = "DAFTAR SUBKON";
-
         $pdf = Pdf::loadView('exports.table-pdf', [
             'columns' => $columns,
             'items' => $all_items,
-            'title' => $title
+            'title' => "DAFTAR SUBKON"
         ])->setPaper('A4', 'landscape');
 
-        $fileName = 'vendor_po_' . now()->format('Ymd_His') . '.pdf';
+        $fileName = 'vendor_subkon_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
@@ -310,14 +239,12 @@ class SubkonCrudController extends CrudController
 
     public function exportExcel()
     {
-
         $this->setupListExport();
 
         $columns = $this->crud->columns();
         $items =  $this->crud->getEntries();
 
         $row_number = 0;
-
         $all_items = [];
 
         foreach ($items as $item) {
@@ -325,37 +252,25 @@ class SubkonCrudController extends CrudController
             $row_number++;
             foreach ($columns as $column) {
                 $item_value = ($column['name'] == 'row_number') ? $row_number : $this->crud->getCellView($column, $item, $row_number);
-                $item_value = str_replace('<span>', '', $item_value);
-                $item_value = str_replace('</span>', '', $item_value);
-                $item_value = str_replace("\n", '', $item_value);
-                $item_value = CustomHelper::clean_html($item_value);
+                $item_value = CustomHelper::clean_html(strip_tags($item_value));
                 $row_items[] = trim($item_value);
             }
             $all_items[] = $row_items;
         }
 
-        $name = 'DAFTAR SUBKON';
+        $name = 'DAFTAR_SUBKON_' . now()->format('Ymd_His') . '.xlsx';
 
-        return response()->streamDownload(function () use ($columns, $items, $all_items) {
-            echo Excel::raw(new ExportExcel(
-                $columns,
-                $all_items
-            ), \Maatwebsite\Excel\Excel::XLSX);
+        return response()->streamDownload(function () use ($columns, $all_items) {
+            echo Excel::raw(new ExportExcel($columns, $all_items), \Maatwebsite\Excel\Excel::XLSX);
         }, $name, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Download Failure',
-        ], 400);
     }
 
     public function index()
     {
         $this->crud->hasAccessOrFail('list');
-
         $this->setupComponent();
 
         $this->data['cards'] = $this->card;
@@ -374,18 +289,15 @@ class SubkonCrudController extends CrudController
 
         $this->data['breadcrumbs'] = $breadcrumbs;
 
-        $list = "crud::list-custom" ?? $this->crud->getListView();
-        return view($list, $this->data);
+        return view("crud::list-custom", $this->data);
     }
 
     public function create()
     {
         $this->crud->hasAccessOrFail('create');
-
         $this->data['crud'] = $this->crud;
         $this->data['saveAction'] = $this->crud->getSaveAction();
         $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.add') . ' ' . $this->crud->entity_name;
-
 
         return response()->json([
             'html' => view('crud::create', $this->data)->render()
@@ -395,25 +307,16 @@ class SubkonCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
-
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-            $this->data['entry'] = $this->crud->entry = $item;
+            $data = SubkonData::fromRequest($request);
+            $item = $this->subkonService->createSubkon($data);
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
-
-            $this->crud->setSaveAction();
-
-            DB::commit();
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -425,15 +328,11 @@ class SubkonCrudController extends CrudController
     public function edit($id)
     {
         $this->crud->hasAccessOrFail('update');
-
         $id = $this->crud->getCurrentEntryId() ?? $id;
-
         $this->crud->registerFieldEvents();
 
         $this->data['entry'] = $this->crud->getEntryWithLocale($id);
-
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
-
         $this->data['crud'] = $this->crud;
         $this->data['saveAction'] = $this->crud->getSaveAction();
         $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.edit') . ' ' . $this->crud->entity_name;
@@ -447,29 +346,16 @@ class SubkonCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
-
-            $item = $this->crud->update(
-                $request->get($this->crud->model->getKeyName()),
-                $this->crud->getStrippedSaveRequest($request)
-            );
-            $this->data['entry'] = $this->crud->entry = $item;
+            $data = SubkonData::fromRequest($request);
+            $item = $this->subkonService->updateSubkon($request->get($this->crud->model->getKeyName()), $data);
 
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-
-            $this->crud->setSaveAction();
-
-            DB::commit();
-
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -478,16 +364,28 @@ class SubkonCrudController extends CrudController
         }
     }
 
-    /**
-     * Define what happens when the Create operation is loaded.
-     *
-     * @see https://backpackforlaravel.com/docs/crud-operation-create
-     * @return void
-     */
+    public function destroy($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+
+        try {
+            $this->subkonService->deleteSubkon($id);
+            return response()->json([
+                'success' => true,
+                'message' => trans('backpack::crud.delete_confirmation_message')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'errors',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     protected function setupCreateOperation()
     {
         CRUD::setValidation(SubkonRequest::class);
-        // CRUD::setFromDb(); // set fields from db columns.
 
         CRUD::addField([
             'name' => 'name',
@@ -505,67 +403,68 @@ class SubkonCrudController extends CrudController
             'name' => 'npwp',
             'label' => trans('backpack::crud.subkon.column.npwp'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
         CRUD::addField([
             'name' => 'phone',
             'label' => trans('backpack::crud.subkon.column.phone'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
-        // CRUD::addField([
-        //     'name' => 'bank_name',
-        //     'label' => trans('backpack::crud.subkon.column.bank_name'),
-        //     'type' => 'text',
-        //     'wrapper'   => [
-        //         'class' => 'form-group col-md-6'
-        //     ],
-        // ]);
-
-        CRUD::field([  // Select2
+        CRUD::field([
             'label'     => trans('backpack::crud.cash_account.field.bank_name.label'),
             'type'      => 'select2_bank_tags',
             'name'      => 'bank_name',
             'options'   => ['' => trans('backpack::crud.cash_account.field.bank_name.placeholder'), ...CustomHelper::getBanks()],
-            'wrapper' => [
-                'class' => 'form-group col-md-6'
-            ]
+            'wrapper' => ['class' => 'form-group col-md-6']
         ]);
 
         CRUD::addField([
             'name' => 'bank_account',
             'label' => trans('backpack::crud.subkon.column.bank_account'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
         CRUD::addField([
             'name' => 'account_holder_name',
             'label' => trans('backpack::crud.subkon.column.account_holder_name'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
     }
 
-    /**
-     * Define what happens when the Update operation is loaded.
-     *
-     * @see https://backpackforlaravel.com/docs/crud-operation-update
-     * @return void
-     */
     protected function setupUpdateOperation()
     {
         $this->setupCreateOperation();
+    }
+
+    public function show($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+
+        // get entry ID from Request (makes sure its the last ID for nested resources)
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+
+        // get the info for that entry (include softDeleted items if the trait is used)
+        if ($this->crud->get('show.softDeletes') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses($this->crud->model))) {
+            $this->data['entry'] = $this->crud->getModel()->withTrashed()->findOrFail($id);
+        } else {
+            $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        }
+
+        $this->data['entry_value'] = $this->crud->getRowViews($this->data['entry']);
+        $this->data['crud'] = $this->crud;
+
+        $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.preview') . ' ' . $this->crud->entity_name;
+
+        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
+        // return view($this->crud->getShowView(), $this->data);
+        return response()->json([
+            'html' => view($this->crud->getShowView(), $this->data)->render()
+        ]);
     }
 
     protected function setupShowOperation()
@@ -767,33 +666,6 @@ class SubkonCrudController extends CrudController
                 }
                 return '-';
             },
-        ]);
-    }
-
-
-    public function show($id)
-    {
-        $this->crud->hasAccessOrFail('show');
-
-        // get entry ID from Request (makes sure its the last ID for nested resources)
-        $id = $this->crud->getCurrentEntryId() ?? $id;
-
-        // get the info for that entry (include softDeleted items if the trait is used)
-        if ($this->crud->get('show.softDeletes') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses($this->crud->model))) {
-            $this->data['entry'] = $this->crud->getModel()->withTrashed()->findOrFail($id);
-        } else {
-            $this->data['entry'] = $this->crud->getEntryWithLocale($id);
-        }
-
-        $this->data['entry_value'] = $this->crud->getRowViews($this->data['entry']);
-        $this->data['crud'] = $this->crud;
-
-        $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.preview') . ' ' . $this->crud->entity_name;
-
-        // load the view from /resources/views/vendor/backpack/crud/ if it exists, otherwise load the one in the package
-        // return view($this->crud->getShowView(), $this->data);
-        return response()->json([
-            'html' => view($this->crud->getShowView(), $this->data)->render()
         ]);
     }
 }

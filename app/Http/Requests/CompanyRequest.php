@@ -3,9 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Backpack\CRUD\app\Library\Validation\Rules\ValidUpload;
 
-class PurchaseOrderRequest extends FormRequest
+class CompanyRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,27 +24,9 @@ class PurchaseOrderRequest extends FormRequest
      */
     public function rules()
     {
-
-        $id = request('id');
-
-        $rule = [
-            'subkon_id' => 'required|exists:subkons,id',
-            'po_number' => 'required|string|max:255',
-            'date_po' => 'required|string',
-            'job_name' => 'required|string|max:255',
-            'job_description' => 'required',
-            'job_value' => 'required|numeric|min:1000',
-            'status' => 'required|in:open,close',
-            'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
+        return [
+            // 'name' => 'required|min:5|max:255'
         ];
-
-        if (request()->has('work_code')) {
-            $rule['work_code'] = 'required|max:30';
-        } else {
-            $rule['work_code'] = 'nullable|max:30';
-        }
-
-        return $rule;
     }
 
     /**

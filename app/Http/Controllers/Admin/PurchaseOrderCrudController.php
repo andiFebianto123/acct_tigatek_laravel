@@ -14,11 +14,14 @@ use App\Http\Exports\ExportVendorPo;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\CrudController;
+use App\DTOs\SubkonManagement\PurchaseOrderData;
+use App\DTOs\SubkonManagement\PurchaseOrderFilterData;
+use App\Services\SubkonManagement\PurchaseOrderService;
+use App\Repositories\SubkonManagement\PurchaseOrderRepository;
 use App\Http\Requests\PurchaseOrderRequest;
-use Backpack\CRUD\app\Library\CrudPanel\CrudPanel;
 use App\Http\Controllers\Admin\PurchaseOrderTabController;
 use App\Http\Controllers\Operation\PermissionAccess;
-use App\Models\Voucher;
+use Backpack\CRUD\app\Library\CrudPanel\CrudPanel;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
 /**
@@ -34,6 +37,18 @@ class PurchaseOrderCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
+
+    protected $purchaseOrderService;
+    protected $purchaseOrderRepository;
+
+    public function __construct(
+        PurchaseOrderService $purchaseOrderService,
+        PurchaseOrderRepository $purchaseOrderRepository
+    ) {
+        parent::__construct();
+        $this->purchaseOrderService = $purchaseOrderService;
+        $this->purchaseOrderRepository = $purchaseOrderRepository;
+    }
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
      *
@@ -87,99 +102,13 @@ class PurchaseOrderCrudController extends CrudController
 
     public function total_price()
     {
-        $request = request();
-        $filter_year = $request->filter_year;
-
-        $total_open = PurchaseOrder::query()->where('status', PurchaseOrder::OPEN);
-        if ($filter_year != null && $filter_year != 'all') {
-            $total_open = $total_open->where(DB::raw("YEAR(date_po)"), $filter_year);
-        }
-        $sum_open = $total_open->sum('total_value_with_tax');
-
-        $total_closed = PurchaseOrder::query()->where('status', PurchaseOrder::CLOSE);
-        if ($filter_year != null && $filter_year != 'all') {
-            $total_closed = $total_closed->where(DB::raw("YEAR(date_po)"), $filter_year);
-        }
-        $sum_closed = $total_closed->sum('total_value_with_tax');
-
-        $price_total_open = CustomHelper::formatRupiahWithCurrency($sum_open);
-        $price_total_closed = CustomHelper::formatRupiahWithCurrency($sum_closed);
-        return [
-            'total_open' => $price_total_open,
-            'total_closed' => $price_total_closed
-        ];
+        return $this->purchaseOrderRepository->getTotalPrices(request()->filter_year);
     }
 
     private function applySearchFilters($query, $request)
     {
-        if ($request->has('columns')) {
-            // Index 1: po_number
-            if (trim($request->columns[1]['search']['value'] ?? '') != '') {
-                $search = $request->columns[1]['search']['value'];
-                $query = $query->where('po_number', 'like', "%{$search}%");
-            }
-            // Index 2: date_po
-            if (trim($request->columns[2]['search']['value'] ?? '') != '') {
-                $search = $request->columns[2]['search']['value'];
-                $query = $query->where('date_po', 'like', "%{$search}%");
-            }
-            // Index 3: subkon_id (searching by subkon.name)
-            if (trim($request->columns[3]['search']['value'] ?? '') != '') {
-                $search = $request->columns[3]['search']['value'];
-                $query = $query->whereHas('subkon', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
-                });
-            }
-            // Index 4: work_code
-            if (trim($request->columns[4]['search']['value'] ?? '') != '') {
-                $search = $request->columns[4]['search']['value'];
-                $query = $query->where('work_code', 'like', "%{$search}%");
-            }
-            // Index 5: job_name
-            if (trim($request->columns[5]['search']['value'] ?? '') != '') {
-                $search = $request->columns[5]['search']['value'];
-                $query = $query->where('job_name', 'like', "%{$search}%");
-            }
-            // Index 6: job_description
-            if (trim($request->columns[6]['search']['value'] ?? '') != '') {
-                $search = $request->columns[6]['search']['value'];
-                $query = $query->where('job_description', 'like', "%{$search}%");
-            }
-            // Index 7: job_value
-            if (trim($request->columns[7]['search']['value'] ?? '') != '') {
-                $search = $request->columns[7]['search']['value'];
-                $query = $query->where('job_value', 'like', "%{$search}%");
-            }
-            // Index 8: tax_ppn
-            if (trim($request->columns[8]['search']['value'] ?? '') != '') {
-                $search = $request->columns[8]['search']['value'];
-                $query = $query->where('tax_ppn', 'like', "%{$search}%");
-            }
-            // Index 9: total_value_with_tax
-            if (trim($request->columns[9]['search']['value'] ?? '') != '') {
-                $search = $request->columns[9]['search']['value'];
-                $query = $query->where('total_value_with_tax', 'like', "%{$search}%");
-            }
-            // Index 10: due_date
-            if (trim($request->columns[10]['search']['value'] ?? '') != '') {
-                $search = $request->columns[10]['search']['value'];
-                $query = $query->where(function ($q) use ($search) {
-                    $q->where('due_date', 'like', "%{$search}%")
-                        ->orWhere('date_po', 'like', "%{$search}%");
-                });
-            }
-            // Index 11: status
-            if (trim($request->columns[11]['search']['value'] ?? '') != '') {
-                $search = $request->columns[11]['search']['value'];
-                $query = $query->where('status', 'like', "%{$search}%");
-            }
-            // Index 13: additional_info
-            if (trim($request->columns[13]['search']['value'] ?? '') != '') {
-                $search = $request->columns[13]['search']['value'];
-                $query = $query->where('additional_info', 'like', "%{$search}%");
-            }
-        }
-        return $query;
+        $filters = PurchaseOrderFilterData::fromRequest($request);
+        return $this->purchaseOrderRepository->applySearchFilters($query, $filters);
     }
 
     public function index()
@@ -519,53 +448,26 @@ class PurchaseOrderCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-
-        request()->merge([
-            'total_value_with_tax' => request()->job_value + (request()->job_value * request()->tax_ppn / 100),
-        ]);
-
-        if (request()->tax_ppn == null) {
-            request()->merge([
-                'tax_ppn' => 0,
-            ]);
-        }
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
+            $dto = PurchaseOrderData::fromRequest($request);
+            $item = $this->purchaseOrderService->createPO($dto);
 
-            $status = request()->status;
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
             $this->data['entry'] = $this->crud->entry = $item;
-
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
-
-            $events = [];
-            // if($status == PurchaseOrder::OPEN){
-            //     $events['crudTable-list_open_create_success'] = $item;
-            // }else if($status == PurchaseOrder::CLOSE){
-            //     $events['crudTable-list_close_create_success'] = $item;
-            // }
-            $events['crudTable-list_all_po_create_success'] = $item;
-            $events['crudTable-list_open_create_success'] = $item;
-            $events['crudTable-list_close_create_success'] = $item;
-            $events['crudTable-filter-purchase_order_plugin_load'] = $item;
             $this->crud->setSaveAction();
 
-            DB::commit();
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
                     'data' => $item,
-                    'events' => $events,
+                    'events' => $this->purchaseOrderService->getUIEvents($item, 'create'),
                 ]);
             }
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -599,59 +501,29 @@ class PurchaseOrderCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
-        request()->merge([
-            'total_value_with_tax' => request()->job_value + (request()->job_value * request()->tax_ppn / 100),
-        ]);
-
-        if (request()->tax_ppn == null) {
-            request()->merge([
-                'tax_ppn' => 0,
-            ]);
-        }
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
+            $dto = PurchaseOrderData::fromRequest($request);
+            $id = $request->get($this->crud->model->getKeyName());
 
-            $status = request()->status;
-            $item = $this->crud->update(
-                $request->get($this->crud->model->getKeyName()),
-                $this->crud->getStrippedSaveRequest($request)
-            );
+            $item = $this->purchaseOrderService->updatePO($id, $dto);
+
             $this->data['entry'] = $this->crud->entry = $item;
-
-
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-
-            $events = [];
-            // if($status == PurchaseOrder::OPEN){
-            //     $events['crudTable-list_open_updated_success'] = $item;
-            // }else if($status == PurchaseOrder::CLOSE){
-            //     $events['crudTable-list_close_updated_success'] = $item;
-            // }
-
-            $events['crudTable-list_all_po_updated_success'] = $item;
-            $events['crudTable-list_open_updated_success'] = $item;
-            $events['crudTable-list_close_updated_success'] = $item;
-            $events['crudTable-filter-purchase_order_plugin_load'] = $item;
             $this->crud->setSaveAction();
 
-            DB::commit();
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
                     'data' => $item,
-                    'events' => $events,
+                    'events' => $this->purchaseOrderService->getUIEvents($item, 'update'),
                 ]);
             }
 
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -863,9 +735,7 @@ class PurchaseOrderCrudController extends CrudController
             }
         } else {
             $id = $this->crud->getCurrentEntryId();
-            $voucher_exists = Voucher::where('reference_type', PurchaseOrder::class)
-                ->where('reference_id', $id)->first();
-            if ($voucher_exists) {
+            if ($id && $this->purchaseOrderRepository->hasVoucher($id)) {
                 $work_code_disable = [
                     'disabled' => true,
                 ];
@@ -1045,11 +915,13 @@ class PurchaseOrderCrudController extends CrudController
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
-            'withFiles' => [
-                'disk' => 'public',
-                'path' => 'document_po',
-                'deleteWhenEntryIsDeleted' => true,
-            ],
+            'disk' => 'public',
+            'custom_upload' => true,
+            // 'withFiles' => [
+            //     'disk' => 'public',
+            //     'path' => 'document_po',
+            //     'deleteWhenEntryIsDeleted' => true,
+            // ],
         ]);
 
         CRUD::addField([
@@ -1059,9 +931,6 @@ class PurchaseOrderCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.po.field.additional_info.placeholder')
             ]
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
         ]);
 
         /**
@@ -1274,7 +1143,7 @@ class PurchaseOrderCrudController extends CrudController
                     'element' => 'a', // the element will default to "a" so you can skip it here
                     'href' => function ($crud, $column, $entry, $related_key) {
                         if ($entry->document_path != '') {
-                            return url('storage/document_po/' . $entry->document_path);
+                            return url("storage/" . $entry->document_path);
                         }
                         return "javascript:void(0)";
                     },
@@ -1396,96 +1265,10 @@ class PurchaseOrderCrudController extends CrudController
 
     public function exportPdf()
     {
-        $type = request()->tab;
-        if ($type == 'open') {
-            $type_origin = 'open';
-        } else if ($type == 'close') {
-            $type_origin = 'close';
-        } else {
-            $type_origin = 'all';
-        }
-        $items = new PurchaseOrder;
-
-        if ($type_origin != 'all') {
-            $items = $items->where('status', strtolower($type_origin));
-        }
-
-        if (request()->has('filter_year') && request()->filter_year != 'all') {
-            $items = $items->whereYear('date_po', request()->filter_year);
-        }
-
-        if (request()->has('columns')) {
-            // Index 1: po_number
-            if (trim(request()->columns[1]['search']['value'] ?? '') != '') {
-                $search = request()->columns[1]['search']['value'];
-                $items = $items->where('po_number', 'like', "%{$search}%");
-            }
-            // Index 2: date_po
-            if (trim(request()->columns[2]['search']['value'] ?? '') != '') {
-                $search = request()->columns[2]['search']['value'];
-                $items = $items->where('date_po', 'like', "%{$search}%");
-            }
-            // Index 3: subkon_id (searching by subkon.name)
-            if (trim(request()->columns[3]['search']['value'] ?? '') != '') {
-                $search = request()->columns[3]['search']['value'];
-                $items = $items->whereHas('subkon', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
-                });
-            }
-            // Index 4: work_code
-            if (trim(request()->columns[4]['search']['value'] ?? '') != '') {
-                $search = request()->columns[4]['search']['value'];
-                $items = $items->where('work_code', 'like', "%{$search}%");
-            }
-            // Index 5: job_name
-            if (trim(request()->columns[5]['search']['value'] ?? '') != '') {
-                $search = request()->columns[5]['search']['value'];
-                $items = $items->where('job_name', 'like', "%{$search}%");
-            }
-            // Index 6: job_description
-            if (trim(request()->columns[6]['search']['value'] ?? '') != '') {
-                $search = request()->columns[6]['search']['value'];
-                $items = $items->where('job_description', 'like', "%{$search}%");
-            }
-            // Index 7: job_value
-            if (trim(request()->columns[7]['search']['value'] ?? '') != '') {
-                $search = request()->columns[7]['search']['value'];
-                $items = $items->where('job_value', 'like', "%{$search}%");
-            }
-            // Index 8: tax_ppn
-            if (trim(request()->columns[8]['search']['value'] ?? '') != '') {
-                $search = request()->columns[8]['search']['value'];
-                $items = $items->where('tax_ppn', 'like', "%{$search}%");
-            }
-            // Index 9: total_value_with_tax
-            if (trim(request()->columns[9]['search']['value'] ?? '') != '') {
-                $search = request()->columns[9]['search']['value'];
-                $items = $items->where('total_value_with_tax', 'like', "%{$search}%");
-            }
-            // Index 10: due_date
-            if (trim(request()->columns[10]['search']['value'] ?? '') != '') {
-                $search = request()->columns[10]['search']['value'];
-                $items = $items->where(function ($q) use ($search) {
-                    $q->where('due_date', 'like', "%{$search}%")
-                        ->orWhere('date_po', 'like', "%{$search}%");
-                });
-            }
-            // Index 11: status
-            if (trim(request()->columns[11]['search']['value'] ?? '') != '') {
-                $search = request()->columns[11]['search']['value'];
-                $items = $items->where('status', 'like', "%{$search}%");
-            }
-            // Index 13: additional_info
-            if (trim(request()->columns[13]['search']['value'] ?? '') != '') {
-                $search = request()->columns[13]['search']['value'];
-                $items = $items->where('additional_info', 'like', "%{$search}%");
-            }
-        }
-
-        $items = $items->get();
+        $filters = PurchaseOrderFilterData::fromRequest(request());
+        $items = $this->purchaseOrderRepository->getFilteredData($filters)->get();
 
         $pdf = Pdf::loadView('exports.vendor-po-pdf', compact('items'))->setPaper('A4', 'landscape');
-
         $fileName = 'vendor_po_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
@@ -1499,26 +1282,22 @@ class PurchaseOrderCrudController extends CrudController
     public function destroy($id)
     {
         $this->crud->hasAccessOrFail('delete');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        DB::beginTransaction();
         try {
+            $this->purchaseOrderService->deletePO($id);
 
-            $id = $this->crud->getCurrentEntryId() ?? $id;
-
-            $this->crud->delete($id);
-
-            $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
-            $messages['events'] = [
-                'crudTable-list_all_po_create_success' => true,
-                'crudTable-list_open_create_success' => true,
-                'crudTable-list_close_create_success' => true,
-                'crudTable-filter-purchase_order_plugin_load' => true
-            ];
-
-            DB::commit();
-            return response()->json($messages);
+            return response()->json([
+                'success' => true,
+                'message' => trans('backpack::crud.delete_confirmation_message'),
+                'events' => [
+                    'crudTable-list_all_po_create_success' => true,
+                    'crudTable-list_open_create_success' => true,
+                    'crudTable-list_close_create_success' => true,
+                    'crudTable-filter-purchase_order_plugin_load' => true
+                ]
+            ]);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'type' => 'errors',
                 'message' => $e->getMessage()

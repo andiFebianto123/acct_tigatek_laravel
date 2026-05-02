@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Operation\CrudTrait;
 use App\Models\Subkon;
-use Illuminate\Database\Eloquent\Model;
-use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Spk extends Model
 {
@@ -39,7 +39,8 @@ class Spk extends Model
     |--------------------------------------------------------------------------
     */
 
-    function subkon(){
+    function subkon()
+    {
         return $this->belongsTo(Subkon::class, 'subkon_id');
     }
 

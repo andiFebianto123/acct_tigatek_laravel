@@ -2,6 +2,19 @@
     $field['wrapper'] = $field['wrapper'] ?? $field['wrapperAttributes'] ?? [];
     $field['wrapper']['data-init-function'] = $field['wrapper']['data-init-function'] ?? 'bpFieldInitUploadElement';
     $field['wrapper']['data-field-name'] = $field['wrapper']['data-field-name'] ?? $field['name'];
+    if (isset($field['value'])) {
+        if (isset($field['custom_upload'])) {
+            $displayValue = basename($field['value']);
+            if (strlen($displayValue) > 40) {
+                $file_name = pathinfo($displayValue, PATHINFO_FILENAME);
+                $extension = pathinfo($displayValue, PATHINFO_EXTENSION);
+                $value = substr($file_name, 0, 40) . '....' . ($extension ? '.' . $extension : '');
+            } else {
+                $value = $displayValue;
+            }
+            // $field['value'] = $value;
+        }
+    }
 @endphp
 
 {{-- text input --}}
@@ -21,7 +34,7 @@
         @else
             <a target="_blank" href="{{ (asset(Arr::get($field, 'prefix', '').$field['value'])) }}">
         @endif
-            {{ $field['value'] }}
+            {{ $value ?? $field['value'] }}
         </a>
     	<a href="#" class="file_clear_button btn btn-light btn-sm float-right" title="Clear file" data-filename="{{ $field['value'] }}"><i class="la la-remove"></i></a>
     	<div class="clearfix"></div>

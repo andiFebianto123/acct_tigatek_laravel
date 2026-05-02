@@ -15,6 +15,11 @@ use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\PermissionAccess;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
+use App\DTOs\SubkonManagement\SpkData;
+use App\DTOs\SubkonManagement\SpkFilterData;
+use App\Services\SubkonManagement\SpkService;
+use App\Repositories\SubkonManagement\SpkRepository;
+
 /**
  * Class SpkCrudController
  * @package App\Http\Controllers\Admin
@@ -28,6 +33,18 @@ class SpkCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
+
+    protected $spkService;
+    protected $spkRepository;
+
+    public function __construct(
+        SpkService $spkService,
+        SpkRepository $spkRepository
+    ) {
+        parent::__construct();
+        $this->spkService = $spkService;
+        $this->spkRepository = $spkRepository;
+    }
 
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
@@ -73,25 +90,7 @@ class SpkCrudController extends CrudController
 
     public function total_price()
     {
-        $filter_year = request()->filter_year;
-        $total_open = Spk::where('status', Spk::OPEN);
-        if ($filter_year != null && $filter_year != 'all') {
-            $total_open = $total_open->where(DB::raw("YEAR(date_spk)"), $filter_year);
-        }
-        $total_open = $total_open->sum('total_value_with_tax');
-
-        $total_closed = Spk::where('status', Spk::CLOSE);
-        if ($filter_year != null && $filter_year != 'all') {
-            $total_closed = $total_closed->where(DB::raw("YEAR(date_spk)"), $filter_year);
-        }
-        $total_closed = $total_closed->sum('total_value_with_tax');
-
-        $price_total_open = CustomHelper::formatRupiahWithCurrency($total_open);
-        $price_total_closed = CustomHelper::formatRupiahWithCurrency($total_closed);
-        return [
-            'total_open' => $price_total_open,
-            'total_closed' => $price_total_closed
-        ];
+        return $this->spkRepository->getTotalPrices(request()->filter_year);
     }
 
     public function index()
@@ -427,50 +426,25 @@ class SpkCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-
-        request()->merge([
-            'total_value_with_tax' => request()->job_value + (request()->job_value * request()->tax_ppn / 100),
-        ]);
-
-        if (request()->tax_ppn == null) {
-            request()->merge([
-                'tax_ppn' => 0,
-            ]);
-        }
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
-
-            $events = [];
-
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-            $this->data['entry'] = $this->crud->entry = $item;
-
-            $events['crudTable-list_all_spk_create_success'] = $item;
-            $events['crudTable-list_open_create_success'] = $item;
-            $events['crudTable-list_close_create_success'] = $item;
-            $events['crudTable-filter-spk_plugin_load'] = $item;
-
+            $data = SpkData::fromRequest($request);
+            $item = $this->spkService->createSpk($data);
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
 
-            $this->crud->setSaveAction();
-            DB::commit();
+
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
                     'data' => $item,
-                    'events' => $events,
+                    'events' => $this->spkService->getUIEvents($item, 'create'),
                 ]);
             }
-
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -504,53 +478,23 @@ class SpkCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
-        request()->merge([
-            'total_value_with_tax' => request()->job_value + (request()->job_value * request()->tax_ppn / 100),
-        ]);
-
-        if (request()->tax_ppn == null) {
-            request()->merge([
-                'tax_ppn' => 0,
-            ]);
-        }
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
-
-            $events = [];
-
-            $item = $this->crud->update(
-                $request->get($this->crud->model->getKeyName()),
-                $this->crud->getStrippedSaveRequest($request)
-            );
-            $this->data['entry'] = $this->crud->entry = $item;
-
-            $events['crudTable-list_all_spk_create_success'] = $item;
-            $events['crudTable-list_open_create_success'] = $item;
-            $events['crudTable-list_close_create_success'] = $item;
-            $events['crudTable-filter-spk_plugin_load'] = $item;
+            $data = SpkData::fromRequest($request);
+            $item = $this->spkService->updateSpk($request->get($this->crud->model->getKeyName()), $data);
 
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-
-            $this->crud->setSaveAction();
-
-            DB::commit();
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
                     'data' => $item,
-                    'events' => $events,
+                    'events' => $this->spkService->getUIEvents($item, 'update'),
                 ]);
             }
-
             return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -584,21 +528,8 @@ class SpkCrudController extends CrudController
 
         $request = request();
 
-        if ($request->has('filter_year')) {
-            if ($request->filter_year != 'all') {
-                $filterYear = $request->filter_year;
-                $this->crud->query = $this->crud->query
-                    ->where(DB::raw("YEAR(date_spk)"), $filterYear);
-            }
-        }
-
-        if ($request->has('tab')) {
-            if ($request->tab == 'open') {
-                $this->crud->query = $this->crud->query->where('status', Spk::OPEN);
-            } else if ($request->tab == 'close') {
-                $this->crud->query = $this->crud->query->where('status', Spk::CLOSE);
-            }
-        }
+        $filters = SpkFilterData::fromRequest($request);
+        $this->crud->query = $this->spkRepository->getFilteredData($filters);
 
         $this->crud->addColumn([
             'name'      => 'row_number',
@@ -831,15 +762,12 @@ class SpkCrudController extends CrudController
 
     public function exportPdf()
     {
-
-        // $this->setupListExport();
         $this->setupListOperation();
+        $filters = SpkFilterData::fromRequest(request());
+        $items = $this->spkRepository->getFilteredData($filters)->get();
 
         $columns = $this->crud->columns();
-        $items =  $this->crud->getEntries();
-
         $row_number = 0;
-
         $all_items = [];
 
         foreach ($items as $item) {
@@ -847,24 +775,19 @@ class SpkCrudController extends CrudController
             $row_number++;
             foreach ($columns as $column) {
                 $item_value = ($column['name'] == 'row_number') ? $row_number : $this->crud->getCellView($column, $item, $row_number);
-                $item_value = str_replace('<span>', '', $item_value);
-                $item_value = str_replace('</span>', '', $item_value);
-                $item_value = str_replace("\n", '', $item_value);
-                $item_value = CustomHelper::clean_html($item_value);
+                $item_value = CustomHelper::clean_html(strip_tags($item_value));
                 $row_items[] = trim($item_value);
             }
             $all_items[] = $row_items;
         }
 
-        $title = "DAFTAR SPK";
-
         $pdf = Pdf::loadView('exports.table-pdf', [
             'columns' => $columns,
             'items' => $all_items,
-            'title' => $title
+            'title' => "DAFTAR SPK"
         ])->setPaper('A4', 'landscape');
 
-        $fileName = 'vendor_po_' . now()->format('Ymd_His') . '.pdf';
+        $fileName = 'vendor_spk_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
@@ -876,15 +799,12 @@ class SpkCrudController extends CrudController
 
     public function exportExcel()
     {
-
-        // $this->setupListExport();
         $this->setupListOperation();
+        $filters = SpkFilterData::fromRequest(request());
+        $items = $this->spkRepository->getFilteredData($filters)->get();
 
         $columns = $this->crud->columns();
-        $items =  $this->crud->getEntries();
-
         $row_number = 0;
-
         $all_items = [];
 
         foreach ($items as $item) {
@@ -892,31 +812,44 @@ class SpkCrudController extends CrudController
             $row_number++;
             foreach ($columns as $column) {
                 $item_value = ($column['name'] == 'row_number') ? $row_number : $this->crud->getCellView($column, $item, $row_number);
-                $item_value = str_replace('<span>', '', $item_value);
-                $item_value = str_replace('</span>', '', $item_value);
-                $item_value = str_replace("\n", '', $item_value);
-                $item_value = CustomHelper::clean_html($item_value);
+                $item_value = CustomHelper::clean_html(strip_tags($item_value));
                 $row_items[] = trim($item_value);
             }
             $all_items[] = $row_items;
         }
 
-        $name = 'DAFTAR SPK';
+        $name = 'DAFTAR_SPK_' . now()->format('Ymd_His') . '.xlsx';
 
-        return response()->streamDownload(function () use ($columns, $items, $all_items) {
-            echo Excel::raw(new ExportExcel(
-                $columns,
-                $all_items
-            ), \Maatwebsite\Excel\Excel::XLSX);
+        return response()->streamDownload(function () use ($columns, $all_items) {
+            echo Excel::raw(new ExportExcel($columns, $all_items), \Maatwebsite\Excel\Excel::XLSX);
         }, $name, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
+    }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Download Failure',
-        ], 400);
+    public function destroy($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+
+        try {
+            // Check if there are related vouchers before deleting
+            if ($this->spkRepository->hasVoucher($id)) {
+                throw new \Exception("Cannot delete SPK because it has associated vouchers.");
+            }
+
+            $this->spkService->deleteSpk($id);
+            return response()->json([
+                'success' => true,
+                'message' => trans('backpack::crud.delete_confirmation_message')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'type' => 'errors',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -1154,6 +1087,20 @@ class SpkCrudController extends CrudController
             ],
         ]);
 
+        // CRUD::addField([
+        //     'name' => 'document_path',
+        //     'label' => trans('backpack::crud.spk.field.document_path.label'),
+        //     'type' => 'upload',
+        //     'wrapper'   => [
+        //         'class' => 'form-group col-md-6'
+        //     ],
+        //     'withFiles' => [
+        //         'disk' => 'public',
+        //         'path' => 'document_spk',
+        //         'deleteWhenEntryIsDeleted' => true,
+        //     ],
+        // ]);
+
         CRUD::addField([
             'name' => 'document_path',
             'label' => trans('backpack::crud.spk.field.document_path.label'),
@@ -1161,11 +1108,13 @@ class SpkCrudController extends CrudController
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
-            'withFiles' => [
-                'disk' => 'public',
-                'path' => 'document_spk',
-                'deleteWhenEntryIsDeleted' => true,
-            ],
+            'disk' => 'public',
+            'custom_upload' => true,
+            // 'withFiles' => [
+            //     'disk' => 'public',
+            //     'path' => 'document_po',
+            //     'deleteWhenEntryIsDeleted' => true,
+            // ],
         ]);
 
         CRUD::addField([
@@ -1283,7 +1232,7 @@ class SpkCrudController extends CrudController
                     'element' => 'a', // the element will default to "a" so you can skip it here
                     'href' => function ($crud, $column, $entry, $related_key) {
                         if ($entry->document_path != '') {
-                            return url('storage/document_spk/' . $entry->document_path);
+                            return url('storage/' . $entry->document_path);
                         }
                         return "javascript:void(0)";
                     },
