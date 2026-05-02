@@ -14,6 +14,7 @@ class SubkonData
         public ?string $bank_name,
         public ?string $bank_account,
         public ?string $account_holder_name,
+        public ?int $company_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -26,6 +27,7 @@ class SubkonData
             bank_name: $request->input('bank_name'),
             bank_account: $request->input('bank_account'),
             account_holder_name: $request->input('account_holder_name'),
+            company_id: $request->input('company_id'),
         );
     }
 
@@ -39,6 +41,7 @@ class SubkonData
             'bank_name' => $this->bank_name,
             'bank_account' => $this->bank_account,
             'account_holder_name' => $this->account_holder_name,
+            'company_id' => $this->company_id,
         ];
     }
 }

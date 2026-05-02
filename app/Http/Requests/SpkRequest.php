@@ -39,6 +39,7 @@ class SpkRequest extends FormRequest
             'tax_ppn' => 'nullable|numeric|min:0',
             'status' => 'required|in:open,close',
             'total_value_with_tax' => 'nullable|numeric',
+            'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',
         ];
 
         return $rule;

@@ -45,6 +45,11 @@ class PurchaseOrder extends Model
         return $this->belongsTo(Subkon::class, 'subkon_id');
     }
 
+    function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

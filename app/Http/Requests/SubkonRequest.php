@@ -37,6 +37,7 @@ class SubkonRequest extends FormRequest
             'bank_name' => 'required|string|max:255',
             'bank_account' => 'required|numeric|digits_between:5,255',
             'account_holder_name' => 'required|max:60',
+            'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',
         ];
     }
 

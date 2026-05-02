@@ -21,6 +21,7 @@ class SpkData
         public ?string $status,
         public UploadedFile|string|null $document_path,
         public ?string $additional_info,
+        public ?int $company_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -39,6 +40,7 @@ class SpkData
             status: $request->input('status'),
             document_path: $request->file('document_path') ?? $request->input('document_path'),
             additional_info: $request->input('additional_info'),
+            company_id: backpack_user()->hasRole('Super Admin') ? $request->input('company_id') : backpack_user()->company_id,
         );
     }
 
@@ -57,6 +59,7 @@ class SpkData
             'due_date' => $this->due_date,
             'status' => $this->status,
             'additional_info' => $this->additional_info,
+            'company_id' => $this->company_id,
         ];
 
         if (is_string($this->document_path)) {

@@ -37,6 +37,7 @@ class PurchaseOrderRequest extends FormRequest
             'job_value' => 'required|numeric|min:1000',
             'status' => 'required|in:open,close',
             'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
+            'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',
         ];
 
         if (request()->has('work_code')) {

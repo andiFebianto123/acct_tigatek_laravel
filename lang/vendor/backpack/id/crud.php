@@ -291,6 +291,7 @@ return [
         'title_modal_create' => 'Data Vendor (Subkon)',
         'title_modal_edit' => 'Data Vendor (Subkon)',
         'column' => [
+            'company' => 'Milik Perusahaan',
             'name' => 'Nama Badan Usaha',
             'address' => 'Alamat',
             'npwp' => 'NPWP',

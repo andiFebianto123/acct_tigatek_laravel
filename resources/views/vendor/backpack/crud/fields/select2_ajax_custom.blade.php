@@ -101,10 +101,10 @@
 
         var delay = parseInt(element.data('delay')) || 250;
         var method = element.data('method') || 'post';
-        var includeAllFormFields = element.data('include-all-form-fields') === 'true';
+        var includeAllFormFields = element.data('include-all-form-fields') == true;
         var dependencies = element.data('dependencies') ? element.data('dependencies').split(',') : [];
         var valueId = element.data('value-id');
-        var valueName = element.data('value-name');
+        var valueName = element.data('value-name');        
 
         var form = (formCrud == 'create') ? '#modalCreate' : '#modalEdit';
 
@@ -145,6 +145,7 @@
                                 }
                             });
                         }
+                        console.log(query, 'andi');
                     }
 
                     return query;

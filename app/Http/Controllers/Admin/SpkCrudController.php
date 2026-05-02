@@ -119,6 +119,14 @@ class SpkCrudController extends CrudController
                                     'label'     => 'No',
                                     'orderable' => false,
                                 ],
+                                ...(backpack_user()->hasRole('Super Admin') ? [[
+                                    'label' => trans('backpack::crud.subkon.column.company'),
+                                    'type'      => 'select',
+                                    'name'      => 'company_id',
+                                    'entity'    => 'company',
+                                    'attribute' => 'name',
+                                    'model'     => "App\Models\Company",
+                                ]] : []),
                                 [
                                     'label'  => trans('backpack::crud.spk.column.no_spk'),
                                     'name' => 'no_spk',
@@ -214,6 +222,14 @@ class SpkCrudController extends CrudController
                                     'label'     => 'No',
                                     'orderable' => false,
                                 ],
+                                ...(backpack_user()->hasRole('Super Admin') ? [[
+                                    'label' => trans('backpack::crud.subkon.column.company'),
+                                    'type'      => 'select',
+                                    'name'      => 'company_id',
+                                    'entity'    => 'company',
+                                    'attribute' => 'name',
+                                    'model'     => "App\Models\Company",
+                                ]] : []),
                                 [
                                     'label'  => trans('backpack::crud.spk.column.no_spk'),
                                     'name' => 'no_spk',
@@ -305,6 +321,14 @@ class SpkCrudController extends CrudController
                                     'label'     => 'No',
                                     'orderable' => false,
                                 ],
+                                ...(backpack_user()->hasRole('Super Admin') ? [[
+                                    'label' => trans('backpack::crud.subkon.column.company'),
+                                    'type'      => 'select',
+                                    'name'      => 'company_id',
+                                    'entity'    => 'company',
+                                    'attribute' => 'name',
+                                    'model'     => "App\Models\Company",
+                                ]] : []),
                                 [
                                     'label'  => trans('backpack::crud.spk.column.no_spk'),
                                     'name' => 'no_spk',
@@ -541,6 +565,17 @@ class SpkCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
+
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.spk.column.no_spk'),
@@ -582,7 +617,7 @@ class SpkCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.spk.column.job_name'),
                 'name' => 'job_name',
-                'type'  => 'text'
+                'type'  => 'wrap_text'
             ],
         );
 
@@ -682,6 +717,17 @@ class SpkCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'closure',
+                'name'      => 'company_id',
+                'function'  => function ($entry) {
+                    return $entry->company?->name;
+                }
+            ]);
+        }
 
         CRUD::column(
             [
@@ -889,6 +935,28 @@ class SpkCrudController extends CrudController
             }
         }
 
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addField([
+                'name'      => 'company_id',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select2_array',
+                'options'   => \App\Models\Company::all()->pluck('name', 'id')->toArray(),
+                'allows_null' => false,
+                'wrapper'   => ['class' => 'form-group col-md-6'],
+            ]);
+            CRUD::addField([   // Hidden
+                'name'  => 'space_0',
+                'type'  => 'hidden',
+                'value' => 'active',
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6'
+                ],
+                'attributes' => [
+                    'disabled'  => 'disabled',
+                ]
+            ]);
+        }
+
 
 
         // CRUD::setFromDb(); // set fields from db columns.
@@ -907,6 +975,8 @@ class SpkCrudController extends CrudController
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
         ]);
 
         CRUD::addField([   // Hidden
@@ -1171,6 +1241,20 @@ class SpkCrudController extends CrudController
         CRUD::field('space')->remove();
         CRUD::field('additional_info')->remove();
         CRUD::field('space_2')->remove();
+        CRUD::field('space_0')->remove();
+        CRUD::field('company_id')->remove();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::field([
+                'name'      => 'company',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+                'wrapper'   => ['class' => 'form-group col-md-12'],
+            ])->before('subkon_id');
+        }
 
         // update subkon id
         CRUD::field('subkon_id')->remove();

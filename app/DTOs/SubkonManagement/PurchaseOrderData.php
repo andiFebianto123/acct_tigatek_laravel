@@ -19,6 +19,7 @@ class PurchaseOrderData
         public ?string $status,
         public mixed $document_path,
         public ?string $additional_info,
+        public ?int $company_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -36,6 +37,7 @@ class PurchaseOrderData
             status: $request->input('status'),
             document_path: $request->hasFile('document_path') ? $request->file('document_path') : $request->input('document_path'),
             additional_info: $request->input('additional_info'),
+            company_id: $request->input('company_id'),
         );
     }
 
@@ -54,6 +56,7 @@ class PurchaseOrderData
             'status' => $this->status,
             'document_path' => $this->document_path,
             'additional_info' => $this->additional_info,
+            'company_id' => $this->company_id,
         ];
     }
 }

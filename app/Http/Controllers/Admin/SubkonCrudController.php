@@ -114,6 +114,18 @@ class SubkonCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addColumn([
+                'name'      => 'company',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+            CRUD::addClause('with', 'company');
+        }
+
         CRUD::addColumn([
             'name'  => 'name',
             'label' => trans('backpack::crud.subkon.column.name'),
@@ -123,7 +135,7 @@ class SubkonCrudController extends CrudController
         CRUD::addColumn([
             'name'  => 'address',
             'label' => trans('backpack::crud.subkon.column.address'),
-            'type'  => 'text',
+            'type'  => 'wrap_text',
         ]);
 
         CRUD::addColumn([
@@ -387,6 +399,17 @@ class SubkonCrudController extends CrudController
     {
         CRUD::setValidation(SubkonRequest::class);
 
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addField([
+                'name'      => 'company_id',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select2_array',
+                'options'   => \App\Models\Company::all()->pluck('name', 'id')->toArray(),
+                'allows_null' => false,
+                'wrapper'   => ['class' => 'form-group col-md-6'],
+            ]);
+        }
+
         CRUD::addField([
             'name' => 'name',
             'label' => trans('backpack::crud.subkon.column.name'),
@@ -470,6 +493,17 @@ class SubkonCrudController extends CrudController
     protected function setupShowOperation()
     {
         // column
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addField([
+                'name'      => 'company',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
+
         CRUD::addField([
             'name' => 'name',
             'label' => trans('backpack::crud.subkon.column.name'),
@@ -565,6 +599,17 @@ class SubkonCrudController extends CrudController
         ]);
 
         // column
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addColumn([
+                'name'      => 'company',
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'closure',
+                'function' => function ($entry) {
+                    return $entry->company->name;
+                }
+            ]);
+        }
+
         CRUD::addColumn([
             'name'  => 'name',
             'label' => trans('backpack::crud.subkon.column.name'),

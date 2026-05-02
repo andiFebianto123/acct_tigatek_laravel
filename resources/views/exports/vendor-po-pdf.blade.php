@@ -31,6 +31,9 @@
                 <th>No</th>
                 <th>{{trans('backpack::crud.po.column.po_number')}}</th>
                 <th>{{trans('backpack::crud.po.column.date_po')}}</th>
+                @if(backpack_user()->hasRole('Super Admin'))
+                    <th>{{trans('backpack::crud.subkon.column.company')}}</th>
+                @endif
                 <th>{{trans('backpack::crud.subkon.column.name')}}</th>
                 <th>{{trans('backpack::crud.po.column.job_name')}}</th>
                 <th>{{trans('backpack::crud.po.column.job_description')}}</th>
@@ -47,6 +50,9 @@
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $item->po_number ?? '-' }}</td>
                 <td>{{ $item->date_po ? \Carbon\Carbon::parse($item->date_po)->translatedFormat("d/m/Y") : '-' }}</td>
+                @if(backpack_user()->hasRole('Super Admin'))
+                    <td>{{ $item->company->name ?? '-' }}</td>
+                @endif
                 <td>{{ $item->subkon->name ?? '-' }}</td>
                 <td>{{ $item->job_name ?? '-' }}</td>
                 <td>{{ $item->job_description ?? '-' }}</td>

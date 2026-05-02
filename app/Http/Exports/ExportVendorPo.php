@@ -120,13 +120,14 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             'tax_ppn',
             'total_value_with_tax',
             'due_date',
-            'status'
-        )->get();
+            'status',
+            'company_id'
+        )->with('company')->get();
     }
 
     public function headings(): array
     {
-        return [
+        $headings = [
             'No',
             trans('backpack::crud.po.column.po_number'),
             trans('backpack::crud.po.column.date_po'),
@@ -139,6 +140,12 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             trans('backpack::crud.po.column.due_date'),
             trans('backpack::crud.po.column.status'),
         ];
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            array_splice($headings, 3, 0, [trans('backpack::crud.subkon.column.company')]);
+        }
+
+        return $headings;
     }
 
     public function map($entry): array
@@ -156,7 +163,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
 
         $status = strtoupper($entry->status ?? '-');
 
-        return [
+        $data = [
             $this->rowNumber,
             $entry->po_number ?? '-',
             $date_po,
@@ -169,11 +176,17 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             $due_date,
             $status,
         ];
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            array_splice($data, 3, 0, [$entry->company->name ?? '-']);
+        }
+
+        return $data;
     }
 
     public function styles(Worksheet $sheet)
     {
-        $highestColumn = 'K'; // Ganti jika jumlah kolom berubah
+        $highestColumn = backpack_user()->hasRole('Super Admin') ? 'L' : 'K'; // Ganti jika jumlah kolom berubah
 
         $sheet->getStyle("A1:{$highestColumn}" . ($this->rowNumber + 1))->applyFromArray([
             'borders' => [

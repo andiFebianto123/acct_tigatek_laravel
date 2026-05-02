@@ -44,6 +44,11 @@ class Spk extends Model
         return $this->belongsTo(Subkon::class, 'subkon_id');
     }
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

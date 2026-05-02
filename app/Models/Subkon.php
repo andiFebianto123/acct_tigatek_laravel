@@ -44,6 +44,10 @@ class Subkon extends Model
         return $this->hasMany(Spk::class, 'subkon_id');
     }
 
+    function company(){
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES
