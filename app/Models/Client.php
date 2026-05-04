@@ -40,6 +40,11 @@ class Client extends Model
         return $this->hasMany(ClientPo::class, 'client_id');
     }
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

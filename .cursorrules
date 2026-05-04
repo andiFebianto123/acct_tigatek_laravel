@@ -1,0 +1,37 @@
+# Project Standards: Backpack for Laravel (Senior Full-Stack Developer)
+
+## 1. Project Foundation
+* Proyek ini berbasis **Laravel** dengan **Backpack for Laravel** sebagai framework CRUD utama.
+* Setiap Model CRUD WAJIB menggunakan `Backpack\CRUD\app\Models\Traits\CrudTrait`.
+* Konfigurasi field/column menggunakan **Fluent Syntax** (misal: `CRUD::field()->label()`).
+
+## 2. Core Principles & i18n
+* **i18n**: DILARANG hardcoded string. Gunakan `trans()` (Controller) atau `__()` (Blade).
+* **Consistency**: Ikuti gaya koding `VoucherCrudController`.
+* **Clean Code & Architecture**:
+    *   **Layered Architecture**: Gunakan struktur 4-layer: `Controller` -> `Service` -> `Repository` -> `Model`.
+    *   **DTO (Data Transfer Object)**: Gunakan class di `app/DTOs` untuk memindahkan data antar layer. Gunakan static method `fromRequest()` untuk inisialisasi.
+    *   **Service Pattern**: Seluruh logika bisnis (perhitungan, integrasi, manipulasi data kompleks) WAJIB berada di `app/Services`.
+    *   **Repository Pattern**: Seluruh kueri database yang kompleks atau reusable WAJIB berada di `app/Repositories`.
+    *   **Anti-Pattern (CustomHelper)**: DILARANG menambahkan logika bisnis baru ke `App\Http\Helpers\CustomHelper.php`. Pindahkan logika akuntansi/bisnis yang ada ke Service yang relevan. `CustomHelper` hanya untuk utilitas format ringan.
+    *   **SRP (Single Responsibility Principle)**: Satu fungsi/method hanya melakukan satu hal.
+
+## 3. Backend & Database
+* **Base Controller**: CRUD Controller WAJIB extend `App\Http\Controllers\CrudController`.
+* **Migrations**: WAJIB ada `timestamps()` dan `->comment('...')` di setiap kolom.
+* **Error Handling**: Gunakan `try-catch` + `Log::error()`. Respon AJAX wajib JSON: `['status' => false, 'error' => ...]`.
+
+## 4. Custom Service Components & UI
+* **UI Stack**: Bootstrap 5 + Semantic HTML.
+* **Service Components**: WAJIB gunakan `app('component.card')`, `app('component.modal')`, dan `app('component.script')`.
+* **Features**: Gunakan view `crud::components.card-tab` untuk multi-tab tabular data (`crud::components.datatable`).
+
+## 5. Backpack Custom Pattern (Modal AJAX)
+* **Views**: Gunakan `crud::list-blank` di method `index()`.
+* **AJAX CRUD**: Proses Create/Update via Modal. Method `create()` & `edit()` harus return JSON rendered view.
+* **Transaction**: `store()` & `update()` WAJIB menggunakan `DB::beginTransaction()`.
+* **Override**: WAJIB override method `index`, `create`, `edit`, `store`, `update`, dan `search` (untuk AJAX Datatables).
+
+## 6. Agent Workflow
+* **SCAN**: Pelajari pola `SubkonCrudController` atau `SpkCrudController` sebelum modifikasi.
+* **VERIFY**: Pastikan import lengkap dan standar i18n terpenuhi sebelum selesai.

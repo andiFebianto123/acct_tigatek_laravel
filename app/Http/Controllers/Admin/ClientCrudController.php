@@ -14,6 +14,11 @@ use Maatwebsite\Excel\Facades\Excel;
 use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
+use App\DTOs\ClientManagement\ClientData;
+use App\Services\ClientManagement\ClientService;
+use App\Repositories\ClientManagement\ClientRepository;
+use App\Models\Company;
+
 /**
  * Class ClientCrudController
  * @package App\Http\Controllers\Admin
@@ -27,6 +32,18 @@ class ClientCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
+    
+    protected $clientService;
+    protected $clientRepository;
+
+    public function __construct(
+        ClientService $clientService,
+        ClientRepository $clientRepository
+    ) {
+        parent::__construct();
+        $this->clientService = $clientService;
+        $this->clientRepository = $clientRepository;
+    }
 
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
@@ -147,6 +164,9 @@ class ClientCrudController extends CrudController
 
         // CRUD::addButtonFromView('top', 'filter_year', 'filter-year-client', 'beginning');
         CRUD::disableResponsiveTable();
+
+        $this->crud->query = $this->clientRepository->getFilteredData($request->all());
+
         $this->crud->addColumn([
             'name'      => 'row_number',
             'type'      => 'row_number',
@@ -156,6 +176,17 @@ class ClientCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
 
         CRUD::column(
             [
@@ -255,6 +286,17 @@ class ClientCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'closure',
+                'name'      => 'company_id',
+                'function'  => function ($entry) {
+                    return $entry->company?->name;
+                }
+            ]);
+        }
 
         CRUD::column(
             [
@@ -440,6 +482,17 @@ class ClientCrudController extends CrudController
          * - CRUD::field('price')->type('number');
          */
 
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
+
         CRUD::addField([
             'name' => 'name',
             'label' => trans('backpack::crud.client.column.name'),
@@ -475,26 +528,24 @@ class ClientCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
-        try{
-
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-            $this->data['entry'] = $this->crud->entry = $item;
+        try {
+            $data = ClientData::fromRequest($request);
+            $item = $this->clientService->createClient($data);
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
 
-            $this->crud->setSaveAction();
-
-            DB::commit();
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $item,
+                    'events' => $this->clientService->getUIEvents($item, 'create'),
+                ]);
+            }
             return $this->crud->performSaveAction($item->getKey());
-
-        }catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -517,30 +568,24 @@ class ClientCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
-        try{
-
-            $item = $this->crud->update(
-                $request->get($this->crud->model->getKeyName()),
-                $this->crud->getStrippedSaveRequest($request)
-            );
-            $this->data['entry'] = $this->crud->entry = $item;
+        try {
+            $data = ClientData::fromRequest($request);
+            $item = $this->clientService->updateClient($request->get($this->crud->model->getKeyName()), $data);
 
             \Alert::success(trans('backpack::crud.update_success'))->flash();
 
-            $this->crud->setSaveAction();
-
-            DB::commit();
-
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $item,
+                    'events' => $this->clientService->getUIEvents($item, 'update'),
+                ]);
+            }
             return $this->crud->performSaveAction($item->getKey());
-
-        }catch (\Exception $e) {
-            DB::rollBack();
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'success' => false,
