@@ -8,11 +8,11 @@ class ClientPoData
 {
     public function __construct(
         public readonly ?int $company_id,
-        public readonly string $work_code,
-        public readonly int $client_id,
-        public readonly string $reimburse_type,
-        public readonly string $po_number,
-        public readonly string $job_name,
+        public readonly ?string $work_code,
+        public readonly ?int $client_id,
+        public readonly ?string $reimburse_type,
+        public readonly ?string $po_number,
+        public readonly ?string $job_name,
         public readonly float $rap_value,
         public readonly float $job_value,
         public readonly float $tax_ppn,
@@ -21,8 +21,9 @@ class ClientPoData
         public readonly ?string $end_date,
         public readonly ?string $date_po,
         public readonly mixed $document_path,
-        public readonly string $category,
-        public readonly string $status,
+        public readonly ?string $category,
+        public readonly ?string $status,
+        public readonly ?array $quotation_ids = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -30,20 +31,21 @@ class ClientPoData
         return new self(
             company_id: $request->company_id ? (int) $request->company_id : null,
             work_code: $request->work_code,
-            client_id: (int) $request->client_id,
+            client_id: $request->client_id ? (int) $request->client_id : null,
             reimburse_type: $request->reimburse_type,
             po_number: $request->po_number,
             job_name: $request->job_name,
-            rap_value: (float) str_replace(',', '', $request->rap_value),
-            job_value: (float) str_replace(',', '', $request->job_value),
-            tax_ppn: (float) $request->tax_ppn,
-            job_value_include_ppn: (float) $request->job_value_include_ppn,
+            rap_value: (float) str_replace(',', '', $request->rap_value ?? 0),
+            job_value: (float) str_replace(',', '', $request->job_value ?? 0),
+            tax_ppn: (float) ($request->tax_ppn ?? 0),
+            job_value_include_ppn: (float) ($request->job_value_include_ppn ?? 0),
             start_date: $request->start_date,
             end_date: $request->end_date,
             date_po: $request->date_po,
             document_path: $request->file('document_path') ?? $request->document_path,
             category: $request->category,
             status: $request->status,
+            quotation_ids: $request->quotation_ids ? (is_array($request->quotation_ids) ? $request->quotation_ids : explode(',', $request->quotation_ids)) : null,
         );
     }
 

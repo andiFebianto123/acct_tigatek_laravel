@@ -101,4 +101,53 @@ class ClientQuotationRepository
             'total_job_value_ppn' => $result->total_job_value_ppn ?? 0,
         ];
     }
+
+    public function getQuotationsForSelection(\App\DTOs\ClientManagement\QuotationSelectionRequestData $data)
+    {
+        $query = ClientQuotation::whereDoesntHave('clientPos');
+
+        if ($data->company_id) {
+            $query->where('company_id', $data->company_id);
+        }
+
+        // Global Search
+        if ($data->search) {
+            $query->where(function($q) use ($data) {
+                $q->where('work_code', 'like', "%{$data->search}%")
+                  ->orWhere('job_name', 'like', "%{$data->search}%")
+                  ->orWhereHas('client', function($q2) use ($data) {
+                      $q2->where('name', 'like', "%{$data->search}%");
+                  });
+            });
+        }
+
+        $totalData = $query->count();
+        $totalFiltered = $totalData;
+
+        // Sorting
+        $columns = ['id', 'work_code', 'client_id', 'job_name', 'job_value', 'tax_ppn', 'job_value_include_ppn'];
+        if ($data->order_column !== null && isset($columns[$data->order_column])) {
+            $columnName = $columns[$data->order_column];
+            if ($columnName == 'client_id') {
+                $query->join('clients', 'client_quotations.client_id', '=', 'clients.id')
+                      ->orderBy('clients.name', $data->order_dir)
+                      ->select('client_quotations.*');
+            } else {
+                $query->orderBy($columnName, $data->order_dir);
+            }
+        }
+
+        $quotations = $query->with('client')->skip($data->start)->take($data->length)->get();
+
+        return [
+            'total' => $totalData,
+            'filtered' => $totalFiltered,
+            'data' => $quotations
+        ];
+    }
+
+    public function getQuotationDetailsByIds(array $ids)
+    {
+        return ClientQuotation::whereIn('id', $ids)->get();
+    }
 }

@@ -91,12 +91,14 @@ Route::group([
         Route::crud('client-list', 'ClientCrudController');
         Route::post('client-list/export-pdf', [ClientCrudController::class, 'exportPdf']);
         Route::post('client-list/export-excel', [ClientCrudController::class, 'exportExcel']);
-        Route::put('select2-client', 'ClientPoCrudController@select2Client');
+        Route::match(['get', 'post', 'put'], 'select2-client', 'ClientPoCrudController@select2Client');
         Route::crud('po', 'ClientPoCrudController');
         Route::get('po/total-without-po', [ClientPoCrudController::class, 'select_count_without_po']);
         Route::post('po/export-pdf', [ClientPoCrudController::class, 'exportPdf']);
         Route::post('po/export-excel', [ClientPoCrudController::class, 'exportExcel']);
         Route::get('po/total', [ClientPoCrudController::class, 'countAllPPn']);
+        Route::get('po/get-quotations', [ClientPoCrudController::class, 'getQuotations']);
+        Route::get('po/get-quotation-details', [ClientPoCrudController::class, 'getQuotationDetails']);
 
         Route::crud('quotation', 'ClientQuotationCrudController');
         // Route::match(['get', 'post'], 'quotation/select2-client', 'ClientQuotationCrudController@select2Client');

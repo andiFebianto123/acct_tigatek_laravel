@@ -48,6 +48,11 @@ class ClientPo extends Model
         return $this->hasMany(InvoiceClient::class, 'client_po_id');
     }
 
+    public function quotations()
+    {
+        return $this->belongsToMany(ClientQuotation::class, 'client_quotation_po', 'client_po_id', 'client_quotation_id');
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');

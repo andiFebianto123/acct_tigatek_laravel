@@ -17,21 +17,53 @@ class ClientPoService
     public function createClientPo(ClientPoData $data): ClientPo
     {
         return DB::transaction(function () use ($data) {
-            $attributes = $data->toArray();
-
-            // Re-calculate or ensure values are set correctly
-            $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
-            $attributes['price_after_year'] = 0;
-            $attributes['price_total'] = 0;
-            $attributes['load_general_value'] = 0;
-            $attributes['profit_and_loss'] = 0;
-            $attributes['profit_and_loss_final'] = 0;
-
-            if ($data->document_path instanceof UploadedFile) {
-                $attributes['document_path'] = $this->handleFileUpload($data->document_path);
+            $quotationIds = $data->quotation_ids ?? [];
+            
+            if (empty($quotationIds)) {
+                // Standard single creation (not from quotation selection)
+                $attributes = $data->toArray();
+                $po = ClientPo::create($attributes);
+                return $po;
             }
 
-            return ClientPo::create($attributes);
+            $lastPo = null;
+            $quotations = \App\Models\ClientQuotation::whereIn('id', $quotationIds)->get();
+
+            foreach ($quotations as $quotation) {
+                $attributes = $data->toArray();
+                
+                // Populate from this specific quotation
+                $attributes['client_id'] = $quotation->client_id;
+                $attributes['company_id'] = $quotation->company_id;
+                $attributes['job_name'] = $quotation->job_name;
+                $attributes['job_value'] = $quotation->job_value;
+                $attributes['rap_value'] = $quotation->rap_value;
+                $attributes['tax_ppn'] = $quotation->tax_ppn;
+                $attributes['work_code'] = $quotation->work_code;
+                $attributes['po_number'] = $quotation->po_number ?? '-';
+                $attributes['reimburse_type'] = $quotation->reimburse_type;
+                $attributes['category'] = $quotation->category;
+                $attributes['status'] = $quotation->status ?? 'ADA PO';
+                $attributes['start_date'] = $quotation->start_date;
+                $attributes['end_date'] = $quotation->end_date;
+                $attributes['date_po'] = $quotation->date_po;
+                $attributes['document_path'] = $quotation->document_path;
+
+                // Re-calculate or ensure values are set correctly
+                $attributes['job_value_include_ppn'] = $attributes['job_value'] + ($attributes['job_value'] * ($attributes['tax_ppn'] / 100));
+                $attributes['price_after_year'] = 0;
+                $attributes['price_total'] = 0;
+                $attributes['load_general_value'] = 0;
+                $attributes['profit_and_loss'] = 0;
+                $attributes['profit_and_loss_final'] = 0;
+
+                $po = ClientPo::create($attributes);
+                $po->quotations()->attach($quotation->id);
+                
+                $lastPo = $po;
+            }
+
+            return $lastPo;
         });
     }
 

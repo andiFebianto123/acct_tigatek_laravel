@@ -22,7 +22,10 @@ use App\DTOs\ClientManagement\ClientPoData;
 use App\DTOs\ClientManagement\ClientPoFilterData;
 use App\Services\ClientManagement\ClientPoService;
 use App\Repositories\ClientManagement\ClientPoRepository;
+use App\Repositories\ClientManagement\ClientQuotationRepository;
+use App\DTOs\ClientManagement\QuotationSelectionRequestData;
 use App\Models\Company;
+use Illuminate\Http\Request;
 
 /**
  * Class ClientPoCrudController
@@ -41,14 +44,17 @@ class ClientPoCrudController extends CrudController
 
     protected $clientPoService;
     protected $clientPoRepository;
+    protected $quotationRepository;
 
     public function __construct(
         ClientPoService $clientPoService,
-        ClientPoRepository $clientPoRepository
+        ClientPoRepository $clientPoRepository,
+        ClientQuotationRepository $quotationRepository
     ) {
         parent::__construct();
         $this->clientPoService = $clientPoService;
         $this->clientPoRepository = $clientPoRepository;
+        $this->quotationRepository = $quotationRepository;
     }
 
     /**
@@ -833,40 +839,63 @@ class ClientPoCrudController extends CrudController
     protected function setupCreateOperation()
     {
         CRUD::setValidation(ClientPoRequest::class);
+
+        // Script to widen modal if this is an inline create
+        \Backpack\CRUD\app\Library\Widget::add([
+            'type' => 'script',
+            'content' => '
+                $(document).ready(function() {
+                    // Try to find the parent modal and widen it
+                    let modal = window.parent.$(".modal-dialog");
+                    if (modal.length) {
+                        modal.addClass("modal-xl").css("max-width", "90%");
+                    }
+                    // Also try current window just in case
+                    $(".modal-dialog", window.parent.document).addClass("modal-xl").css("max-width", "90%");
+                });
+            '
+        ]);
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select2_array',
+                'name'      => 'company_id',
+                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+            ]);
+        }
+
+        CRUD::addField([
+            'name' => 'quotation_ids',
+            'type' => 'hidden',
+        ]);
+
+        CRUD::addField([
+            'name' => 'quotation_selection',
+            'type' => 'select_quotation_table',
+            'label' => trans('backpack::crud.client_po.field.quotation_selection.label') ?? 'Pilih dari Penawaran (Client Quotation)',
+        ]);
+    }
+
+    protected function setupUpdateOperation()
+    {
+        CRUD::setValidation(ClientPoRequest::class);
         $settings = Setting::first();
 
         $po_prefix = [];
         $work_code_prefix = [];
-        $work_code_disabled = [
-            // 'disabled' => true,
-        ];
-        $po_number_disabled = [
-            'disabled' => true,
-        ];
-        if (!$this->crud->getCurrentEntryId()) {
-            if ($settings?->po_prefix) {
-                $po_prefix = [
-                    'value' => $settings->po_prefix,
-                ];
-            }
-            if ($settings?->work_code_prefix) {
-                $work_code_prefix = [
-                    'value' => $settings->work_code_prefix,
-                ];
-            }
-            $work_code_disabled = [];
-            $po_number_disabled = [];
-        } else {
-            $id = $this->crud->getCurrentEntryId();
-            $voucher_exists = Voucher::where('client_po_id', $id)
-                ->first();
-            if ($voucher_exists) {
-                $work_code_disabled = [
-                    'disabled' => true,
-                ];
-            }
-        }
+        $work_code_disabled = [];
+        $po_number_disabled = [];
 
+        $id = $this->crud->getCurrentEntryId();
+        $voucher_exists = Voucher::where('client_po_id', $id)->first();
+        if ($voucher_exists) {
+            $work_code_disabled = ['disabled' => true];
+        }
 
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::addField([
@@ -882,78 +911,40 @@ class ClientPoCrudController extends CrudController
             ]);
         }
 
-        // CRUD::setFromDb(); // set fields from db columns.
-        CRUD::field([   // 1-n relationship
-            'label'       => trans('backpack::crud.client_po.field.client_id.label'), // Table column heading
+        CRUD::field([
+            'label'       => trans('backpack::crud.client_po.field.client_id.label'),
             'type'        => "select2_ajax_custom",
-            'name'        => 'client_id', // the column that contains the ID of that connected entity
-            'entity'      => 'client', // the method that defines the relationship in your Model
-            'attribute'   => "name", // foreign key attribute that is shown to user
-            'data_source' => backpack_url('client/select2-client'), // url to controller search function (with /{id} should return a single entry)
+            'name'        => 'client_id',
+            'entity'      => 'client',
+            'attribute'   => "name",
+            'data_source' => backpack_url('client/select2-client'),
             'dependencies' => ['company_id'],
             'include_all_form_fields' => true,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.client_po.field.client_id.placeholder'),
-            ]
+            'wrapper'   => ['class' => 'form-group col-md-6'],
         ]);
 
         CRUD::addField([
             'name' => 'work_code',
             'label' => trans('backpack::crud.client_po.field.work_code.label'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                ...$work_code_disabled,
-                'placeholder' => trans('backpack::crud.client_po.field.work_code.placeholder'),
-            ],
-            ...$work_code_prefix,
+            'wrapper'   => ['class' => 'form-group col-md-6'],
+            'attributes' => $work_code_disabled,
         ]);
 
-        CRUD::addField([  // Select2
+        CRUD::addField([
             'label'     => trans('backpack::crud.client_po.field.status.label'),
             'type'      => 'select2_array',
             'name'      => 'status',
-            'options'   => [
-                'ADA PO' => 'ADA PO',
-                'TANPA PO' => 'TANPA PO',
-            ], // force the related options to be a custom query, instead of all(); you can use this to filter the results show in the select
-            'wrapper' => [
-                'class' => 'form-group col-md-6'
-            ]
+            'options'   => ['ADA PO' => 'ADA PO', 'TANPA PO' => 'TANPA PO'],
+            'wrapper' => ['class' => 'form-group col-md-6']
         ]);
 
         CRUD::addField([
             'name' => 'po_number',
             'label' => trans('backpack::crud.client_po.field.po_number.label'),
             'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-                'placeholder' => trans('backpack::crud.client_po.field.po_number.placeholder')
-            ],
-            'attributes' => [
-                ...$po_number_disabled,
-                'placeholder' => trans('backpack::crud.client_po.field.po_number.placeholder')
-            ],
-            ...$po_prefix,
+            'wrapper'   => ['class' => 'form-group col-md-6'],
         ]);
-
-        // CRUD::addField([   // Hidden
-        //     'name'  => 'space',
-        //     'type'  => 'hidden',
-        //     'value' => 'active',
-        //     'wrapper'   => [
-        //         'class' => 'form-group col-md-6'
-        //     ],
-        //     'attributes' => [
-        //         'disabled'  => 'disabled',
-        //         // 'placeholder' => trans('backpack::crud.spk.field.')
-        //     ]
-        // ]);
 
         CRUD::addField([
             'name' => 'job_name',
@@ -1248,16 +1239,6 @@ class ClientPoCrudController extends CrudController
          */
     }
 
-    /**
-     * Define what happens when the Update operation is loaded.
-     *
-     * @see https://backpackforlaravel.com/docs/crud-operation-update
-     * @return void
-     */
-    protected function setupUpdateOperation()
-    {
-        $this->setupCreateOperation();
-    }
 
     protected function setupShowOperation()
     {
@@ -1692,6 +1673,55 @@ class ClientPoCrudController extends CrudController
         // return view($this->crud->getShowView(), $this->data);
         return response()->json([
             'html' => view($this->crud->getShowView(), $this->data)->render()
+        ]);
+    }
+
+    public function getQuotations(Request $request)
+    {
+        $dto = QuotationSelectionRequestData::fromRequest($request);
+        $result = $this->quotationRepository->getQuotationsForSelection($dto);
+
+        return response()->json([
+            'draw' => $dto->draw,
+            'recordsTotal' => $result['total'],
+            'recordsFiltered' => $result['filtered'],
+            'data' => $result['data']->map(function ($row) {
+                return [
+                    'id' => $row->id,
+                    'work_code' => $row->work_code,
+                    'client_name' => $row->client?->name ?? '-',
+                    'job_name' => $row->job_name,
+                    'job_value' => number_format($row->job_value, 0, ',', '.'),
+                    'tax_ppn' => $row->tax_ppn,
+                    'job_value_include_ppn' => number_format($row->job_value_include_ppn, 0, ',', '.'),
+                ];
+            })
+        ]);
+    }
+
+    public function getQuotationDetails(Request $request)
+    {
+        $dto = QuotationSelectionRequestData::fromRequest($request);
+        $quotations = $this->quotationRepository->getQuotationDetailsByIds($dto->ids);
+
+        if ($quotations->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $job_names = $quotations->pluck('job_name')->unique()->toArray();
+
+        return response()->json([
+            'client_id' => $quotations->first()->client_id,
+            'job_name' => implode(' | ', $job_names),
+            'job_value' => $quotations->sum('job_value'),
+            'rap_value' => $quotations->sum('rap_value'),
+            'tax_ppn' => $quotations->first()->tax_ppn,
+            'work_code' => $quotations->first()->work_code,
+            'start_date' => $quotations->first()->start_date,
+            'end_date' => $quotations->first()->end_date,
+            'reimburse_type' => $quotations->first()->reimburse_type,
+            'category' => $quotations->first()->category,
+            'status' => $quotations->first()->status ?? 'ADA PO',
         ]);
     }
 

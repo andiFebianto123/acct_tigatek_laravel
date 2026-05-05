@@ -27,8 +27,16 @@ class ClientPoRequest extends FormRequest
     {
         $id = request('id');
         $status = request('status');
+
+        if ($this->isMethod('post') && !$id && $this->has('quotation_ids')) {
+            return [
+                'quotation_ids' => 'required',
+                'company_id' => 'nullable|exists:companies,id',
+            ];
+        }
+
         $rule_origin = [
-            'company_id' => 'sometimes|required|exists:companies,id',
+            'company_id' => 'nullable|exists:companies,id',
             'client_id' => 'required|exists:clients,id',
             'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
             'po_number' => 'required|max:30|unique:client_po,po_number,' . $id,

@@ -182,6 +182,7 @@ return [
         'all_category' => 'Semua Kategori',
         'all_client' => 'Semua Client',
         'all_status_project' => 'Semua Status Proyek',
+        'all_company' => 'All (Semua Perusahaan)',
     ],
 
     'card' => [
@@ -515,6 +516,10 @@ return [
             'load_general_value' => 'Beban Umum',
             'profit_and_lost_final' => 'Laba/Rugi Akhir',
             'category' => 'Kategori',
+            'quotation_selection' => [
+                'label' => 'Pilih dari Penawaran (Client Quotation)',
+            ],
+            'quotation_selection_info' => 'Pilih satu atau beberapa penawaran di bawah untuk mengisi data PO secara otomatis.',
         ],
         'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',

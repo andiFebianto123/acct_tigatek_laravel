@@ -20,6 +20,11 @@ class ClientQuotation extends Model
         return $this->belongsTo(Client::class, 'client_id');
     }
 
+    public function clientPos()
+    {
+        return $this->belongsToMany(ClientPo::class, 'client_quotation_po', 'client_quotation_id', 'client_po_id');
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
