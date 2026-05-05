@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Operation\CrudTrait;
 use App\Models\Client;
 use App\Models\InvoiceClient;
-use Illuminate\Database\Eloquent\Model;
-use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ClientPo extends Model
 {
@@ -38,12 +38,19 @@ class ClientPo extends Model
     |--------------------------------------------------------------------------
     */
 
-    function client(){
+    function client()
+    {
         return $this->belongsTo(Client::class, 'client_id');
     }
 
-    function invoices(){
+    function invoices()
+    {
         return $this->hasMany(InvoiceClient::class, 'client_po_id');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
     }
 
     /*

@@ -44,6 +44,9 @@
                                 var final_url = url_route.startsWith('http') ? url.toString() : url.pathname + url.search;
                                 item.table.ajax.url(final_url).load();
                                 window.filter_tables.filter_year = value;
+                            }else if(key.includes("SETUP_ALL_FILTER")){
+                                var setupAllFilter = SIAOPS.getAttribute(key);
+                                setupAllFilter.filterValues.filter_year = value;
                             }
                         });
 

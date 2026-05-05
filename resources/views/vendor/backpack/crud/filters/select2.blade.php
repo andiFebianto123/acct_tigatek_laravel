@@ -91,6 +91,7 @@
 					var parameter = $(this).attr('data-filter-name');
 
                     if(!value) {
+						var new_url = updateDatatablesOnFilterChange(filterName, value, true, 0);
                        return;
                     }
 

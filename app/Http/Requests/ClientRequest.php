@@ -27,7 +27,7 @@ class ClientRequest extends FormRequest
         $id = $this->get('id') ?? $this->route('id');
 
         return [
-            // 'name' => 'required|min:5|max:255'
+            'company_id' => 'sometimes|required|exists:companies,id',
             'name' => 'required|string|max:150|unique:clients,name,'.$id,
             'address' => 'required|string|max:255',
             'phone' => 'required|string|max:20',

@@ -519,6 +519,105 @@ return [
         'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
     ],
+    'client_quotation' => [
+        'title_header' => 'Penawaran',
+        'column' => [
+            'client_id' => 'Nama Perusahaan',
+            'work_code' => 'Kode Pekerjaan',
+            'po_number' => 'No. Penawaran',
+            'job_name' => 'Nama Pekerjaan',
+            'job_value' => 'Nilai Pekerjaan',
+            'tax_ppn' => 'PPn',
+            'total_value_with_tax' => 'Nilai Pekerjaan Include PPn',
+            'startdate_and_enddate' => "Start Date - End Date",
+            'reimburse_type' => 'Reimburse/NonReimburse',
+            'price_total' => 'Total Biaya',
+            'profit_and_loss' => "Laba/Rugi Penawaran",
+            'document_path' => 'Dokumen Penawaran',
+            'date_invoice' => 'Tanggal Invoice',
+            'rap_value' => 'Nilai RAP',
+            'job_value_exclude_ppn' => 'Nilai Pekerjaan Excl PPn',
+            'job_value_include_ppn' => 'Nilai Pekerjaan Incld PPn',
+            'job_value_include_ppn_2' => 'Nilai Pekerjaan Include PPn',
+            'start_date' => 'Start Date',
+            'end_date' => 'End Date',
+            'start_date_end_date' => 'Start Date - End Date',
+            'price_after_year' => 'Biaya Lewat Tahun',
+            'load_general_value' => 'Beban Umum',
+            'profit_and_lost_final' => 'Laba/Rugi Akhir',
+            'category' => 'Kategori',
+            'list_invoice' => 'Status Invoice',
+            'date_po' => 'Tanggal Penawaran',
+        ],
+        'field' => [
+            'client_id' => [
+                'label' => 'Nama Perusahaan',
+                'placeholder' => "- NAMA PERUSAHAAN",
+            ],
+            'work_code' => [
+                'label' => 'Kode Kerja',
+                'placeholder' => 'Masukan kode kerja perusahaan',
+            ],
+            'status' => [
+                'label' => 'Status Penawaran',
+                'placeholder' => '-STATUS PENAWARAN'
+            ],
+            'po_number' => [
+                'label' => 'No. Penawaran',
+                'placeholder' => 'Masukan nomor Penawaran Perusahaan',
+            ],
+            'job_name' => [
+                'label' => 'Nama Pekerjaan',
+                'placeholder' => 'Masukan nama pekerjaan',
+            ],
+            'job_value' => [
+                'label' => 'Nilai Pekerjaan',
+                'placeholder' => '000.000',
+            ],
+            'tax_ppn' => [
+                'label' => 'PPn',
+                'placeholder' => '0',
+            ],
+            'startdate_and_enddate' => [
+                'label' => 'Start Date - End Date',
+                'placeholder' => 'Start Date - End Date',
+            ],
+            'reimburse_type' => [
+                'label' => 'Reimburse/NonReimburse',
+                'placeholder' => '-PILIH',
+            ],
+            'price_total' => [
+                'label' => 'Total Biaya'
+            ],
+            'profit_and_loss' => [
+                'label' => 'Laba/Rugi Penawaran',
+            ],
+            'document_path' => [
+                'label' => 'Upload Dokumen Penawaran',
+                'hint' => 'Maksimal 35 MB (PDF)',
+            ],
+            'date_invoice' => [
+                'label' => 'Tanggal Invoice',
+                'placeholder' => 'Pilih Tanggal',
+            ],
+            'date_po' => [
+                'label' => 'Tanggal Penawaran',
+                'placeholder' => 'Pilih Tanggal Penawaran',
+            ],
+            'rap_value' => 'Nilai RAP',
+            'job_value_exclude_ppn' => 'Nilai Pekerjaan Excl PPn',
+            'job_value_include_ppn' => 'Nilai Pekerjaan Incld PPn',
+            'start_date' => 'Start Date',
+            'end_date' => 'End Date',
+            'start_date_end_date' => 'Start Date - End Date',
+            'price_after_year' => 'Biaya Lewat Tahun',
+            'load_general_value' => 'Beban Umum',
+            'profit_and_lost_final' => 'Laba/Rugi Akhir',
+            'category' => 'Kategori',
+        ],
+        'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
+        'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
+    ],
     'invoice_client' => [
         'title_header' => 'Invoice (Client)',
         'title_modal_create' => 'Data Invoice (Client)',

@@ -389,6 +389,16 @@
 
 @push('after_scripts')
     <script>
+        if(SIAOPS.getAttribute("SETUP_ALL_FILTER_"+"{{$name}}") == null){
+            SIAOPS.setAttribute("SETUP_ALL_FILTER_"+"{{$name}}", function(){
+                return {
+                    searchValues: [],
+                    filterValues: {},
+                }
+            });
+        }
+    </script>
+    <script>
         window.filterValues = [];
         function setupFilterInputs(tableId) {
             const $table = $(tableId);

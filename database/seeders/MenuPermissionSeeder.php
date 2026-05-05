@@ -20,6 +20,7 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX VENDOR SPK',
             'MENU INDEX CLIENT DAFTAR CLIENT',
             'MENU INDEX CLIENT PO',
+            'MENU INDEX CLIENT QUOTATION',
             'MENU INDEX FA VOUCHER',
             'MENU INDEX FA PEMBAYARAN',
             'MENU INDEX FA RENCANA PEMBAYARAN',

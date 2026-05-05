@@ -15,6 +15,7 @@ use Backpack\CRUD\app\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
 use App\DTOs\ClientManagement\ClientData;
+use App\DTOs\ClientManagement\ClientFilterData;
 use App\Services\ClientManagement\ClientService;
 use App\Repositories\ClientManagement\ClientRepository;
 use App\Models\Company;
@@ -165,7 +166,8 @@ class ClientCrudController extends CrudController
         // CRUD::addButtonFromView('top', 'filter_year', 'filter-year-client', 'beginning');
         CRUD::disableResponsiveTable();
 
-        $this->crud->query = $this->clientRepository->getFilteredData($request->all());
+        $filters = ClientFilterData::fromRequest($request);
+        $this->crud->query = $this->clientRepository->getFilteredData($filters);
 
         $this->crud->addColumn([
             'name'      => 'row_number',

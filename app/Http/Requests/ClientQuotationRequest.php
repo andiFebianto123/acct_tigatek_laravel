@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Backpack\CRUD\app\Library\Validation\Rules\ValidUpload;
 
-class ClientPoRequest extends FormRequest
+class ClientQuotationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,7 +14,6 @@ class ClientPoRequest extends FormRequest
      */
     public function authorize()
     {
-        // only allow updates if the user is logged in
         return backpack_auth()->check();
     }
 
@@ -27,29 +26,27 @@ class ClientPoRequest extends FormRequest
     {
         $id = request('id');
         $status = request('status');
+        
         $rule_origin = [
             'company_id' => 'sometimes|required|exists:companies,id',
             'client_id' => 'required|exists:clients,id',
-            'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
-            'po_number' => 'required|max:30|unique:client_po,po_number,' . $id,
+            'work_code' => 'required|max:30|unique:client_quotations,work_code,' . $id,
+            'po_number' => 'required|max:30|unique:client_quotations,po_number,' . $id,
             'job_name' => 'required|max:255',
             'job_value' => 'required|numeric',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'reimburse_type' => 'required|max:50',
-            // 'price_total' => 'required|numeric',
             'document_path' => ValidUpload::field('nullable')->file('mimes:pdf|max:35840'),
             'date_invoice' => 'nullable|date',
             'rap_value' => 'required|numeric',
-            // 'price_after_year' => 'required|numeric',
             'load_general_value' => 'nullable|numeric',
             'category' => 'required',
         ];
 
         $rule_no_po = [
             'company_id' => 'sometimes|required|exists:companies,id',
-            'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
-            // 'po_number' => 'required|max:30|unique:client_po,po_number,'. $id,
+            'work_code' => 'required|max:30|unique:client_quotations,work_code,' . $id,
             'client_id' => 'nullable|exists:clients,id',
             'job_name' => 'nullable|max:255',
             'rap_value' => 'nullable|numeric',
@@ -61,7 +58,6 @@ class ClientPoRequest extends FormRequest
             'category' => 'nullable',
         ];
 
-        // rule defautl
         $rule = $rule_no_po;
 
         if ($status == 'TANPA PO') {
@@ -72,9 +68,9 @@ class ClientPoRequest extends FormRequest
         }
 
         if (request()->has('work_code')) {
-            $rule['work_code'] = 'required|max:30|unique:client_po,work_code,' . $id;
+            $rule['work_code'] = 'required|max:30|unique:client_quotations,work_code,' . $id;
         } else {
-            $rule['work_code'] = 'nullable|max:30|unique:client_po,work_code,' . $id;
+            $rule['work_code'] = 'nullable|max:30|unique:client_quotations,work_code,' . $id;
         }
 
         $rule['date_po'] = 'nullable|date';

@@ -73,6 +73,14 @@
           if(update_url) {
             callFunctionOnce(function() { refreshDatatablesOnFilterChange(new_url, name_table) }, debounce, 'refreshDatatablesOnFilterChange');
           }
+
+          if(SIAOPS.getAttribute("SETUP_ALL_FILTER_"+nameTab)){
+            SIAOPS.getAttribute("SETUP_ALL_FILTER_"+nameTab).filterValues[filter_name_origin] = filterValue;
+            if(SIAOPS.getAttribute("SETUP_ALL_FILTER_"+nameTab).filterValues[filter_name_origin] == ''){
+              delete SIAOPS.getAttribute("SETUP_ALL_FILTER_"+nameTab).filterValues[filter_name_origin];
+            }
+          }
+          
           window.filter_tables[filter_name_origin] = filterValue;
           if(filterValue == ''){
             delete window.filter_tables[filter_name_origin];
