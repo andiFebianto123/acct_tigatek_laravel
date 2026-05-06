@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Subkon;
 use App\Models\ClientPo;
 use App\Models\CastAccount;
+use App\Models\Company;
 use App\Models\VoucherEdit;
 use App\Models\PurchaseOrder;
 use Illuminate\Database\Eloquent\Model;
@@ -40,6 +41,10 @@ class Voucher extends Model
     | RELATIONS
     |--------------------------------------------------------------------------
     */
+    
+    function company(){
+        return $this->belongsTo(Company::class, 'company_id');
+    }
 
     function account(){
         return $this->belongsTo(Account::class, 'account_id');

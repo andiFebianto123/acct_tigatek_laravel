@@ -1389,6 +1389,10 @@ return [
             'title_voucher' => 'Data',
             'title_voucher_edit' => 'Riwayat Edit',
         ],
+        'validation' => [
+            'subkon_id_company_mismatch' => 'Nama Badan Usaha tidak sesuai dengan perusahaan yang dipilih.',
+            'client_po_id_company_mismatch' => 'Kode Pekerjaan / No. PO/SPK tidak sesuai dengan perusahaan yang dipilih.',
+        ],
         'column' => [
             'voucher' => [
                 'no_voucher' => [

@@ -191,8 +191,10 @@ Route::group([
     Route::post('voucher-payment-plan/bulk-delete', [VoucherPaymentPlanCrudController::class, 'bulkDelete']);
 
     Route::prefix('fa')->group(function () {
+        Route::match(['post', 'put'], 'voucher/select2-work-code', [VoucherCrudController::class, 'select2WorkCode']);
+        Route::match(['post', 'put'], 'voucher/select2-subkon', [VoucherCrudController::class, 'select2Subkon']);
+        Route::match(['post', 'put'], 'voucher/select2-po-spk', [VoucherCrudController::class, 'select2_no_po_spk']);
         Route::crud('voucher', 'VoucherCrudController');
-        Route::post('voucher/select2-po-spk', [VoucherCrudController::class, 'select2_no_po_spk']);
         Route::post('voucher/{id}/approve', [VoucherCrudController::class, 'approvedStore']);
         Route::get('voucher/total', [VoucherCrudController::class, 'total_voucher']);
         Route::post('voucher/export-pdf', [VoucherCrudController::class, 'exportPdf']);
@@ -208,8 +210,6 @@ Route::group([
 
         Route::post('voucher-payment/{id}/approve', [VoucherPaymentCrudController::class, 'approvedStore']);
         Route::post('voucher-payment/total', [VoucherPaymentCrudController::class, 'total_voucher']);
-        Route::post('voucher/select2-work-code', [VoucherCrudController::class, 'select2WorkCode']);
-        Route::post('voucher/select2-subkon', [VoucherCrudController::class, 'select2Subkon']);
         Route::get('voucher/get_client_selected_ajax', [VoucherCrudController::class, 'clientSelectedAjax']);
         Route::get('voucher/get_account_source_selected_ajax', [VoucherCrudController::class, 'castAccountSelectedAjax']);
         Route::get('voucher/{id}/print', [VoucherCrudController::class, 'print']);
