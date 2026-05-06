@@ -86,7 +86,7 @@ class VoucherCrudController extends CrudController
     {
         $this->crud->addFilter([
             'name' => 'date_voucher11crudTable-voucher',
-            'type' => 'date',
+            'type' => 'date_range',
             'label' => trans('backpack::crud.voucher.column.voucher.date_voucher.label'),
         ], false, function ($value) {});
 

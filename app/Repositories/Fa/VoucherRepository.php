@@ -92,7 +92,10 @@ class VoucherRepository
         }
 
         if ($filters->date_voucher !== null && $filters->date_voucher !== '') {
-            $query->where('vouchers.date_voucher', $filters->date_voucher);
+            $date_serialize = json_decode($filters->date_voucher, true);
+            $date_voucher_form = Carbon::parse(trim($date_serialize['from']))->format('Y-m-d');
+            $date_voucher_to = Carbon::parse(trim($date_serialize['to']))->format('Y-m-d');
+            $query->whereBetween('vouchers.date_voucher', [$date_voucher_form, $date_voucher_to]);
         }
 
         if ($filters->bill_date !== null && $filters->bill_date !== '') {
@@ -216,7 +219,10 @@ class VoucherRepository
         $data->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id');
 
         if ($filters->date_voucher !== null && $filters->date_voucher !== '') {
-            $data->where('vouchers.date_voucher', $filters->date_voucher);
+            $date_serialize = json_decode($filters->date_voucher, true);
+            $date_voucher_form = Carbon::parse(trim($date_serialize['from']))->format('Y-m-d');
+            $date_voucher_to = Carbon::parse(trim($date_serialize['to']))->format('Y-m-d');
+            $data->whereBetween('vouchers.date_voucher', [$date_voucher_form, $date_voucher_to]);
         }
 
         if ($filters->bill_date !== null && $filters->bill_date !== '') {

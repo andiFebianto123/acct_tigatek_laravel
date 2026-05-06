@@ -21,15 +21,30 @@
                         instance.refresh();
                     });
                 },
+                filterParameters: function(){
+                    var setupAllFilter = SIAOPS.getAttribute("SETUP_ALL_FILTER_voucher");
+                    if(setupAllFilter){
+                        return {
+                            search: setupAllFilter.searchValues,
+                            ...setupAllFilter.filterValues,
+                        };
+                    }else{
+                        var getI = SIAOPS.getAttribute('crudTable-voucher');
+                        var get_url = getI.table.ajax.url();
+                        const params = new URL(get_url).searchParams;
+                        const obj = Object.fromEntries(params.entries());
+                        return {
+                            search: window.filterValues,
+                            ...obj
+                        }
+                    }
+                },
                 refresh: function(){
                     var instance = this;
                     $.ajax({
                         url: "{{ url($crud->route.'/total') }}",
                         type: 'GET',
-                        data: {
-                            ...window.filter_tables,
-                            search: window.filterValues,
-                        },
+                        data: instance.filterParameters(),
                         typeData: 'json',
                         success: function (result) {
                             $('#panel-voucher').html(`

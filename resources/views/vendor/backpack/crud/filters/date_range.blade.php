@@ -33,6 +33,8 @@
         $filter->options['date_range_options']['endDate'] = $dates['to'];
     }
 
+	// dd($filter);
+
 @endphp
 
 
@@ -44,17 +46,19 @@
 	<div class="dropdown-menu p-0">
 		<div class="form-group backpack-filter mb-0">
 			<div class="input-group date">
-		        <div class="input-group-prepend">
+		        {{-- <div class="input-group-prepend">
 		          <span class="input-group-text"><i class="la la-calendar"></i></span>
-		        </div>
+		        </div> --}}
+				<span class="input-group-text"><span class="la la-calendar"></span></span>
 		        <input class="form-control pull-right"
 		        		id="daterangepicker-{{ $filter->key }}"
 		        		type="text"
                         data-bs-daterangepicker="{{ json_encode($filter->options['date_range_options'] ?? []) }}"
 		        		>
-		        <div class="input-group-append daterangepicker-{{ $filter->key }}-clear-button">
+				<span class="input-group-text daterangepicker-{{ $filter->key }}-clear-button"><span class="la la-times"></span></span>
+		        {{-- <div class="input-group-append daterangepicker-{{ $filter->key }}-clear-button">
 		          <a class="input-group-text" href=""><i class="la la-times"></i></a>
-		        </div>
+		        </div> --}}
 		    </div>
 		</div>
 	</div>
@@ -107,18 +111,25 @@
 	    	// behaviour for ajax table
 			var ajax_table = $('#crudTable').DataTable();
 			var current_url = ajax_table.ajax.url();
-			var new_url = addOrUpdateUriParameter(current_url, parameter, value);
+			// var new_url = addOrUpdateUriParameter(current_url, parameter, value);
+		    var new_url = updateDatatablesOnFilterChange(parameter, value, true, 0);
+
 			// replace the datatables ajax url with new_url and reload it
 			new_url = normalizeAmpersand(new_url.toString());
-			ajax_table.ajax.url(new_url).load();
+			// ajax_table.ajax.url(new_url).load();
 			// add filter to URL
-			crud.updateUrl(new_url);
-			// mark this filter as active in the navbar-filters
-			if (URI(new_url).hasQuery('{{ $filter->name }}', true)) {
-				$('li[filter-key={{ $filter->key }}]').removeClass('active').addClass('active');
-			} else {
-				$('li[filter-key={{ $filter->key }}]').trigger('filter:clear');
+			// crud.updateUrl(new_url);
+
+			if(value == ''){
+				return true;
 			}
+
+			// mark this filter as active in the navbar-filters
+			// if (URI(new_url).hasQuery('{{ $filter->name }}', true)) {
+			$('li[filter-key={{ $filter->key }}]').removeClass('active').addClass('active');
+			// } else {
+				// $('li[filter-key={{ $filter->key }}]').trigger('filter:clear');
+			// }
   		}
 
 		jQuery(document).ready(function($) {
@@ -159,10 +170,12 @@
 			$('li[filter-key={{ $filter->key }}]').on('filter:clear', function(e) {
 				//if triggered by remove filters click just remove active class,no need to send ajax
 				$('li[filter-key={{ $filter->key }}]').removeClass('active');
+				applyDateRangeFilter{{$filter->key}}(null, null);
 			});
 			// datepicker clear button
 			$(".daterangepicker-{{ $filter->key }}-clear-button").click(function(e) {
 				e.preventDefault();
+				$('li[filter-key={{ $filter->key }}]').removeClass('active');
 				applyDateRangeFilter{{$filter->key}}(null, null);
 			});
 		});
