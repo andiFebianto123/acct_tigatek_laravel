@@ -362,6 +362,9 @@ class VoucherPaymentRepository
                     ->orWhere('spk.no_spk', 'like', "%{$search}%")
                     ->orWhere('vouchers.payment_description', 'like', "%{$search}%")
                     ->orWhere('purchase_orders.po_number', 'like', "%{$search}%");
+                if (backpack_user()->hasRole('Super Admin')) {
+                    $q->orWhere('companies.name', 'like', "%{$search}%");
+                }
             });
         }
 
