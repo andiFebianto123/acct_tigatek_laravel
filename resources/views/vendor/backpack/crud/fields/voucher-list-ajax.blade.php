@@ -8,6 +8,12 @@
     <label>{!! $field['label'] !!}</label>
     @include('crud::fields.inc.translatable_icon')
 
+    <style>
+        .table-responsive {
+            overflow-x: auto !important;
+        }
+    </style>
+
     <div class="table-responsive">
         <table id="{{ $field_id }}" class="table table-striped table-hover nowrap" style="width:100%">
             <thead>
@@ -16,6 +22,9 @@
                     <th>
                         <input type="checkbox" class="form-check-input select-all-vouchers">
                     </th>
+                    @if (backpack_user()->hasRole('Super Admin'))
+                        <th>{{ trans('backpack::crud.subkon.column.company') }}</th>
+                    @endif
                     <th>{{ trans('backpack::crud.voucher.column.voucher.no_voucher.label') }}</th>
                     <th>{{ trans('backpack::crud.voucher.column.voucher.date_voucher.label') }}</th>
                     <th>A/N Rekening</th>
@@ -179,6 +188,9 @@
                         return `<input type="checkbox" class="form-check-input voucher-checkbox" value="${data}" ${checked}>`;
                     }
                 },
+                @if (backpack_user()->hasRole('Super Admin'))
+                { data: 'company_name', orderable: false },
+                @endif
                 { data: 'no_voucher', orderable: false },
                 { data: 'date_voucher', name: 'date_voucher', orderable: true },
                 { data: 'subkon_name', orderable: false },
