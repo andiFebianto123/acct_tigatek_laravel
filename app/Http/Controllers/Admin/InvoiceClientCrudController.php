@@ -156,7 +156,7 @@ class InvoiceClientCrudController extends CrudController
 
         if (backpack_user()->hasRole('Super Admin')) {
             $columns[] = [
-                'label' => 'Milik Perusahaan',
+                'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company',
                 'type' => 'text',
                 'orderable' => true,
@@ -1782,6 +1782,7 @@ class InvoiceClientCrudController extends CrudController
         return $pdf->stream('invoice.pdf');
         return view('exports.invoice-client-pdf-new');
     }
+
     public function voidPayment($id)
     {
         $this->crud->hasAccessOrFail('void');
