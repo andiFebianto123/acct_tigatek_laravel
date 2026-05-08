@@ -14,7 +14,8 @@ class InvoiceClientRepository
             $join->on('log_void.reference_id', '=', 'invoice_clients.id')
                 ->where('log_void.reference_type', '=', 'App\Models\InvoiceClient')
                 ->where('log_void.name', '=', 'CREATE_PAYMENT_INVOICE');
-        })->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id');
+        })->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
+            ->leftJoin('companies', 'companies.id', '=', 'invoice_clients.company_id');
 
         $this->applyFilters($query, $dto);
     }
@@ -46,6 +47,10 @@ class InvoiceClientRepository
         if ($dto->filter_year && $dto->filter_year != 'all') {
             $query->whereYear('invoice_clients.invoice_date', $dto->filter_year);
         }
+
+        if ($dto->company_id && $dto->company_id != 'all') {
+            $query->where('invoice_clients.company_id', $dto->company_id);
+        }
     }
 
     private function applyColumnFilters($query, mixed $columns): void
@@ -53,6 +58,8 @@ class InvoiceClientRepository
         if (empty($columns) || !is_array($columns)) return;
 
         $isDatatable = isset($columns[0]['search']);
+        $offset = (backpack_user()->hasRole('Super Admin')) ? 1 : 0;
+
         foreach ($columns as $index => $column) {
             $value = '';
             $name = null;
@@ -70,6 +77,7 @@ class InvoiceClientRepository
 
             if ($name) {
                 match ($name) {
+                    'company' => $query->where('companies.name', 'like', "%{$value}%"),
                     'invoice_number' => $query->where('invoice_clients.invoice_number', 'like', "%{$value}%"),
                     'kdp' => $query->where('invoice_clients.kdp', 'like', "%{$value}%"),
                     'name' => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
@@ -82,7 +90,12 @@ class InvoiceClientRepository
                     default => null
                 };
             } else {
-                match ($index) {
+                // By index with offset
+                if ($offset === 1 && $index === 1) {
+                    $query->where('companies.name', 'like', "%{$value}%");
+                }
+
+                match ($index - $offset) {
                     1 => $query->where('invoice_clients.invoice_number', 'like', "%{$value}%"),
                     2 => $query->where('invoice_clients.kdp', 'like', "%{$value}%"),
                     3 => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
@@ -104,7 +117,8 @@ class InvoiceClientRepository
             DB::raw("SUM(price_total_exclude_ppn) as total_price_exclude_ppn"),
             DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
             DB::raw("SUM(discount_pph) as total_discount_pph")
-        )->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id');
+        )->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
+            ->leftJoin('companies', 'companies.id', '=', 'invoice_clients.company_id');
 
         $this->applyFilters($query, $dto);
 

@@ -14,6 +14,7 @@ class InvoiceClientFilterData
         public readonly ?string $send_invoice_revision = null,
         public readonly ?string $filter_paid_status = null,
         public readonly ?string $filter_year = null,
+        public readonly ?int $company_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -26,6 +27,7 @@ class InvoiceClientFilterData
             send_invoice_revision: $request->send_invoice_revision,
             filter_paid_status: $request->filter_paid_status,
             filter_year: $request->filter_year,
+            company_id: (int) $request->company_id,
         );
     }
 }

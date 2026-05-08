@@ -22,6 +22,7 @@ class InvoiceClientSaveData
         public readonly ?string $send_invoice_revision,
         public readonly ?string $address_po,
         public readonly array $invoice_client_details,
+        public readonly ?int $company_id = null,
         public readonly mixed $invoice_document = null,
     ) {}
 
@@ -50,6 +51,7 @@ class InvoiceClientSaveData
             send_invoice_revision: $request->send_invoice_revision,
             address_po: $request->address_po,
             invoice_client_details: $details,
+            company_id: (int) $request->company_id,
             invoice_document: $request->file('invoice_document'),
         );
     }

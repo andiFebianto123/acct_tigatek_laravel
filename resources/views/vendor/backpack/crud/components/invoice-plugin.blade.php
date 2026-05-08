@@ -20,11 +20,19 @@
                 refresh: function(){
                     var instance = this;
                     setTimeout(() => {
-                        $("#crudTable-invoice thead tr.filters th").eq(5).children('input').remove();
-                        $("#crudTable-invoice thead tr.filters th").eq(7).children('input').remove();
-                        $("#crudTable-invoice thead tr.filters th").eq(12).children('input').remove();
-                        $("#crudTable-invoice thead tr.filters th").eq(13).children('input').remove();
-                        $("#crudTable-invoice thead tr.filters th").eq(14).children('input').remove();
+                        @if(!backpack_user()->hasRole('Super Admin'))
+                            $("#crudTable-invoice thead tr.filters th").eq(4).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(6).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(11).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(12).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(13).children('input').remove();
+                        @else
+                            $("#crudTable-invoice thead tr.filters th").eq(6).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(8).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(13).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(14).children('input').remove();
+                            $("#crudTable-invoice thead tr.filters th").eq(15).children('input').remove();
+                        @endif
                     }, 400);
                     $.ajax({
                         url: "{{ url($crud->route.'/total') }}",

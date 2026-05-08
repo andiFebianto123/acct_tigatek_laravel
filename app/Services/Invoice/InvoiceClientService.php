@@ -126,6 +126,7 @@ class InvoiceClientService
         $invoice->price_total = $total_price - $diskon_pph;
         $invoice->pph = $dto->pph;
         $invoice->discount_pph = $diskon_pph;
+        $invoice->company_id = $dto->company_id;
     }
 
     private function saveDetails(InvoiceClient $invoice, array $details): void

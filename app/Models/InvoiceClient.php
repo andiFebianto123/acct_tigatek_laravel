@@ -57,6 +57,11 @@ class InvoiceClient extends Model
         return $this->hasMany(InvoiceClientDetail::class, 'invoice_client_id');
     }
 
+    function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

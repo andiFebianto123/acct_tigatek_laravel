@@ -108,14 +108,14 @@ Route::group([
         Route::get('quotation/total', [ClientQuotationCrudController::class, 'countAllPPn']);
         Route::get('quotation/total-without-po', 'ClientQuotationCrudController@totalWithoutPo');
     });
-    Route::crud('invoice-client', 'InvoiceClientCrudController');
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);
     Route::get('invoice-client/{id}/print', [InvoiceClientCrudController::class, 'printInvoice']);
-    Route::post('invoice-client/select2-client-po', [InvoiceClientCrudController::class, 'select2ClientPo']);
-    Route::get('invoice-client/get-client-po', [InvoiceClientCrudController::class, 'selectedClientPo']);
+    Route::match(['get', 'post', 'put'], 'invoice-client/select2-client-po', [InvoiceClientCrudController::class, 'select2ClientPo']);
+    Route::match(['get', 'post', 'put'], 'invoice-client/get-client-po', [InvoiceClientCrudController::class, 'selectedClientPo']);
     Route::get('invoice-client/total', [InvoiceClientCrudController::class, 'total_price']);
     Route::delete('invoice-client/void-payment/{id}', [InvoiceClientCrudController::class, 'voidPayment']);
+    Route::crud('invoice-client', 'InvoiceClientCrudController');
 
     Route::prefix('cash-flow')->group(function () {
         Route::crud('cast-accounts', 'CastAccountsCrudController');

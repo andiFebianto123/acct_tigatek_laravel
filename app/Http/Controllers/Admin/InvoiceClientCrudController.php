@@ -77,12 +77,22 @@ class InvoiceClientCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
 
-        $search = request()->input('q');
-        $dataset = \App\Models\ClientPo::select(['id', 'po_number'])
-            ->where('po_number', 'LIKE', "%$search%")
-            ->orWhere('work_code', 'like', "$search")
-            ->orWhere('job_name', 'LIKE', "%$search%")
-            ->paginate(10);
+        $request = request();
+
+        $search = $request->input('q');
+        $company_id = $request->input('company_id');
+
+        $query = \App\Models\ClientPo::select(['id', 'po_number']);
+
+        if ($request->has('company_id')) {
+            $query->where('company_id', $company_id);
+        }
+
+        $dataset = $query->where(function ($q) use ($search) {
+            $q->where('po_number', 'LIKE', "%$search%")
+                ->orWhere('work_code', 'like', "$search")
+                ->orWhere('job_name', 'LIKE', "%$search%");
+        })->paginate(10);
 
         $results = [];
         foreach ($dataset as $item) {
@@ -112,6 +122,13 @@ class InvoiceClientCrudController extends CrudController
 
     private function getComponent()
     {
+        if (backpack_user()->hasRole('Super Admin')) {
+            $this->crud->filter('company_id11crudTable-invoice')
+                ->label('Milik Perusahaan')
+                ->type('select2')
+                ->values(fn() => \App\Models\Company::pluck('name', 'id')->toArray());
+        }
+
         $this->crud->filter('invoice_date11crudTable-invoice')
             ->label(trans('backpack::crud.invoice_client.column.invoice_date'))
             ->type('date');
@@ -128,6 +145,123 @@ class InvoiceClientCrudController extends CrudController
             ->label(trans('backpack::crud.invoice_client.column.send_invoice_revision'))
             ->type('date');
 
+        $columns = [
+            [
+                'name'      => 'row_number',
+                'type'      => 'row_number',
+                'label'     => 'No',
+                'orderable' => false,
+            ],
+        ];
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $columns[] = [
+                'label' => 'Milik Perusahaan',
+                'name' => 'company',
+                'type' => 'text',
+                'orderable' => true,
+            ];
+        }
+
+        $columns = array_merge($columns, [
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
+                'name' => 'invoice_number',
+                'type'  => 'text',
+                'orderlable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
+                'name' => 'kdp',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.name'),
+                'name' => 'name',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.description'),
+                'name' => 'description',
+                'type' => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.invoice_date'),
+                'name' => 'invoice_date',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.client_po_id'),
+                'name' => 'client_po_id',
+                'type'  => 'text',
+                'orderable' => true,
+                'limit' => 40,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.po_date'),
+                'name' => 'po_date_from_po',
+                'type' => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.client_id'),
+                'type' => 'text',
+                'name' => 'client_name',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.price_total_exclude_ppn'),
+                'name' => 'price_total_exclude_ppn',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.price_total_include_ppn'),
+                'name' => 'price_total_include_ppn',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.discount_pph'),
+                'name' => 'discount_pph',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.send_invoice_normal'),
+                'name' => 'send_invoice_normal',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.send_invoice_revision'),
+                'name' => 'send_invoice_revision',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.status'),
+                'name' => 'status',
+                'type' => 'text',
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.document_invoice'),
+                'name' => 'invoice_document',
+                'type' => 'text',
+                'orderable' => false,
+            ],
+            [
+                'name' => 'action',
+                'type' => 'action',
+                'label' =>  trans('backpack::crud.actions'),
+                'width_box' => '150px',
+            ]
+        ]);
+
         $this->card->addCard([
             'name' => 'invoice',
             'line' => 'top',
@@ -136,110 +270,7 @@ class InvoiceClientCrudController extends CrudController
                 'filter' => true,
                 'crud_custom' => $this->crud,
                 'hide_title' => true,
-                'columns' => [
-                    [
-                        'name'      => 'row_number',
-                        'type'      => 'row_number',
-                        'label'     => 'No',
-                        'orderable' => false,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
-                        'name' => 'invoice_number',
-                        'type'  => 'text',
-                        'orderlable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-                        'name' => 'kdp',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.name'),
-                        'name' => 'name',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.description'),
-                        'name' => 'description',
-                        'type' => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.invoice_date'),
-                        'name' => 'invoice_date',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.client_po_id'),
-                        'name' => 'client_po_id',
-                        'type'  => 'text',
-                        'orderable' => true,
-                        'limit' => 40,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.po_date'),
-                        'name' => 'po_date_from_po',
-                        'type' => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.client_id'),
-                        'type' => 'text',
-                        'name' => 'client_name',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.price_total_exclude_ppn'),
-                        'name' => 'price_total_exclude_ppn',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.price_total_include_ppn'),
-                        'name' => 'price_total_include_ppn',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.discount_pph'),
-                        'name' => 'discount_pph',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.send_invoice_normal'),
-                        'name' => 'send_invoice_normal',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.send_invoice_revision'),
-                        'name' => 'send_invoice_revision',
-                        'type'  => 'text',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.status'),
-                        'name' => 'status',
-                        'type' => 'text',
-                    ],
-                    [
-                        'label' => trans('backpack::crud.invoice_client.column.document_invoice'),
-                        'name' => 'invoice_document',
-                        'type' => 'text',
-                        'orderable' => false,
-                    ],
-                    [
-                        'name' => 'action',
-                        'type' => 'action',
-                        'label' =>  trans('backpack::crud.actions'),
-                        'width_box' => '150px',
-                    ]
-                ],
+                'columns' => $columns,
                 'filter_table' => collect($this->crud->filters())->slice(0, 4),
                 'route' => backpack_url('invoice-client/search'),
             ]
@@ -375,7 +406,8 @@ class InvoiceClientCrudController extends CrudController
             DB::raw("
                 invoice_clients.*,
                 log_void.id as payment_log_id,
-                client_po.date_po as po_date_from_po
+                client_po.date_po as po_date_from_po,
+                companies.name as company_name
             ")
         ]);
 
@@ -395,6 +427,18 @@ class InvoiceClientCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::column([
+                'label' => trans('backpack::crud.subkon.column.company'),
+                'name' => 'company_name',
+                'type' => 'text',
+                'orderable' => true,
+                'orderLogic' => function ($query, $column, $columnDir) {
+                    return $query->orderBy('companies.name', $columnDir);
+                },
+            ]);
+        }
 
         CRUD::column(
             [
@@ -707,6 +751,20 @@ class InvoiceClientCrudController extends CrudController
             ];
         }
         // CRUD::setFromDb(); // set fields from db columns.
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+                'type'      => 'select2_array',
+                'name'      => 'company_id',
+                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
+            ]);
+        }
+
         CRUD::addField([
             'name' => 'invoice_number',
             'label' => trans('backpack::crud.invoice_client.field.invoice_number.label'),
@@ -769,6 +827,8 @@ class InvoiceClientCrudController extends CrudController
             'entity'      => 'client_po', // the method that defines the relationship in your Model
             'attribute'   => 'po_number', // foreign key attribute that is shown to user
             'data_source' => backpack_url('invoice-client/select2-client-po'), // url to controller search function (with /{id} should return a single entry)
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -1206,6 +1266,29 @@ class InvoiceClientCrudController extends CrudController
                 client_po.date_po as po_date_from_po
             ")
         ]);
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::field([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
+            ]);
+
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
 
         // --- FIELDS (LABELS) ---
 
