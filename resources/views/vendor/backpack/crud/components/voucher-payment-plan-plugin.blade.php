@@ -347,8 +347,12 @@
                 accounts_compact:[],
                 eventLoader: async function(){
                     var instance = this;
+                    var refreshTimeout = null;
                     eventEmitter.on("crudTable-filter_voucher_payment_plugin_load", function(data){
-                        instance.refresh();
+                        clearTimeout(refreshTimeout);
+                        refreshTimeout = setTimeout(function() {
+                            instance.refresh();
+                        }, 500);
                     });
                 },
                 refresh: function(){
@@ -361,10 +365,13 @@
                         url: "{{ url($crud->route.'/total') }}",
                         type: 'POST',
                         data: {
-                            ...(window.filter_tables || {}),
-                            searchAll: (filterAll) ? (filterAll.searchValues || []) : [],
-                            searchNonRutin: (filterNonRutin) ? (filterNonRutin.searchValues || []) : [],
-                            searchSubkon: (filterSubkon) ? (filterSubkon.searchValues || []) : [],
+                            // ...(window.filter_tables || {}),
+                            searchAll: (SIAOPS.getAttribute('crudTable-voucher_payment_plan_all')) ? (SIAOPS.getAttribute('crudTable-voucher_payment_plan_all').table.ajax.params() || []) : [],
+                            searchNonRutin: (SIAOPS.getAttribute('crudTable-voucher_payment_plan_non_rutin')) ? (SIAOPS.getAttribute('crudTable-voucher_payment_plan_non_rutin').table.ajax.params() || []) : [],
+                            searchSubkon: (SIAOPS.getAttribute('crudTable-voucher_payment_plan_subkon')) ? (SIAOPS.getAttribute('crudTable-voucher_payment_plan_subkon').table.ajax.params() || []) : [],
+                            ...(SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_all') ? SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_all').filterValues : {}),
+                            ...(SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_non_rutin') ? SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_non_rutin').filterValues : {}),
+                            ...(SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_subkon') ? SIAOPS.getAttribute('SETUP_ALL_FILTER_voucher_payment_plan_subkon').filterValues : {})
                         },
                         typeData: 'json',
                         success: function (result) {
