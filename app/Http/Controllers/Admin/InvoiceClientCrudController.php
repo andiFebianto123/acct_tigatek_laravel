@@ -2,25 +2,29 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Carbon\Carbon;
-use App\Models\Setting;
-use App\Models\ClientPo;
-use App\Models\LogPayment;
-use App\Models\InvoiceClient;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Http\Helpers\CustomVoid;
-use App\Http\Exports\ExportExcel;
-use App\Http\Helpers\CustomHelper;
-use Illuminate\Support\Facades\DB;
-use App\Models\InvoiceClientDetail;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
+use App\DTOs\Invoice\InvoiceClientFilterData;
+use App\DTOs\Invoice\InvoiceClientSaveData;
 use App\Http\Controllers\CrudController;
-use App\Http\Requests\InvoiceClientRequest;
 use App\Http\Controllers\Operation\FormaterExport;
 use App\Http\Controllers\Operation\PermissionAccess;
+use App\Http\Exports\ExportExcel;
+use App\Http\Helpers\CustomHelper;
+use App\Http\Helpers\CustomVoid;
+use App\Http\Requests\InvoiceClientRequest;
+use App\Models\ClientPo;
+use App\Models\InvoiceClient;
+use App\Models\InvoiceClientDetail;
+use App\Models\LogPayment;
+use App\Models\Setting;
+use App\Repositories\Invoice\InvoiceClientRepository;
+use App\Services\Invoice\InvoiceClientService;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Class InvoiceClientCrudController
@@ -36,6 +40,13 @@ class InvoiceClientCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
     use FormaterExport;
+
+    public function __construct(
+        protected InvoiceClientRepository $repository,
+        protected InvoiceClientService $service
+    ) {
+        parent::__construct();
+    }
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
      *
@@ -245,141 +256,13 @@ class InvoiceClientCrudController extends CrudController
 
     public function total_price()
     {
-        $total_price = InvoiceClient::select(
-            DB::raw("SUM(price_total_exclude_ppn) as total_price_exclude_ppn"),
-            DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
-            DB::raw("SUM(discount_pph) as total_discount_pph")
-        );
-
-        $request = request();
-
-        if ($request->search) {
-            if (isset($request->search[1])) {
-                $search = trim($request->search[1]);
-                $total_price = $total_price
-                    ->where('invoice_clients.invoice_number', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->search[2])) {
-                $search = trim($request->search[2]);
-                $total_price = $total_price
-                    ->where('invoice_clients.kdp', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->search[3])) {
-                $search = trim($request->search[3]);
-                $total_price = $total_price->orWhereHas('client_po', function ($query) use ($search) {
-                    $query->where('job_name', 'like', '%' . $search . '%');
-                });
-            }
-
-            // if (isset($request->search[4])) {
-            //     $search = trim($request->search[4]);
-            //     $total_price = $total_price
-            //         ->where('invoice_clients.invoice_date', 'like', '%' . $search . '%');
-            // }
-
-            if (isset($request->search[4])) {
-                $search = trim($request->search[4]);
-                $total_price = $total_price
-                    ->where('invoice_clients.description', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->search[6])) {
-                $search = trim($request->search[6]);
-                $total_price = $total_price->orWhereHas('client_po', function ($query) use ($search) {
-                    $query->where('po_number', 'like', '%' . $search . '%');
-                });
-            }
-
-            // if (isset($request->search[7])) {
-            //     $search = trim($request->search[7]);
-            //     $total_price = $total_price
-            //         ->where('invoice_clients.po_date', 'like', '%' . $search . '%');
-            // }
-
-            if (isset($request->search[8])) {
-                $search = trim($request->search[8]);
-                $total_price = $total_price->orWhereHas('client_po.client', function ($query) use ($search) {
-                    $query->where('name', 'like', '%' . $search . '%');
-                });
-            }
-
-            if (isset($request->search[9])) {
-                $search = trim($request->search[9]);
-                $total_price = $total_price
-                    ->where('invoice_clients.price_total_exclude_ppn', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->search[10])) {
-                $search = trim($request->search[10]);
-                $total_price = $total_price
-                    ->where('invoice_clients.price_total_include_ppn', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->search[11])) {
-                $search = trim($request->search[11]);
-                $total_price = $total_price
-                    ->where('invoice_clients.discount_pph', 'like', '%' . $search . '%');
-            }
-
-            // if (isset($request->search[12])) {
-            //     $search = trim($request->search[12]);
-            //     $total_price = $total_price
-            //         ->where('invoice_clients.send_invoice_normal_date', 'like', '%' . $search . '%');
-            // }
-
-            // if (isset($request->search[13])) {
-            //     $search = trim($request->search[13]);
-            //     $total_price = $total_price
-            //         ->where('invoice_clients.send_invoice_revision_date', 'like', '%' . $search . '%');
-            // }
-
-            // if (isset($request->search[14])) {
-            //     $search = trim($request->search[14]);
-            //     $total_price = $total_price
-            //         ->where('invoice_clients.status', 'like', '%' . $search . '%');
-            // }
-        }
-
-        if ($request->has('invoice_date')) {
-            $total_price = $total_price
-                ->where('invoice_clients.invoice_date', $request->invoice_date);
-        }
-
-        if ($request->has('po_date')) {
-            $total_price = $total_price->whereHas('client_po', function ($query) use ($request) {
-                $query->where('date_po', $request->po_date);
-            });
-        }
-
-        if ($request->has('send_invoice_normal')) {
-            $total_price = $total_price
-                ->where('invoice_clients.send_invoice_normal_date', $request->send_invoice_normal);
-        }
-
-        if ($request->has('send_invoice_revision')) {
-            $total_price = $total_price
-                ->where('invoice_clients.send_invoice_revision_date', $request->send_invoice_revision);
-        }
-
-        if ($request->has('filter_paid_status')) {
-            if ($request->filter_paid_status != 'all') {
-                $total_price = $total_price
-                    ->where('invoice_clients.status', $request->filter_paid_status);
-            }
-        }
-
-        if ($request->has('filter_year') && $request->filter_year != 'all') {
-            $total_price = $total_price->whereYear('invoice_clients.invoice_date', $request->filter_year);
-        }
-
-        $total_price = $total_price->first();
+        $dto = InvoiceClientFilterData::fromRequest(request());
+        $totals = $this->repository->getTotals($dto);
 
         return response()->json([
-            'total_price_exclude_ppn' => CustomHelper::formatRupiahWithCurrency($total_price->total_price_exclude_ppn),
-            'total_price_include_ppn' => CustomHelper::formatRupiahWithCurrency($total_price->total_price_include_ppn),
-            'total_discount_pph' => CustomHelper::formatRupiahWithCurrency($total_price->total_discount_pph),
+            'total_price_exclude_ppn' => CustomHelper::formatRupiahWithCurrency($totals['total_price_exclude_ppn'] ?? 0),
+            'total_price_include_ppn' => CustomHelper::formatRupiahWithCurrency($totals['total_price_include_ppn'] ?? 0),
+            'total_discount_pph' => CustomHelper::formatRupiahWithCurrency($totals['total_discount_pph'] ?? 0),
         ]);
     }
 
@@ -483,11 +366,10 @@ class InvoiceClientCrudController extends CrudController
         CRUD::addButtonFromView('line', 'delete', 'delete', 'end');
         CRUD::addButtonFromView('line', 'void_invoice', 'void_invoice', 'end');
 
-        $this->crud->query = $this->crud->query->leftJoin('log_payments as log_void', function ($join) {
-            $join->on('log_void.reference_id', '=', 'invoice_clients.id')
-                ->where('log_void.reference_type', '=', 'App\Models\InvoiceClient')
-                ->where('log_void.name', '=', 'CREATE_PAYMENT_INVOICE');
-        })->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id');
+        $this->repository->applyListQuery(
+            $this->crud->query,
+            InvoiceClientFilterData::fromRequest(request())
+        );
 
         CRUD::addClause('select', [
             DB::raw("
@@ -537,18 +419,12 @@ class InvoiceClientCrudController extends CrudController
                 'type'  => 'closure',
                 'width_box' => '300px',
                 'function' => function ($entry) {
-                    return $entry->client_po->job_name;
+                    return $entry->client_po?->job_name;
                 },
                 'orderable' => true,
                 'orderLogic' => function ($query, $column, $columnDir) {
                     return $query->orderBy('client_po.job_name', $columnDir);
                 },
-                // 'searchable' => true,
-                // 'searchLogic' => function ($query, $column, $searchTerm) {
-                //     return $query->orWhereHas('client_po', function ($query) use ($searchTerm) {
-                //         $query->where('job_name', 'like', '%' . $searchTerm . '%');
-                //     });
-                // }
             ],
         );
 
@@ -570,15 +446,13 @@ class InvoiceClientCrudController extends CrudController
         );
 
         CRUD::column([
-            // 1-n relationship
             'label' => trans('backpack::crud.invoice_client.column.client_po_id'),
             'type'      => 'select',
-            'name'      => 'client_po_id', // the column that contains the ID of that connected entity;
-            'entity'    => 'client_po', // the method that defines the relationship in your Model
-            'attribute' => 'po_number', // foreign key attribute that is shown to user
-            'model'     => "App\Models\ClientPo", // foreign key model
-            // OPTIONAL
-            'limit' => 40, // Limit the number of characters shown
+            'name'      => 'client_po_id',
+            'entity'    => 'client_po',
+            'attribute' => 'po_number',
+            'model'     => "App\Models\ClientPo",
+            'limit' => 40,
         ]);
 
         CRUD::column(
@@ -591,15 +465,12 @@ class InvoiceClientCrudController extends CrudController
         );
 
         CRUD::column([
-            // 1-n relationship
             'label' => trans('backpack::crud.invoice_client.column.client_id'),
             'type'      => 'closure',
             'name'      => 'client_name',
             'function' => function ($entry) {
-                return $entry->client_po->client->name;
-            } // the column that contains the ID of that connected entity;
-            // OPTIONAL
-            // 'limit' => 32, // Limit the number of characters shown
+                return $entry->client_po?->client?->name;
+            }
         ]);
 
         CRUD::column(
@@ -623,6 +494,7 @@ class InvoiceClientCrudController extends CrudController
                 },
             ],
         );
+
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.invoice_client.column.discount_pph'),
@@ -660,159 +532,12 @@ class InvoiceClientCrudController extends CrudController
             ]
         );
 
-        // CRUD::column([
-        //     'label' => 'Dokumen Invoice',
-        //     'name' => 'invoice_document',
-        //     'type' => 'closure',
-        //     'function' => function ($entry) {
-        //         if ($entry->invoice_document) {
-        //             $url = asset('storage/' . $entry->invoice_document);
-        //             $filename = basename($entry->invoice_document);
-        //             return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-success" title="' . $filename . '">
-        //                       <i class="la la-file-pdf"></i> PDF
-        //                     </a>';
-        //         }
-        //         return '';
-        //     },
-        //     'escaped' => false,
-        //     'searchLogic' => false,
-        //     'orderable' => false,
-        // ]);
-
         CRUD::column([
             'name'   => 'invoice_document',
             'type'   => 'upload',
             'label'  => trans('backpack::crud.client_po.column.document_path'),
             'disk'   => 'public',
         ]);
-
-        $request = request();
-
-        if ($request->columns) {
-            if (isset($request->columns[1]['search']['value'])) {
-                $search = $request->columns[1]['search']['value'];
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.invoice_number', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->columns[2]['search']['value'])) {
-                $search = trim($request->columns[2]['search']['value']);
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.kdp', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->columns[3]['search']['value'])) {
-                $search = trim($request->columns[3]['search']['value']);
-                $this->crud->query = $this->crud->query->orWhereHas('client_po', function ($query) use ($search) {
-                    $query->where('job_name', 'like', '%' . $search . '%');
-                });
-            }
-
-            // if (isset($request->columns[4]['search']['value'])) {
-            //     $search = trim($request->columns[4]['search']['value']);
-            //     $this->crud->query = $this->crud->query
-            //         ->where('invoice_clients.invoice_date', 'like', '%' . $search . '%');
-            // }
-
-            // Search for Description column (index 5)
-            if (isset($request->columns[4]['search']['value'])) {
-                $search = trim($request->columns[4]['search']['value']);
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.description', 'like', '%' . $search . '%');
-            }
-
-            // Client PO Number (shifted from index 5 to 6)
-            if (isset($request->columns[6]['search']['value'])) {
-                $search = trim($request->columns[6]['search']['value']);
-                $this->crud->query = $this->crud->query->orWhereHas('client_po', function ($query) use ($search) {
-                    $query->where('po_number', 'like', '%' . $search . '%');
-                });
-            }
-
-            // if (isset($request->columns[7]['search']['value'])) {
-            //     $search = trim($request->columns[7]['search']['value']);
-            //     $this->crud->query = $this->crud->query
-            //         ->where('invoice_clients.po_date', 'like', '%' . $search . '%');
-            // }
-
-            // Client Name (shifted from index 7 to 8)
-            if (isset($request->columns[8]['search']['value'])) {
-                $search = trim($request->columns[8]['search']['value']);
-                $this->crud->query = $this->crud->query->orWhereHas('client_po.client', function ($query) use ($search) {
-                    $query->where('name', 'like', '%' . $search . '%');
-                });
-            }
-
-            // Price Exclude PPN (shifted from index 8 to 9)
-            if (isset($request->columns[9]['search']['value'])) {
-                $search = trim($request->columns[9]['search']['value']);
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.price_total_exclude_ppn', 'like', '%' . $search . '%');
-            }
-
-            // Price Include PPN (shifted from index 9 to 10)
-            if (isset($request->columns[10]['search']['value'])) {
-                $search = trim($request->columns[10]['search']['value']);
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.price_total_include_ppn', 'like', '%' . $search . '%');
-            }
-
-            if (isset($request->columns[11]['search']['value'])) {
-                $search = trim($request->columns[11]['search']['value']);
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.discount_pph', 'like', '%' . $search . '%');
-            }
-
-            // if (isset($request->columns[12]['search']['value'])) {
-            //     $search = trim($request->columns[12]['search']['value']);
-            //     $this->crud->query = $this->crud->query
-            //         ->where('invoice_clients.send_invoice_normal_date', 'like', '%' . $search . '%');
-            // }
-
-            // if (isset($request->columns[13]['search']['value'])) {
-            //     $search = trim($request->columns[13]['search']['value']);
-            //     $this->crud->query = $this->crud->query
-            //         ->where('invoice_clients.send_invoice_revision_date', 'like', '%' . $search . '%');
-            // }
-
-            // if (isset($request->columns[14]['search']['value'])) {
-            //     $search = trim($request->columns[14]['search']['value']);
-            //     $this->crud->query = $this->crud->query
-            //         ->where('invoice_clients.status', 'like', '%' . $search . '%');
-            // }
-        }
-
-        if ($request->has('invoice_date')) {
-            $this->crud->query = $this->crud->query
-                ->where('invoice_clients.invoice_date', $request->invoice_date);
-        }
-
-        if ($request->has('po_date')) {
-            $this->crud->query = $this->crud->query
-                ->where('client_po.date_po', $request->po_date);
-        }
-
-        if ($request->has('send_invoice_normal')) {
-            $this->crud->query = $this->crud->query
-                ->where('invoice_clients.send_invoice_normal_date', $request->send_invoice_normal);
-        }
-
-        if ($request->has('send_invoice_revision')) {
-            $this->crud->query = $this->crud->query
-                ->where('invoice_clients.send_invoice_revision_date', $request->send_invoice_revision);
-        }
-
-
-        if ($request->has('filter_paid_status')) {
-            if ($request->filter_paid_status != 'all') {
-                $this->crud->query = $this->crud->query
-                    ->where('invoice_clients.status', $request->filter_paid_status);
-            }
-        }
-
-        if ($request->has('filter_year') && $request->filter_year != 'all') {
-            $this->crud->query = $this->crud->query->whereYear('invoice_clients.invoice_date', $request->filter_year);
-        }
     }
 
     public function search()
@@ -1385,95 +1110,28 @@ class InvoiceClientCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
 
-        $po = ClientPo::find(request()->client_po_id);
-
         $request = request();
+        $po = ClientPo::find($request->client_po_id);
 
         if ($po != null) {
-            request()->merge([
-                // 'nominal_exclude_ppn' => $po->job_value,
+            $request->merge([
                 'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
             ]);
         }
 
-        $request = $this->crud->validateRequest();
+        $this->crud->validateRequest();
 
-        $this->crud->registerFieldEvents();
-
-        DB::beginTransaction();
         try {
-
-            $total_price = 0;
-            // if ($request->dpp_other) {
-            //     $total_price += $request->dpp_other;
-            // }
-            if ($request->nominal_include_ppn) {
-                $total_price += $request->nominal_include_ppn;
-            }
-
-            $pphData = $request->only(['nominal_exclude_ppn', 'tax_ppn', 'pph']);
-            $hasilPerhitungan = $this->calculatePayment($pphData);
-
-            $items = $request->invoice_client_details;
-            $total_item_price = 0;
-            foreach ($items as $item) {
-                $total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-                $total_item_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-            }
-
-            // $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-            $invoice = new InvoiceClient();
-            $invoice->invoice_number = $request->invoice_number;
-            $invoice->name = 'invoice';
-            $invoice->address_po = ($request->address_po != '' && $request->address_po != null) ? $request->address_po : '';
-            $invoice->description = $request->description;
-            $invoice->invoice_date = $request->invoice_date;
-            $invoice->client_po_id = $request->client_po_id;
-            $invoice->tax_ppn = $request->tax_ppn;
-            $invoice->price_dpp = $request->dpp_other;
-            $invoice->kdp = $request->kdp;
-            $invoice->withholding_agent = $request->withholding_agent;
-            $invoice->send_invoice_normal_date = $request->send_invoice_normal;
-            $invoice->send_invoice_revision_date = $request->send_invoice_revision;
-            $invoice->price_total_exclude_ppn = $request->nominal_exclude_ppn;
-            $invoice->price_total_include_ppn = $request->nominal_include_ppn;
-            $invoice->status = 'Unpaid';
-            $invoice->price_total = $total_price - $hasilPerhitungan['diskon_pph'];
-
-            $invoice->pph = $request->pph ?? 0;
-            $invoice->discount_pph = $hasilPerhitungan['diskon_pph'];
-
-            // Handle file upload for invoice_document
-            if ($request->hasFile('invoice_document')) {
-                $file = $request->file('invoice_document');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('document_invoice', $filename, 'public');
-                $invoice->invoice_document = $path;
-            }
-
-            $invoice->save();
-
-            if ($total_item_price > 0) {
-                foreach ($items as $item) {
-                    $invoice_item = new InvoiceClientDetail();
-                    $invoice_item->invoice_client_id = $invoice->id;
-                    $invoice_item->name = $item['name'];
-                    $invoice_item->price = $item['price'];
-                    $invoice_item->save();
-                }
-            }
+            $dto = InvoiceClientSaveData::fromRequest($request);
+            $invoice = $this->service->createInvoice($dto);
 
             $this->data['entry'] = $this->crud->entry = $invoice;
-
-            CustomVoid::invoiceMakeVoucherMoveAccount($invoice);
-            CustomVoid::invoiceCreate($invoice);
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
 
             $this->crud->setSaveAction();
 
-            DB::commit();
-            if (request()->ajax()) {
+            if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
                     'data' => $invoice,
@@ -1485,7 +1143,6 @@ class InvoiceClientCrudController extends CrudController
             }
             return $this->crud->performSaveAction($invoice->getKey());
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -1498,112 +1155,26 @@ class InvoiceClientCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('update');
 
-        $po = ClientPo::find(request()->client_po_id);
-
         $request = request();
+        $po = ClientPo::find($request->client_po_id);
 
         if ($po != null) {
-            request()->merge([
+            $request->merge([
                 'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
             ]);
         }
 
-        // execute the FormRequest authorization and validation, if one is required
-        $request = $this->crud->validateRequest();
+        $this->crud->validateRequest();
 
-        // register any Model Events defined on fields
-        $this->crud->registerFieldEvents();
-
-        // update the row in the db
-        DB::beginTransaction();
         try {
-
-            $total_price = 0;
-
-            if ($request->nominal_include_ppn) {
-                $total_price += $request->nominal_include_ppn;
-            }
-
-            $pphData = $request->only(['nominal_exclude_ppn', 'tax_ppn', 'pph']);
-            $hasilPerhitungan = $this->calculatePayment($pphData);
-
-            $items = $request->invoice_client_details_edit;
-            $total_item_price = 0;
-            foreach ($items as $item) {
-                $total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-                $total_item_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-            }
-
-            $invoice = InvoiceClient::where('id', $id)->first();
-            $old_client_po_id = $invoice->client_po_id;
-
-            $invoice->invoice_number = $request->invoice_number;
-            $invoice->name = 'invoice';
-            $invoice->address_po = ($request->address_po != '' && $request->address_po != null) ? $request->address_po : '';
-            $invoice->description = $request->description;
-            $invoice->invoice_date = $request->invoice_date;
-            $invoice->client_po_id = $request->client_po_id;
-            $invoice->tax_ppn = $request->tax_ppn;
-            $invoice->price_dpp = $request->dpp_other;
-            $invoice->kdp = $request->kdp;
-            $invoice->withholding_agent = $request->withholding_agent;
-            $invoice->send_invoice_normal_date = $request->send_invoice_normal;
-            $invoice->send_invoice_revision_date = $request->send_invoice_revision;
-            $invoice->price_total_exclude_ppn = $request->nominal_exclude_ppn;
-            $invoice->price_total_include_ppn = $request->nominal_include_ppn;
-            $invoice->price_total = $total_price - $hasilPerhitungan['diskon_pph'];
-
-            $invoice->pph = $request->pph ?? 0;
-            $invoice->discount_pph = $hasilPerhitungan['diskon_pph'];
-
-            // Handle file upload for invoice_document
-            if ($request->hasFile('invoice_document')) {
-                // Delete old file if exists
-                if ($invoice->invoice_document && Storage::disk('public')->exists($invoice->invoice_document)) {
-                    Storage::disk('public')->delete($invoice->invoice_document);
-                }
-
-                // Upload new file
-                $file = $request->file('invoice_document');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('document_invoice', $filename, 'public');
-                $invoice->invoice_document = $path;
-            }
-
-            $invoice->save();
-
-            InvoiceClientDetail::where('invoice_client_id', $id)->delete();
-
-            if ($total_item_price > 0) {
-                foreach ($items as $item) {
-                    $invoice_item = new InvoiceClientDetail();
-                    $invoice_item->invoice_client_id = $invoice->id;
-                    $invoice_item->name = $item['name'];
-                    $invoice_item->price = $item['price'];
-                    $invoice_item->save();
-                }
-            }
+            $dto = InvoiceClientSaveData::fromRequest($request);
+            $invoice = $this->service->updateInvoice((int) $id, $dto);
 
             $this->data['entry'] = $this->crud->entry = $invoice;
 
-            if ($invoice->wasChanged([
-                'price_total_exclude_ppn',
-                'price_total_include_ppn',
-                'tax_ppn',
-                'pph',
-                'price_dpp', // dpp_other maps to price_dpp
-                'client_po_id',
-                'withholding_agent'
-            ])) {
-                CustomVoid::invoiceUpdate($invoice, $old_client_po_id);
-            }
-
-
-            DB::commit();
-            // show a success message
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-            // save the redirect choice for next time
             $this->crud->setSaveAction();
+
             return response()->json([
                 'success' => true,
                 'data' => $invoice,
@@ -1612,9 +1183,7 @@ class InvoiceClientCrudController extends CrudController
                     'crudTable-invoice_updated_success' => true
                 ]
             ]);
-            // return $this->crud->performSaveAction($invoice);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -1623,47 +1192,6 @@ class InvoiceClientCrudController extends CrudController
         }
     }
 
-    private function calculatePayment(array $inputs)
-    {
-        $billValue = (float) $inputs['nominal_exclude_ppn'];
-        $ppn       = (float) ($inputs['tax_ppn'] ?? 0);
-        $pph       = (float) ($inputs['pph'] ?? 0);
-
-        $nilaiPpn = ($ppn == 0) ? 0 : ($billValue * ($ppn / 100));
-        $total    = $billValue + $nilaiPpn;
-
-        $diskonPph = ($pph == 0) ? 0 : $billValue * ($pph / 100);
-
-        return [
-            'nominal_exclude_ppn'      => $billValue,
-            'nilai_ppn'                => $nilaiPpn,
-            'total'                    => $total,
-            'diskon_pph'               => $diskonPph,
-        ];
-    }
-
-
-    public function applyInvoicePaymentToAccount($invoice)
-    {
-        // $approval_voucher = Approval::where('model_type', 'App\\Models\\PaymentVoucherPlan')
-        // ->whereExists(function ($query) use ($invoice) {
-        //     $query->select(DB::raw(1))
-        //     ->from('payment_voucher_plan')
-        //     ->whereColumn('payment_voucher_plan.id', 'approvals.model_id')
-        //     ->whereExists(function ($query) use ($invoice) {
-        //         $query->select(DB::raw(1))
-        //         ->from('payment_vouchers')
-        //         ->whereColumn('payment_vouchers.id', 'payment_voucher_plan.payment_voucher_id')
-        //         ->whereExists(function ($query) use ($invoice) {
-        //             $query->select(DB::raw(1))
-        //             ->from('vouchers')
-        //             ->whereColumn('vouchers.id', 'payment_vouchers.voucher_id')
-        //             // ->where('vouchers.reference_type', '=', 'App\\Models\\ClientPo')
-        //             ->where('vouchers.client_po_id', '=', $invoice->client_po_id);
-        //         });
-        //     });
-        // })->orderBy('id', 'desc')->first();
-    }
 
     protected function setupShowOperation()
     {
@@ -2139,20 +1667,24 @@ class InvoiceClientCrudController extends CrudController
     public function destroy($id)
     {
         $this->crud->hasAccessOrFail('delete');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        // get entry ID from Request (makes sure its the last ID for nested resources)
-        $id = $this->crud->getCurrentEntryId() ?? $id; // id invoice
+        try {
+            $this->service->deleteInvoice((int) $id);
 
-        $invoice = InvoiceClient::find($id);
-
-        CustomVoid::invoiceDelete($invoice);
-        $invoice->delete();
-        $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
-        $messages['events'] = [
-            'crudTable-filter_invoice_plugin_load' => true,
-            'crudTable-invoice_create_success' => true,
-        ];
-        return response()->json($messages);
+            return response()->json([
+                'success' => [trans('backpack::crud.delete_confirmation_message')],
+                'events' => [
+                    'crudTable-filter_invoice_plugin_load' => true,
+                    'crudTable-invoice_create_success' => true,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 400);
+        }
     }
 
 
@@ -2171,27 +1703,9 @@ class InvoiceClientCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('void');
 
-        DB::beginTransaction();
         try {
-            $invoice = InvoiceClient::findOrFail($id);
+            $this->service->voidInvoice((int) $id);
 
-            // Check if log exists
-            $log = LogPayment::where('reference_type', 'App\Models\InvoiceClient')
-                ->where('reference_id', $id)
-                ->where('name', 'CREATE_PAYMENT_INVOICE')
-                ->first();
-
-            if (!$log) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Log pembayaran tidak ditemukan.'
-                ]);
-            }
-
-            // Rollback payment logic
-            CustomVoid::rollbackPayment('App\Models\InvoiceClient', $id, 'CREATE_PAYMENT_INVOICE');
-
-            DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => 'Pembayaran invoice berhasil di-Void.',
@@ -2201,7 +1715,6 @@ class InvoiceClientCrudController extends CrudController
                 ]
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()

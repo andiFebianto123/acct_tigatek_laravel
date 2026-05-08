@@ -30,8 +30,9 @@
                         url: "{{ url($crud->route.'/total') }}",
                         type: 'GET',
                         data: {
-                            search: window.filterValues,
-                            ...instance.filterParameters()
+                            search: (SIAOPS.getAttribute('SETUP_ALL_FILTER_invoice')) ? SIAOPS.getAttribute('SETUP_ALL_FILTER_invoice').searchValues : [],
+                            ...(SIAOPS.getAttribute('SETUP_ALL_FILTER_invoice') ? SIAOPS.getAttribute('SETUP_ALL_FILTER_invoice').filterValues : {} ),
+                            // ...instance.filterParameters()
                         },
                         typeData: 'json',
                         success: function (result) {

@@ -42,6 +42,9 @@
                                     url_route += url_sign+key+"="+value;
                                 });
                                 item.table.ajax.url(url_route).load();
+                            }else if(key.includes("SETUP_ALL_FILTER")){
+                                var setupAllFilter = SIAOPS.getAttribute(key);
+                                setupAllFilter.filterValues.filter_paid_status = value;
                             }
                         });
                     });
