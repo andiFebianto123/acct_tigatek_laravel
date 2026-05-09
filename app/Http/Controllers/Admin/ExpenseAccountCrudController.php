@@ -16,9 +16,23 @@ use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\PermissionAccess;
 
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use App\DTOs\Coa\CoaSaveData;
+use App\DTOs\Coa\CoaFilterData;
+use App\Repositories\Coa\CoaRepository;
+use App\Services\Coa\CoaService;
+use App\Http\Requests\Coa\CoaRequest;
 
 class ExpenseAccountCrudController extends CrudController
 {
+    protected CoaRepository $repository;
+    protected CoaService $service;
+
+    public function __construct(CoaRepository $repository, CoaService $service)
+    {
+        parent::__construct();
+        $this->repository = $repository;
+        $this->service = $service;
+    }
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
@@ -129,6 +143,7 @@ class ExpenseAccountCrudController extends CrudController
         $this->data['cards'] = $this->card;
         $this->data['modals'] = $this->modal;
         $this->data['scripts'] = $this->script;
+
         $list = "crud::list-blank" ?? $this->crud->getListView();
         return view($list, $this->data);
     }
@@ -154,18 +169,7 @@ class ExpenseAccountCrudController extends CrudController
 
         $this->crud->registerFieldEvents();
 
-        // $this->data['entry'] = $this->crud->getEntryWithLocale($id);
-
-        $this->data['entry'] = Account::leftJoin('journal_entries', 'journal_entries.account_id', '=', 'accounts.id')
-            ->select(DB::raw("
-                accounts.id as id,
-                MAX(accounts.code) as code,
-                MAX(accounts.name) as name,
-                MAX(accounts.level) as level,
-                (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
-            "))->where('accounts.id', $id)
-            ->groupBy('accounts.id')
-            ->first();
+        $this->data['entry'] = $this->repository->getEntryForEdit($id);
 
         $this->crud->entry = $this->data['entry'];
 
@@ -181,69 +185,10 @@ class ExpenseAccountCrudController extends CrudController
         ]);
     }
 
-    private function ruleAccount()
-    {
-        $id = request()->id;
-        $rule = [
-            'code' => 'required|min:3|max:20|unique:accounts,code,' . $id,
-            'name' => 'required|max:100|unique:accounts,name,' . $id,
-            'balance' => 'required|numeric|min:0',
-        ];
-        if ($id) {
-            if (array_key_exists('balance', $rule)) {
-                unset($rule['balance']);
-            }
-            $rule['code'] = [
-                'required',
-                'min:3',
-                'max:20',
-                Rule::unique('accounts', 'code')->ignore($id),
-                function ($attribute, $value, $fail) use ($id) {
-                    $old_code = Account::where('id', $id)->first()->code;
-                    if ($value != $old_code) {
-                        $child = Account::where('code', 'LIKE', "$old_code%")
-                            ->where('id', '!=', $id)
-                            ->count();
-                        if ($child > 0) {
-                            $fail(trans('backpack::crud.expense_account.field.code.errors.depedency'));
-                        }
-                    }
-                }
-            ];
-
-            // $rule['balance'] = [
-            //     'required',
-            //     'numeric',
-            //     'min:0',
-            //     function($attribute, $value, $fail) use($id){
-            //         $old_balance = Account::leftJoin('journal_entries', 'journal_entries.account_id', '=', 'accounts.id')
-            //         ->select(DB::raw("
-            //             (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
-            //         "))->where('accounts.id', $id)
-            //         ->groupBy('accounts.id')
-            //         ->first();
-
-            //         $old_balance = $old_balance->balance ?? 0;
-
-            //         if($value != $old_balance){
-            //             $journal = JournalEntry::where('account_id', $id)
-            //             ->whereNot('reference_type', Account::class)
-            //             ->count();
-            //             if($journal > 0){
-            //                 $fail(trans('backpack::crud.expense_account.field.code.errors.not_change_balance'));
-            //             }
-            //         }
-
-
-            //     }
-            // ];
-        }
-        return $rule;
-    }
 
     protected function setupCreateOperation()
     {
-        CRUD::setValidation($this->ruleAccount());
+        CRUD::setValidation(CoaRequest::class);
         $disabled_attr = [];
         if ($this->crud->getCurrentEntryId()) {
             $disabled_attr = [
@@ -340,92 +285,39 @@ class ExpenseAccountCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('update');
 
-        $request = $this->crud->validateRequest();
+        $this->crud->validateRequest();
 
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
-            $item = Account::where('id', $request->id)->first();
+            $dto = CoaSaveData::fromRequest(request());
 
             if (request('type') == 'add_balance') {
-                CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $item->id,
-                    'reference_id' => $item->id,
-                    'reference_type' => Account::class,
-                    'description' => 'FIRST BALANCE',
-                    'date' => Carbon::now(),
-                    'debit' => $request->balance,
-                ], [
-                    'reference_id' => $item->id,
-                    'reference_type' => Account::class,
-                ]);
-
-                $rootParent = $this->getRootParentAccount($item->code);
-                $events = [];
-                if ($rootParent) {
-                    $events['account_' . $rootParent->id . '_update_success'] = true;
-                }
+                $result = $this->service->addBalance($dto);
 
                 \Alert::success(trans('backpack::crud.update_success'))->flash();
 
-                DB::commit();
                 return response()->json([
                     'success' => true,
-                    'data' => $item,
-                    'events' => $events
+                    'data' => $result['item'],
+                    'events' => $result['events']
                 ]);
             }
 
-            $old_account = Account::find($request->id);
-            $rootParent_1 = $this->getRootParentAccount($old_account->code);
+            $result = $this->service->update($dto);
 
-            $new_code = $request->code;
-            $new_parent = null;
-            for ($i = 1; $i < strlen($new_code); $i++) {
-                $prefix = substr($new_code, 0, $i);
-                $account = Account::where('code', $prefix)->first();
-                if ($account) {
-                    if ($account->code != $old_account->code) {
-                        $new_parent = $account;
-                    }
-                }
-            }
-            $rootParant_2 = $this->getRootParentAccount($new_code);
-
-            $item->code = $new_code;
-            $item->name = $request->name;
-            if ($new_parent) {
-                $item->level = $new_parent->level + 1;
-            }
-            $item->save();
-
-            $events = [];
-
-            if ($rootParent_1) {
-                $events['account_' . $rootParent_1->id . '_update_success'] = true;
-            }
-
-            if ($rootParant_2) {
-                $events['account_' . $rootParant_2->id . '_update_success'] = true;
-            }
-
-            $this->data['entry'] = $this->crud->entry = $item;
+            $this->data['entry'] = $this->crud->entry = $result['item'];
 
             \Alert::success(trans('backpack::crud.update_success'))->flash();
 
             $this->crud->setSaveAction();
 
-            DB::commit();
             return response()->json([
                 'success' => true,
-                'data' => $item,
-                'events' => $events
+                'data' => $result['item'],
+                'events' => $result['events']
             ]);
-            // return $this->crud->performSaveAction($item->getKey());
-
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -434,80 +326,25 @@ class ExpenseAccountCrudController extends CrudController
         }
     }
 
-    public function getRootParentAccount($code)
-    {
-        $parent = null;
-        for ($i = 1; $i < strlen($code); $i++) {
-            $prefix = substr($code, 0, $i);
-            $account = Account::where('code', $prefix)
-                ->whereIn('level', [1, 2])->first();
-            if ($account) {
-                $parent = $account;
-            }
-        }
-        return $parent;
-    }
 
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
 
-        $request = $this->crud->validateRequest();
+        $this->crud->validateRequest();
 
         $this->crud->registerFieldEvents();
 
-        DB::beginTransaction();
         try {
+            $dto = CoaSaveData::fromRequest(request());
+            $item = $this->service->store($dto);
 
-            $code = $request->code;
-            $beforeAccount = null;
-
-            for ($i = 1; $i < strlen($code); $i++) {
-                $prefix = substr($code, 0, $i);
-                $account = Account::where('code', $prefix)->first();
-                if ($account) {
-                    $beforeAccount = $account;
-                }
-            }
-
-            $rootParent = $this->getRootParentAccount($code);
-
-            $request->merge([
-                'level' => ($beforeAccount) ? $beforeAccount->level + 1 : 2,
-                'type' => Account::EXPENSE,
-            ]);
-
-            // $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-            $item = new Account;
-            $item->code = $code;
-            $item->name = request()->name;
-            $item->type = request()->type;
-            $item->level = request()->level;
-            $item->save();
             $this->data['entry'] = $this->crud->entry = $item;
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
 
             $this->crud->setSaveAction();
 
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $item->id,
-                'reference_id' => $item->id,
-                'reference_type' => Account::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $request->balance,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'reference_id' => $item->id,
-                'reference_type' => Account::class,
-            ]);
-
-            if ($rootParent) {
-                $item->component_name = 'account_' . $rootParent->id;
-            }
-
-            DB::commit();
             return response()->json([
                 'success' => true,
                 'data' => $item,
@@ -515,10 +352,7 @@ class ExpenseAccountCrudController extends CrudController
                     'account_create_success' => $item,
                 ]
             ]);
-            // return $this->crud->performSaveAction($item->getKey());
-
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => false,
                 'success' => false,
@@ -529,39 +363,11 @@ class ExpenseAccountCrudController extends CrudController
 
     public function destroy($id)
     {
-        DB::beginTransaction();
         try {
             $this->crud->hasAccessOrFail('delete');
 
-            $item = $this->crud->model::findOrFail($id);
-            $parent_account = null;
+            $events = $this->service->destroy((int) $id);
 
-            if ($item) {
-                $child_exists = Account::where('code', 'LIKE', "{$item->code}%")
-                    ->where('id', '!=', $item->id)->count();
-
-                if ($child_exists > 0) {
-                    return response()->json([
-                        'error' => [
-                            trans('backpack::crud.expense_account.field.code.errors.delete')
-                        ]
-                    ]);
-                }
-            }
-
-            $parent_account = $this->getRootParentAccount($item->code);
-
-            $events = [];
-
-            if ($parent_account) {
-                $events['account_' . $parent_account->id . '_update_success'] = true;
-            }
-
-            JournalEntry::where('account_id', $item->id)->delete();
-
-            $item->delete();
-
-            DB::commit();
             return response()->json([
                 'success' => [
                     '<strong>' . trans('backpack::crud.delete_confirmation_title') . '</strong><br>' . trans('backpack::crud.delete_confirmation_message'),
@@ -569,7 +375,6 @@ class ExpenseAccountCrudController extends CrudController
                 'events' => $events,
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'type' => 'errors',
                 'message' => $e->getMessage()
@@ -579,7 +384,6 @@ class ExpenseAccountCrudController extends CrudController
 
     protected function setupListOperation()
     {
-        // $this->crud->setFromDb(false);
         $settings = Setting::first();
 
         CRUD::disableResponsiveTable();
@@ -597,10 +401,6 @@ class ExpenseAccountCrudController extends CrudController
         CRUD::addButtonFromView('line', 'update', "update-account", 'beginning');
         CRUD::addButtonFromView('line', 'add_balance', "add-balance-account", 'beginning');
         CRUD::addButtonFromView('line', 'view', "view-ledger", 'beginning');
-
-
-
-        // CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
 
         CRUD::column([
             'name' => 'code_',
@@ -621,108 +421,21 @@ class ExpenseAccountCrudController extends CrudController
             }
         ]);
 
-        CRUD::column(
-            [
-                'name' => 'balance',
-                'label' => trans('backpack::crud.expense_account.column.balance'),
-                'type' => 'balance',
-                // 'value' => function($entry) {
-                //     return CustomHelper::formatRupiahWithCurrency($entry->balance);
-                // },
-            ],
-        );
+        CRUD::column([
+            'name' => 'balance',
+            'label' => trans('backpack::crud.expense_account.column.balance'),
+            'type' => 'balance',
+        ]);
 
-
-        if (request()->has('_id')) {
-            $id = request()->_id;
-            $code = Account::find($id);
-
-            $year = request('filter_year') ?? request('amp;filter_year') ?? date('Y');
-            $quarter = request('filter_quarter') ?? request('amp;filter_quarter');
-            $startDate = null;
-            $endDate = null;
-
-            if ($year && $year != "" && $year != "all") {
-                $startDate = $year . '-01-01';
-                $endDate = $year . '-12-31';
-                if ($quarter) {
-                    $quartersRanges = [
-                        1 => ['start' => $year . '-01-01', 'end' => $year . '-03-31'],
-                        2 => ['start' => $year . '-04-01', 'end' => $year . '-06-30'],
-                        3 => ['start' => $year . '-07-01', 'end' => $year . '-09-30'],
-                        4 => ['start' => $year . '-10-01', 'end' => $year . '-12-31'],
-                    ];
-                    if (isset($quartersRanges[$quarter])) {
-                        $startDate = $quartersRanges[$quarter]['start'];
-                        $endDate = $quartersRanges[$quarter]['end'];
-                    }
-                }
-            }
-
-            $netProfit = \App\Http\Helpers\CustomHelper::getNetProfit($startDate, $endDate);
-            $balanceSubquery = "(SELECT IFNULL(SUM(je.debit - je.credit), 0) FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%')";
-            if ($startDate && $endDate) {
-                $balanceSubquery .= " AND je.date BETWEEN '$startDate' AND '$endDate'";
-            }
-            $balanceSubquery .= ")";
-
-            CRUD::addClause('select', [
-                DB::raw("
-                    accounts.id as id,
-                    accounts.id as id_,
-                    accounts.code as code_,
-                    accounts.name as name_,
-                    accounts.level as level_,
-                    CASE WHEN accounts.code = '303' THEN $netProfit ELSE $balanceSubquery END as balance
-                ")
-            ]);
-
-
-            if ($code->level == 1) {
-                $this->crud->query = $this->crud->query
-                    ->where('code', 'LIKE', "{$code->code}");
-            } else {
-                $this->crud->query = $this->crud->query
-                    ->where('code', 'LIKE', "{$code->code}%");
-            }
-
-
-            $this->crud->query = $this->crud->query
-                ->orderBy('code', 'asc');
-        }
+        $dto = CoaFilterData::fromRequest(request());
+        $this->repository->applyListQuery($this->crud->query, $dto);
     }
 
     private function setupListExport()
     {
         $settings = Setting::first();
 
-        $year = request('filter_year') ?? request('amp;filter_year') ?? date('Y');
-        $quarter = request('filter_quarter') ?? request('amp;filter_quarter');
-        $startDate = null;
-        $endDate = null;
-
-        if ($year && $year != "" && $year != "all") {
-            $startDate = $year . '-01-01';
-            $endDate = $year . '-12-31';
-            if ($quarter) {
-                $quartersRanges = [
-                    1 => ['start' => $year . '-01-01', 'end' => $year . '-03-31'],
-                    2 => ['start' => $year . '-04-01', 'end' => $year . '-06-30'],
-                    3 => ['start' => $year . '-07-01', 'end' => $year . '-09-30'],
-                    4 => ['start' => $year . '-10-01', 'end' => $year . '-12-31'],
-                ];
-                if (isset($quartersRanges[$quarter])) {
-                    $startDate = $quartersRanges[$quarter]['start'];
-                    $endDate = $quartersRanges[$quarter]['end'];
-                }
-            }
-        }
-
-        $balanceSubquery = "(SELECT IFNULL(SUM(je.debit - je.credit), 0) FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%')";
-        if ($startDate && $endDate) {
-            $balanceSubquery .= " AND je.date BETWEEN '$startDate' AND '$endDate'";
-        }
-        $balanceSubquery .= ")";
+        $dto = CoaFilterData::fromRequest(request());
 
         $this->crud->addColumn([
             'name'      => 'row_number',
@@ -762,19 +475,7 @@ class ExpenseAccountCrudController extends CrudController
             'thousands_sep' => '.',
         ]);
 
-        $netProfit = \App\Http\Helpers\CustomHelper::getNetProfit($startDate, $endDate);
-        CRUD::addClause('select', [
-            DB::raw("
-                accounts.id as id,
-                accounts.id as id_,
-                accounts.code as code_,
-                accounts.name as name_,
-                accounts.level as level_,
-                CASE WHEN accounts.code = '303' THEN $netProfit ELSE $balanceSubquery END as balance
-            ")
-        ]);
-
-        $this->crud->query = $this->crud->query->orderBy('accounts.code', 'asc');
+        $this->repository->applyListQuery($this->crud->query, $dto);
     }
 
     public function exportPdf()
@@ -935,35 +636,9 @@ class ExpenseAccountCrudController extends CrudController
         $id = request()->_id;
         $account = Account::findOrFail($id);
 
-        $year = request('filter_year') ?? request('amp;filter_year') ?? date('Y');
-        $quarter = request('filter_quarter') ?? request('amp;filter_quarter');
-        $startDate = null;
-        $endDate = null;
+        $dto = CoaFilterData::fromRequest(request());
 
-        if ($year && $year != "" && $year != "all") {
-            $startDate = $year . '-01-01';
-            $endDate = $year . '-12-31';
-            if ($quarter) {
-                $quartersRanges = [
-                    1 => ['start' => $year . '-01-01', 'end' => $year . '-03-31'],
-                    2 => ['start' => $year . '-04-01', 'end' => $year . '-06-30'],
-                    3 => ['start' => $year . '-07-01', 'end' => $year . '-09-30'],
-                    4 => ['start' => $year . '-10-01', 'end' => $year . '-12-31'],
-                ];
-                if (isset($quartersRanges[$quarter])) {
-                    $startDate = $quartersRanges[$quarter]['start'];
-                    $endDate = $quartersRanges[$quarter]['end'];
-                }
-            }
-        }
-
-        $query = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        });
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
-        }
+        $query = $this->repository->getLedgerQuery($account, $dto->startDate, $dto->endDate);
 
         $total_data = $query->count();
 
@@ -991,18 +666,10 @@ class ExpenseAccountCrudController extends CrudController
         $length = request()->input('length', 10);
         $entries = $query->offset($start)->limit($length)->get();
 
-        $cumulative_balance = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        })
-            ->where(function ($q) use ($entries) {
-                if ($entries->count() > 0) {
-                    $first = $entries->first();
-                    $q->where('date', '<', $first->date)
-                        ->orWhere(function ($sq) use ($first) {
-                            $sq->where('date', $first->date)->where('id', '<', $first->id);
-                        });
-                }
-            })->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0;
+        $cumulative_balance = 0;
+        if ($entries->count() > 0) {
+            $cumulative_balance = $this->repository->getCumulativeBalanceBeforeEntry($account, $entries->first());
+        }
 
         $data = [];
         foreach ($entries as $entry) {
@@ -1028,49 +695,16 @@ class ExpenseAccountCrudController extends CrudController
         $id = request()->id;
         $account = Account::findOrFail($id);
 
-        $year = request('filter_year') ?? request('amp;filter_year') ?? date('Y');
-        $quarter = request('filter_quarter') ?? request('amp;filter_quarter');
-        $startDate = null;
-        $endDate = null;
+        $dto = CoaFilterData::fromRequest(request());
 
-        if ($year && $year != "" && $year != "all") {
-            $startDate = $year . '-01-01';
-            $endDate = $year . '-12-31';
-            if ($quarter) {
-                $quartersRanges = [
-                    1 => ['start' => $year . '-01-01', 'end' => $year . '-03-31'],
-                    2 => ['start' => $year . '-04-01', 'end' => $year . '-06-30'],
-                    3 => ['start' => $year . '-07-01', 'end' => $year . '-09-30'],
-                    4 => ['start' => $year . '-10-01', 'end' => $year . '-12-31'],
-                ];
-                if (isset($quartersRanges[$quarter])) {
-                    $startDate = $quartersRanges[$quarter]['start'];
-                    $endDate = $quartersRanges[$quarter]['end'];
-                }
-            }
-        }
-
-        $query = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        });
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
-        }
-
+        $query = $this->repository->getLedgerQuery($account, $dto->startDate, $dto->endDate);
         $query->orderBy('date', 'asc')->orderBy('id', 'asc');
 
         $entries = $query->get();
-        $cumulative_balance = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        })->where(function ($q) use ($startDate) {
-            if ($startDate) {
-                $q->where('date', '<', $startDate);
-            }
-        })->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0;
+        $cumulative_balance = $this->repository->getInitialBalance($account, $dto->startDate);
 
         $data = [];
-        if ($startDate) {
+        if ($dto->startDate) {
             $data[] = [
                 '-',
                 'SALDO AWAL',
@@ -1108,10 +742,10 @@ class ExpenseAccountCrudController extends CrudController
         ])->setPaper('A4', 'landscape');
 
         $fileNameFilter = '';
-        if ($year && $year != "" && $year != "all") {
-            $fileNameFilter .= '_' . $year;
-            if ($quarter) {
-                $fileNameFilter .= '_Q' . $quarter;
+        if ($dto->year && $dto->year != "" && $dto->year != "all") {
+            $fileNameFilter .= '_' . $dto->year;
+            if ($dto->quarter) {
+                $fileNameFilter .= '_Q' . $dto->quarter;
             }
         }
 
@@ -1130,57 +764,25 @@ class ExpenseAccountCrudController extends CrudController
         $id = request()->id;
         $account = Account::findOrFail($id);
 
-        $year = request('filter_year') ?? request('amp;filter_year') ?? date('Y');
-        $quarter = request('filter_quarter') ?? request('amp;filter_quarter');
-        $startDate = null;
-        $endDate = null;
+        $dto = CoaFilterData::fromRequest(request());
 
-        if ($year && $year != "" && $year != "all") {
-            $startDate = $year . '-01-01';
-            $endDate = $year . '-12-31';
-            if ($quarter) {
-                $quartersRanges = [
-                    1 => ['start' => $year . '-01-01', 'end' => $year . '-03-31'],
-                    2 => ['start' => $year . '-04-01', 'end' => $year . '-06-30'],
-                    3 => ['start' => $year . '-07-01', 'end' => $year . '-09-30'],
-                    4 => ['start' => $year . '-10-01', 'end' => $year . '-12-31'],
-                ];
-                if (isset($quartersRanges[$quarter])) {
-                    $startDate = $quartersRanges[$quarter]['start'];
-                    $endDate = $quartersRanges[$quarter]['end'];
-                }
-            }
-        }
-
-        $query = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        });
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('date', [$startDate, $endDate]);
-        }
-
+        $query = $this->repository->getLedgerQuery($account, $dto->startDate, $dto->endDate);
         $query->orderBy('date', 'asc')->orderBy('id', 'asc');
 
         $entries = $query->get();
-        $cumulative_balance = JournalEntry::whereHas('account', function ($q) use ($account) {
-            $q->where('code', 'LIKE', $account->code . '%');
-        })->where(function ($q) use ($startDate) {
-            if ($startDate) {
-                $q->where('date', '<', $startDate);
-            }
-        })->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0;
+        $cumulative_balance = $this->repository->getInitialBalance($account, $dto->startDate);
 
         $data = [];
-        if ($startDate) {
+        if ($dto->startDate) {
             $data[] = [
                 '-',
                 'SALDO AWAL',
-                0,
-                0,
-                $cumulative_balance,
+                "0",
+                "0",
+                (string) $cumulative_balance,
             ];
         }
+
 
         foreach ($entries as $entry) {
             $cumulative_balance += ($entry->debit - $entry->credit);
@@ -1202,10 +804,10 @@ class ExpenseAccountCrudController extends CrudController
         ];
 
         $fileNameFilter = '';
-        if ($year && $year != "" && $year != "all") {
-            $fileNameFilter .= '_' . $year;
-            if ($quarter) {
-                $fileNameFilter .= '_Q' . $quarter;
+        if ($dto->year && $dto->year != "" && $dto->year != "all") {
+            $fileNameFilter .= '_' . $dto->year;
+            if ($dto->quarter) {
+                $fileNameFilter .= '_Q' . $dto->quarter;
             }
         }
 
