@@ -23,4 +23,7 @@ class ProjectProfitLost extends Model{
         return $this->belongsTo(Voucher::class, 'voucher_id');
     }
 
+    public function company(){
+        return $this->belongsTo(Company::class, 'company_id');
+    }
 }

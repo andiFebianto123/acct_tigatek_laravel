@@ -104,7 +104,6 @@ class CoaService
 
 
             $rootParent = $this->repository->findRootParent($item->code);
-            dd($rootParent);
             $events = [];
             if ($rootParent) {
                 $events['account_' . $rootParent->id . '_update_success'] = true;
