@@ -3,7 +3,8 @@
     $company_id = old('company_id') ?? $crud->entry->company_id ?? null;
 @endphp
 
-<div class="form-group col-md-12">
+{{-- <div class="form-group col-md-12"> --}}
+@include('crud::fields.inc.wrapper_start')
     <label class="font-weight-bold text-primary"><i class="la la-file-text"></i> {{ $field['label'] }}</label>
     <div id="quotation-selection-table-container" class="card border-primary shadow-sm">
         <div class="card-body p-2">
@@ -28,9 +29,10 @@
         </table>
     </div>
 </div>
+<div>
     <input type="hidden" name="quotation_ids" id="quotation_ids" value="{{ old('quotation_ids') }}">
 </div>
-
+@include('crud::fields.inc.wrapper_end')
 @push('crud_fields_scripts')
 <script>
     $(document).ready(function() {
@@ -97,47 +99,47 @@
                 data: { ids: ids },
                 success: function(data) {
                     // Populate fields
-                    if (data.client_id) {
-                        $('select[name="client_id"]').val(data.client_id).trigger('change');
-                    }
-                    if (data.job_name) {
-                        $('textarea[name="job_name"]').val(data.job_name);
-                    }
+                    // if (data.client_id) {
+                    //     $('select[name="client_id"]').val(data.client_id).trigger('change');
+                    // }
+                    // if (data.job_name) {
+                    //     $('textarea[name="job_name"]').val(data.job_name);
+                    // }
                     
-                    // Sum values
-                    if (data.job_value) {
-                        setInputNumber('#job_value_masked', data.job_value);
-                    }
-                    if (data.rap_value) {
-                        setInputNumber('#rap_value_masked', data.rap_value);
-                    }
-                    if (data.tax_ppn !== undefined) {
-                        $('input[name="tax_ppn"]').val(data.tax_ppn);
-                    }
+                    // // Sum values
+                    // if (data.job_value) {
+                    //     setInputNumber('#job_value_masked', data.job_value);
+                    // }
+                    // if (data.rap_value) {
+                    //     setInputNumber('#rap_value_masked', data.rap_value);
+                    // }
+                    // if (data.tax_ppn !== undefined) {
+                    //     $('input[name="tax_ppn"]').val(data.tax_ppn);
+                    // }
                     
-                    if (data.work_code) {
-                        $('input[name="work_code"]').val(data.work_code);
-                    }
-                    if (data.start_date) {
-                        $('input[name="start_date"]').val(data.start_date);
-                    }
-                    if (data.end_date) {
-                        $('input[name="end_date"]').val(data.end_date);
-                    }
-                    if (data.reimburse_type) {
-                        $('select[name="reimburse_type"]').val(data.reimburse_type).trigger('change');
-                    }
-                    if (data.category) {
-                        $('select[name="category"]').val(data.category).trigger('change');
-                    }
-                    if (data.status) {
-                        $('select[name="status"]').val(data.status).trigger('change');
-                    }
+                    // if (data.work_code) {
+                    //     $('input[name="work_code"]').val(data.work_code);
+                    // }
+                    // if (data.start_date) {
+                    //     $('input[name="start_date"]').val(data.start_date);
+                    // }
+                    // if (data.end_date) {
+                    //     $('input[name="end_date"]').val(data.end_date);
+                    // }
+                    // if (data.reimburse_type) {
+                    //     $('select[name="reimburse_type"]').val(data.reimburse_type).trigger('change');
+                    // }
+                    // if (data.category) {
+                    //     $('select[name="category"]').val(data.category).trigger('change');
+                    // }
+                    // if (data.status) {
+                    //     $('select[name="status"]').val(data.status).trigger('change');
+                    // }
                     
-                    // Trigger formula calculation if logic_client_po exists
-                    if (typeof SIAOPS !== 'undefined' && SIAOPS.getAttribute('logic_client_po')) {
-                        SIAOPS.getAttribute('logic_client_po').logicFormula();
-                    }
+                    // // Trigger formula calculation if logic_client_po exists
+                    // if (typeof SIAOPS !== 'undefined' && SIAOPS.getAttribute('logic_client_po')) {
+                    //     SIAOPS.getAttribute('logic_client_po').logicFormula();
+                    // }
                 }
             });
         }

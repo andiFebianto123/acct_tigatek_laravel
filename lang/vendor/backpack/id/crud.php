@@ -516,6 +516,9 @@ return [
             'load_general_value' => 'Beban Umum',
             'profit_and_lost_final' => 'Laba/Rugi Akhir',
             'category' => 'Kategori',
+            'is_from_quotation' => [
+                'label' => 'Pilih dari Penawaran (Client Quotation)',
+            ],
             'quotation_selection' => [
                 'label' => 'Pilih dari Penawaran (Client Quotation)',
             ],

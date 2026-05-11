@@ -870,6 +870,12 @@ class ClientPoCrudController extends CrudController
         }
 
         CRUD::addField([
+            'name' => 'is_from_quotation',
+            'label' => trans('backpack::crud.client_po.field.is_from_quotation.label') ?? 'Pilih dari Penawaran (Client Quotation)',
+            'type' => 'checkbox',
+        ]);
+
+        CRUD::addField([
             'name' => 'quotation_ids',
             'type' => 'hidden',
         ]);
@@ -877,9 +883,302 @@ class ClientPoCrudController extends CrudController
         CRUD::addField([
             'name' => 'quotation_selection',
             'type' => 'select_quotation_table',
-            'label' => trans('backpack::crud.client_po.field.quotation_selection.label') ?? 'Pilih dari Penawaran (Client Quotation)',
+            'label' => trans('backpack::crud.client_po.field.quotation_selection.label') ?? 'Tabel Penawaran',
+            'wrapper' => [
+                'class' => 'form-group col-md-12 quotation-segment'
+            ]
         ]);
+
+        $this->setupCreateManualPo();
+
     }
+
+
+    private function setupCreateManualPo()
+    {
+        // CRUD::setValidation(ClientPoRequest::class);
+        $settings = Setting::first();
+
+        $po_prefix = [];
+        $work_code_prefix = [];
+        $work_code_disabled = [
+            // 'disabled' => true,
+        ];
+        $po_number_disabled = [
+            'disabled' => true,
+        ];
+        if (!$this->crud->getCurrentEntryId()) {
+            if ($settings?->po_prefix) {
+                $po_prefix = [
+                    'value' => $settings->po_prefix,
+                ];
+            }
+            if ($settings?->work_code_prefix) {
+                $work_code_prefix = [
+                    'value' => $settings->work_code_prefix,
+                ];
+            }
+            $work_code_disabled = [];
+            $po_number_disabled = [];
+        } else {
+            $id = $this->crud->getCurrentEntryId();
+            $voucher_exists = Voucher::where('client_po_id', $id)
+                ->first();
+            if ($voucher_exists) {
+                $work_code_disabled = [
+                    'disabled' => true,
+                ];
+            }
+        }
+
+
+        // CRUD::setFromDb(); // set fields from db columns.
+        CRUD::field([   // 1-n relationship
+            'label'       => trans('backpack::crud.client_po.field.client_id.label'), // Table column heading
+            'type'        => "select2_ajax_custom",
+            'name'        => 'client_id', // the column that contains the ID of that connected entity
+            'entity'      => 'client', // the method that defines the relationship in your Model
+            'attribute'   => "name", // foreign key attribute that is shown to user
+            'data_source' => backpack_url('client/select2-client'), // url to controller search function (with /{id} should return a single entry)
+            'dependencies' => ['company_id'], // make it dependent on company_id
+            'include_all_form_fields' => true,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_po.field.client_id.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'work_code',
+            'label' => trans('backpack::crud.client_po.field.work_code.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes' => [
+                ...$work_code_disabled,
+                'placeholder' => trans('backpack::crud.client_po.field.work_code.placeholder'),
+            ],
+            ...$work_code_prefix,
+        ]);
+
+        CRUD::addField([  // Select2
+            'label'     => trans('backpack::crud.client_po.field.status.label'),
+            'type'      => 'select2_array',
+            'name'      => 'status',
+            'options'   => [
+                'ADA PO' => 'ADA PO',
+                'TANPA PO' => 'TANPA PO',
+            ], // force the related options to be a custom query, instead of all(); you can use this to filter the results show in the select
+            'wrapper' => [
+                'class' => 'form-group col-md-6 manual-segment'
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'po_number',
+            'label' => trans('backpack::crud.client_po.field.po_number.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+                'placeholder' => trans('backpack::crud.client_po.field.po_number.placeholder')
+            ],
+            'attributes' => [
+                ...$po_number_disabled,
+                'placeholder' => trans('backpack::crud.client_po.field.po_number.placeholder')
+            ],
+            ...$po_prefix,
+        ]);
+
+
+        CRUD::addField([
+            'name' => 'job_name',
+            'label' => trans('backpack::crud.client_po.field.job_name.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_po.field.job_name.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'rap_value',
+            'label' => trans('backpack::crud.client_po.column.rap_value'),
+            'type' => 'mask',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => '000.000',
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'job_value',
+            'label' => trans('backpack::crud.client_po.field.job_value.label'),
+            'type' => 'mask',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => '000.000',
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'tax_ppn',
+            'label' => trans('backpack::crud.client_po.field.tax_ppn.label'),
+            'type' => 'number',
+            // optionals
+            'attributes' => ["step" => "any"], // allow decimals
+            'prefix'     => "%",
+            // 'suffix'     => ".00",
+            'wrapper'   => [
+                'class' => 'form-group col-md-2 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => '0',
+            ]
+        ]);
+
+        CRUD::addField([   // Hidden
+            'name'  => 'space_1',
+            'type'  => 'hidden',
+            'value' => 'active',
+            'wrapper'   => [
+                'class' => 'form-group col-md-2 manual-segment'
+            ],
+            'attributes' => [
+                'disabled'  => 'disabled',
+                // 'placeholder' => trans('backpack::crud.spk.field.')
+            ]
+        ]);
+
+        CRUD::addField([   // Hidden
+            'name'  => 'space_2',
+            'type'  => 'hidden',
+            'value' => 'active',
+            'wrapper'   => [
+                'class' => 'form-group col-md-2 manual-segment'
+            ],
+            'attributes' => [
+                'disabled'  => 'disabled',
+                // 'placeholder' => trans('backpack::crud.spk.field.')
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'job_value_include_ppn',
+            'label' => trans('backpack::crud.client_po.column.job_value_include_ppn_2'),
+            'type' => 'text',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            // optionals
+            'attributes' => [
+                'disabled' => true,
+            ], // allow decimals
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment'
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'date_po',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.client_po.field.date_po.label'),
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment'
+            ],
+        ]);
+
+        CRUD::field([   // date_range
+            'name'  => 'start_date,end_date', // db columns for start_date & end_date
+            'label' => trans('backpack::crud.client_po.field.startdate_and_enddate.label'),
+            'type'  => 'date_range',
+
+            'date_range_options' => [
+                'drops' => 'down', // can be one of [down/up/auto]
+                // 'locale' => ['format' => 'DD/MM/YYYY']
+            ],
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_po.field.startdate_and_enddate.placeholder'),
+            ]
+        ]);
+
+        CRUD::field([
+            'name'        => 'reimburse_type',
+            'label'       => trans('backpack::crud.client_po.field.reimburse_type.label'),
+            'type'        => 'select_from_array',
+            'options'     => ['' => trans('backpack::crud.client_po.field.reimburse_type.placeholder'), 'REIMBURSE' => 'REIMBURSE', 'NON REIMBURSE' => 'NON REIMBURSE'],
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            // 'allows_multiple' => true, // OPTIONAL; needs you to cast this to array in your model;
+        ]);
+
+
+        CRUD::addField([
+            'name' => 'document_path',
+            'label' => trans('backpack::crud.client_po.field.document_path.label'),
+            'type' => 'upload',
+            'hint' => trans('backpack::crud.client_po.field.document_path.hint'),
+            'attributes' => [
+                'accept' => '.pdf'
+            ],
+            'wrapper'   => [
+                'class' => 'form-group col-md-6 manual-segment'
+            ],
+            'disk' => 'public',
+            'custom_upload' => true,
+        ]);
+
+        CRUD::addField([  // Select2
+            'label'     => trans('backpack::crud.client_po.column.category'),
+            'type'      => 'select2_array',
+            'name'      => 'category',
+            'options'   => [
+                '' => trans('backpack::crud.voucher.field.payment_type.placeholder'),
+                'RUTIN' => 'RUTIN',
+                'NON RUTIN' => 'NON RUTIN',
+            ], // force the related options to be a custom query, instead of all(); you can use this to filter the results show in the select
+            'wrapper' => [
+                'class' => 'form-group col-md-6 manual-segment'
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'logic_client_po',
+            'type' => 'logic_client_po',
+        ]);
+
+       
+    }
+
+    
 
     protected function setupUpdateOperation()
     {
@@ -1632,7 +1931,7 @@ class ClientPoCrudController extends CrudController
                 'element' => 'a', // the element will default to "a" so you can skip it here
                 'href' => function ($crud, $column, $entry, $related_key) {
                     if ($entry->document_path != '') {
-                        return url('storage/document_client_po/' . $entry->document_path);
+                        return url('storage/' . $entry->document_path);
                     }
                     return "javascript:void(0)";
                 },

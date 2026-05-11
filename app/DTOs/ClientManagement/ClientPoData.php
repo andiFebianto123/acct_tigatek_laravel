@@ -24,6 +24,7 @@ class ClientPoData
         public readonly ?string $category,
         public readonly ?string $status,
         public readonly ?array $quotation_ids = null,
+        public readonly bool $is_from_quotation = false,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -46,6 +47,7 @@ class ClientPoData
             category: $request->category,
             status: $request->status,
             quotation_ids: $request->quotation_ids ? (is_array($request->quotation_ids) ? $request->quotation_ids : explode(',', $request->quotation_ids)) : null,
+            is_from_quotation: (bool) $request->is_from_quotation,
         );
     }
 

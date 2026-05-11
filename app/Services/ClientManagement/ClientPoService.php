@@ -18,10 +18,16 @@ class ClientPoService
     {
         return DB::transaction(function () use ($data) {
             $quotationIds = $data->quotation_ids ?? [];
-            
-            if (empty($quotationIds)) {
-                // Standard single creation (not from quotation selection)
+
+            if (!$data->is_from_quotation || empty($quotationIds)) {
+                // Standard single creation (Manual entry)
                 $attributes = $data->toArray();
+
+                // Handle file upload manually
+                if ($data->document_path instanceof UploadedFile) {
+                    $attributes['document_path'] = $this->handleFileUpload($data->document_path);
+                }
+
                 $po = ClientPo::create($attributes);
                 return $po;
             }
@@ -31,7 +37,7 @@ class ClientPoService
 
             foreach ($quotations as $quotation) {
                 $attributes = $data->toArray();
-                
+
                 // Populate from this specific quotation
                 $attributes['client_id'] = $quotation->client_id;
                 $attributes['company_id'] = $quotation->company_id;
@@ -49,6 +55,11 @@ class ClientPoService
                 $attributes['date_po'] = $quotation->date_po;
                 $attributes['document_path'] = $quotation->document_path;
 
+                // If user uploaded a new file in the form, use it instead of quotation's file
+                if ($data->document_path instanceof UploadedFile) {
+                    $attributes['document_path'] = $this->handleFileUpload($data->document_path);
+                }
+
                 // Re-calculate or ensure values are set correctly
                 $attributes['job_value_include_ppn'] = $attributes['job_value'] + ($attributes['job_value'] * ($attributes['tax_ppn'] / 100));
                 $attributes['price_after_year'] = 0;
@@ -59,7 +70,7 @@ class ClientPoService
 
                 $po = ClientPo::create($attributes);
                 $po->quotations()->attach($quotation->id);
-                
+
                 $lastPo = $po;
             }
 
@@ -84,8 +95,6 @@ class ClientPoService
                     Storage::disk('public')->delete($clientPo->document_path);
                 }
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
-            } else {
-                Storage::disk('public')->delete($clientPo->document_path);
             }
 
             $clientPo->update($attributes);

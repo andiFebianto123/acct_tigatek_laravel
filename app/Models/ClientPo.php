@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\Operation\CrudTrait;
 use App\Models\Client;
 use App\Models\InvoiceClient;
+use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

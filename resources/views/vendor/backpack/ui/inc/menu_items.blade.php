@@ -77,11 +77,11 @@
     @if($permissions->contains('name', 'MENU INDEX CLIENT DAFTAR CLIENT'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.list_client')}}" icon="la la-circle-notch" :link="backpack_url('client/client-list')" />
     @endif
-    @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
-        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.client_po')}}" icon="la la-circle-notch" :link="backpack_url('client/po')" />
-    @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT QUOTATION'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.client_quotation.title_header')}}" icon="la la-circle-notch" :link="backpack_url('client/quotation')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.client_po')}}" icon="la la-circle-notch" :link="backpack_url('client/po')" />
     @endif
 </x-menu-group-custom>
 @endif

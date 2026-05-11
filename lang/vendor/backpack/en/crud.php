@@ -341,6 +341,17 @@ return [
             ],
         ]
     ],
+    'client_po' => [
+        'field' => [
+            'is_from_quotation' => [
+                'label' => 'Select from Quotation (Client Quotation)',
+            ],
+            'quotation_selection' => [
+                'label' => 'Select from Quotation (Client Quotation)',
+            ],
+            'quotation_selection_info' => 'Select one or more quotations below to auto-fill PO data.',
+        ],
+    ],
     'invoice_client' => [
         'column' => [
             'withholding_agent' => 'Withholding Agent',

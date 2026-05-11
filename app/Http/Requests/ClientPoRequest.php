@@ -28,8 +28,9 @@ class ClientPoRequest extends FormRequest
         $id = request('id');
         $status = request('status');
 
-        if ($this->isMethod('post') && !$id && $this->has('quotation_ids')) {
+        if ($this->isMethod('post') && !$id && $this->is_from_quotation == 1) {
             return [
+                'is_from_quotation' => 'required',
                 'quotation_ids' => 'required',
                 'company_id' => 'nullable|exists:companies,id',
             ];

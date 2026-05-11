@@ -96,11 +96,33 @@
                         }
                     })
                 },
+                toggleQuotationPath: function() {
+                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var isFromQuotation = $(form+' input[name="is_from_quotation"]').val();
+
+                    if (isFromQuotation == 1) {
+                        $('.manual-segment').hide();
+                        $('.quotation-segment').show();
+                    } else {
+                        $('.manual-segment').show();
+                        $('.quotation-segment').hide();
+                        
+                        // Clear quotation selection if switching back to manual
+                        $(form+' #quotation_ids').val('');
+                        // $('.quotation-checkbox').prop('checked', false);
+                    }
+                },
                 load: function(){
                     var instance = this;
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
                     var settings = {!! json_encode($settings) !!};
                     var entry = {!! json_encode($entry_value) !!};
+
+                    // Initial Toggle State
+                    instance.toggleQuotationPath();
+                    $(form+' input[name="is_from_quotation"]').on('change', function() {
+                        instance.toggleQuotationPath();
+                    });
 
                     if(entry){
                         // console.log(entry);
@@ -138,8 +160,6 @@
                             }
                         });
                     }
-
-
 
                     $(form+' #job_value_masked').on('keyup', function(){
                         instance.logicFormula();
