@@ -48,6 +48,7 @@ class VoucherPaymentRepository
                 $join->on('spk.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\Spk"'));
             })
+            ->leftJoin('subkons','subkons.id','=','vouchers.subkon_id')
             ->leftJoin('purchase_orders', function ($join) {
                 $join->on('purchase_orders.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\PurchaseOrder"'));
@@ -91,6 +92,7 @@ class VoucherPaymentRepository
                 $join->on('spk.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\Spk"'));
             })
+            ->leftJoin('subkons', 'subkons.id', '=', 'vouchers.subkon_id')
             ->leftJoin('purchase_orders', function ($join) {
                 $join->on('purchase_orders.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\PurchaseOrder"'));
@@ -120,13 +122,9 @@ class VoucherPaymentRepository
     public function applyListQuery($query, VoucherPaymentFilterData $dto)
     {
         $user_id = backpack_user()->id;
-        $user_approval = \App\Models\User::permission(['APPROVE RENCANA BAYAR'])
+        $user_approval = \App\Models\User::permission(['APPROVE VOUCHER', 'APPROVE EDIT VOUCHER'])
             ->where('id', $user_id)
             ->get();
-
-        $p_v_p = DB::table('payment_voucher_plan')
-            ->select(DB::raw('MAX(id) as id'), 'payment_voucher_id')
-            ->groupBy('payment_voucher_id');
 
         $query->leftJoin('vouchers', 'vouchers.id', '=', 'payment_vouchers.voucher_id')
             ->leftJoin('log_payments as log_void', function ($join) {
@@ -134,14 +132,11 @@ class VoucherPaymentRepository
                     ->where('log_void.reference_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'))
                     ->where('log_void.name', '=', DB::raw('"CREATE_PAYMENT_VOUCHER"'));
             })
-            ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
-                $join->on('p_v_p.payment_voucher_id', '=', 'payment_vouchers.id');
-            })
-            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id')
             ->leftJoin('approvals', function ($join) {
-                $join->on('approvals.model_id', '=', 'payment_voucher_plan.id')
-                    ->where('approvals.model_type', '=', 'App\Models\PaymentVoucherPlan');
+                $join->on('approvals.model_id', '=', 'vouchers.id')
+                    ->where('approvals.model_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'));
             })
+            ->leftJoin('subkons','subkons.id','=','vouchers.subkon_id')
             ->leftJoin('spk', function ($join) {
                 $join->on('spk.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\Spk"'));
@@ -154,8 +149,8 @@ class VoucherPaymentRepository
 
         if ($user_approval->count() > 0) {
             $query->leftJoin('approvals as user_live_approvals', function ($join) use ($user_id) {
-                $join->on('user_live_approvals.model_id', '=', 'payment_voucher_plan.id')
-                    ->where('user_live_approvals.model_type', 'App\\Models\\PaymentVoucherPlan')
+                $join->on('user_live_approvals.model_id', '=', 'vouchers.id')
+                    ->where('user_live_approvals.model_type', 'App\\Models\\Voucher')
                     ->where('user_live_approvals.user_id', $user_id);
             });
 
@@ -169,12 +164,12 @@ class VoucherPaymentRepository
                     approvals.status as approval_status,
                     approvals.user_id as approval_user_id,
                     approvals.no_apprv as approval_no_apprv,
-                    payment_voucher_plan.id as voucer_edit_id,
-                    payment_vouchers.voucher_id,
+                    payment_vouchers.voucher_id as voucer_edit_id,
                     log_void.id as payment_log_id,
                     user_live_approvals.no_apprv as user_live_no_apprv,
                     user_live_approvals.status as user_live_status,
-                    user_live_approvals.user_id as user_live_user_id
+                    user_live_approvals.user_id as user_live_user_id,
+                    subkons.name as subkon_name
                 ")
             ]);
         } else {
@@ -188,12 +183,12 @@ class VoucherPaymentRepository
                     approvals.status as approval_status,
                     approvals.user_id as approval_user_id,
                     approvals.no_apprv as approval_no_apprv,
-                    payment_voucher_plan.id as voucer_edit_id,
-                    payment_vouchers.voucher_id,
+                    payment_vouchers.voucher_id as voucher_edit_id,
                     log_void.id as payment_log_id,
                     '' as user_live_no_apprv,
                     '' as user_live_status,
-                    '' as user_live_user_id
+                    '' as user_live_user_id,
+                    subkons.name as subkon_name
                 ")
             ]);
         }
@@ -244,7 +239,7 @@ class VoucherPaymentRepository
         $filterMap = [
             (2 + $offset)  => ['field' => 'no_voucher', 'type' => 'like'],
             (3 + $offset)  => ['field' => 'date_voucher', 'type' => 'like'],
-            (4 + $offset)  => ['field' => 'subkon.name', 'type' => 'relation', 'relation' => 'voucher.subkon', 'relation_field' => 'name'],
+            (4 + $offset)  => ['field' => 'subkons.name', 'type' => 'like'],
             (5 + $offset)  => ['field' => 'bill_date', 'type' => 'like'],
             (6 + $offset)  => ['field' => 'reference', 'type' => 'custom', 'callback' => function ($q, $search) {
                 $q->whereHas('voucher', function ($q2) use ($search) {
@@ -265,8 +260,8 @@ class VoucherPaymentRepository
                 $q->whereExists(function ($query) use ($search) {
                     $query->select(DB::raw(1))
                         ->from('approvals')
-                        ->whereColumn('approvals.model_id', 'payment_voucher_plan.id')
-                        ->where('approvals.model_type', 'App\\Models\\PaymentVoucherPlan')
+                        ->whereColumn('approvals.model_id', 'vouchers.id')
+                        ->where('approvals.model_type', 'App\\Models\\Voucher')
                         ->whereExists(function ($q2) use ($search) {
                             $q2->select(DB::raw(1))
                                 ->from('users')
@@ -311,25 +306,17 @@ class VoucherPaymentRepository
     public function getDatatableVoucher(VoucherPaymentFilterData $dto): array
     {
         $settings = Setting::first();
-        $p_v_p = DB::table('payment_voucher_plan')
-            ->select(DB::raw('MAX(id) as id'), 'payment_voucher_id')
-            ->groupBy('payment_voucher_id');
 
         $a_p = DB::table('approvals')
             ->select(DB::raw('MAX(id) as id'), 'model_type', 'model_id')
             ->groupBy('model_type', 'model_id');
 
-        $query = Voucher::leftJoin('payment_vouchers', 'payment_vouchers.voucher_id', 'vouchers.id')
-            ->leftJoin('accounts', 'accounts.id', '=', 'vouchers.account_id')
+        $query = Voucher::leftJoin('accounts', 'accounts.id', '=', 'vouchers.account_id')
             ->leftJoin('subkons', 'subkons.id', '=', 'vouchers.subkon_id')
             ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
-            ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
-                $join->on('p_v_p.payment_voucher_id', '=', 'payment_vouchers.id');
-            })
-            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id')
             ->leftJoinSub($a_p, 'a_p', function ($join) {
-                $join->on('a_p.model_id', '=', 'payment_voucher_plan.id')
-                    ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\PaymentVoucherPlan"'));
+                $join->on('a_p.model_id', '=', 'vouchers.id')
+                    ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'));
             })
             ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id')
             ->leftJoin('spk', function ($join) {
@@ -340,7 +327,10 @@ class VoucherPaymentRepository
                 $join->on('purchase_orders.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\PurchaseOrder"'));
             })
-            ->where('approvals.status', Approval::APPROVED)
+            ->where(function ($query) {
+                $query->where('approvals.status', Approval::APPROVED)
+                    ->orWhereNull('approvals.status');
+            })
             ->where('vouchers.payment_status', 'BELUM BAYAR')
             ->select(DB::raw("
                 vouchers.*,

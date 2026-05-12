@@ -9,6 +9,7 @@ use App\Http\Helpers\CustomVoid;
 use App\Http\Helpers\CustomHelper;
 use App\DTOs\Fa\VoucherPaymentStoreData;
 use App\DTOs\Fa\VoucherPaymentStoreSingleData;
+use Faker\Provider\Payment;
 
 class VoucherPaymentService
 {
@@ -20,6 +21,11 @@ class VoucherPaymentService
         foreach ($dto->voucher as $id_v) {
             $voucherItem = Voucher::find($id_v);
             if (!$voucherItem) continue;
+
+            $newVoucherPayment = new PaymentVoucher;
+            $newVoucherPayment->voucher_id = $voucherItem->id;
+            $newVoucherPayment->payment_type = $voucherItem->payment_type;
+            $newVoucherPayment->save();
 
             $castAccount = $voucherItem->account_source;
             if ($voucherItem->payment_type == 'NON RUTIN') {
@@ -49,6 +55,11 @@ class VoucherPaymentService
         if (!$voucher) {
             throw new \Exception('Voucher tidak ditemukan');
         }
+        $newVoucherPayment = new PaymentVoucher;
+        $newVoucherPayment->voucher_id = $voucher->id;
+        $newVoucherPayment->payment_type = $voucher->payment_type;
+        $newVoucherPayment->save();
+        
         $castAccount = $voucher->account_source;
         if ($voucher->payment_type == 'NON RUTIN') {
             $event['crudTable-voucher_payment_non_rutin_create_success'] = true;
@@ -85,6 +96,8 @@ class VoucherPaymentService
 
         CustomVoid::rollbackPayment(Voucher::class, $id, "CREATE_PAYMENT_VOUCHER");
 
+        // delete voucher payment
+        PaymentVoucher::where('voucher_id', $id)->delete();
         return $event;
     }
 
@@ -110,6 +123,8 @@ class VoucherPaymentService
 
         CustomVoid::rollbackPayment(Voucher::class, $voucher_id, "CREATE_PAYMENT_VOUCHER");
 
+        // delete voucher payment
+        PaymentVoucher::where('voucher_id', $id)->delete();
         return $event;
     }
 }

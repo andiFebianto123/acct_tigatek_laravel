@@ -2,35 +2,36 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Carbon\Carbon;
-use App\Models\Account;
-use App\Models\Setting;
-use App\Models\Voucher;
-use App\Models\Approval;
-use App\Models\ClientPo;
-use App\Models\LogPayment;
-use App\Models\JournalEntry;
-use App\Models\InvoiceClient;
-use App\Models\PaymentVoucher;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Http\Helpers\CustomVoid;
-use App\Http\Exports\ExportExcel;
-use App\Http\Helpers\CustomHelper;
-use App\Models\PaymentVoucherPlan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\App;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Http\Controllers\CrudController;
-use App\Http\Controllers\Operation\PermissionAccess;
-use App\Models\AccountTransaction;
-use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use App\DTOs\Fa\VoucherPaymentFilterData;
 use App\DTOs\Fa\VoucherPaymentStoreData;
 use App\DTOs\Fa\VoucherPaymentStoreSingleData;
-use App\Services\Fa\VoucherPaymentService;
-use App\Repositories\Fa\VoucherPaymentRepository;
+use App\Http\Controllers\CrudController;
+use App\Http\Controllers\Operation\FormaterExport;
+use App\Http\Controllers\Operation\PermissionAccess;
+use App\Http\Exports\ExportExcel;
+use App\Http\Helpers\CustomHelper;
+use App\Http\Helpers\CustomVoid;
 use App\Http\Requests\Fa\VoucherPaymentRequest;
+use App\Models\Account;
+use App\Models\AccountTransaction;
+use App\Models\Approval;
+use App\Models\ClientPo;
+use App\Models\InvoiceClient;
+use App\Models\JournalEntry;
+use App\Models\LogPayment;
+use App\Models\PaymentVoucher;
+use App\Models\PaymentVoucherPlan;
+use App\Models\Setting;
+use App\Models\Voucher;
+use App\Repositories\Fa\VoucherPaymentRepository;
+use App\Services\Fa\VoucherPaymentService;
+use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
+use Maatwebsite\Excel\Facades\Excel;
 use Prologue\Alerts\Facades\Alert;
 
 class VoucherPaymentCrudController extends CrudController
@@ -38,6 +39,7 @@ class VoucherPaymentCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use PermissionAccess;
+    use FormaterExport;
     // use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     // use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
 
@@ -407,6 +409,12 @@ class VoucherPaymentCrudController extends CrudController
     {
         $settings = Setting::first();
         $new_format_date = 'DD/MM/YYYY';
+        $status_file = 'pdf';
+        if (strpos(url()->current(), 'excel')) {
+            $status_file = 'excel';
+        } else if (strpos(url()->current(), 'pdf')) {
+            $status_file = 'pdf';
+        }
 
         // 1. Column: Row Number
         CRUD::addColumn([
@@ -477,10 +485,11 @@ class VoucherPaymentCrudController extends CrudController
             'name' => 'subkon_id',
             'type'  => 'closure',
             'function' => function ($entry) {
-                return $entry?->voucher?->subkon?->name;
+                // $entry?->voucher?->subkon?->name;
+                return $entry->subkon_name ?? '-';
             },
             'orderLogic' => function ($query, $column, $order) {
-                return $query->leftJoin('subkons', 'subkons.id', '=', 'vouchers.subkon_id')
+                return $query
                     ->orderBy('subkons.name', $order);
             }
         ]);
@@ -510,14 +519,18 @@ class VoucherPaymentCrudController extends CrudController
         CRUD::column([
             'label'  => trans('backpack::crud.voucher.column.voucher.payment_transfer.label'),
             'name' => 'payment_transfer',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            // 'type'  => 'number',
+            // 'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
+            // 'decimals'      => 2,
+            // 'dec_point'     => ',',
+            // 'thousands_sep' => '.',
             'orderLogic' => function ($query, $column, $order) {
                 return $query->orderBy('vouchers.payment_transfer', $order);
-            }
+            },
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return $this->priceFormatExport($status_file, $entry->payment_transfer);
+            },
         ]);
 
         CRUD::column([
@@ -579,7 +592,7 @@ class VoucherPaymentCrudController extends CrudController
             'label'    => trans('backpack::crud.voucher.column.voucher.user_approval.label'),
             'type'     => 'custom_html',
             'value' => function ($entry) {
-                $approvals = Approval::where('model_type', PaymentVoucherPlan::class)
+                $approvals = Approval::where('model_type', Voucher::class)
                     ->where('model_id', $entry->voucer_edit_id)
                     ->orderBy('no_apprv', 'ASC')
                     ->get();
