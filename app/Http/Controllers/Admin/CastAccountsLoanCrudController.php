@@ -20,6 +20,13 @@ use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\PermissionAccess;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
+use App\Services\CastAccountLoan\CastAccountLoanService;
+use App\Repositories\CastAccountLoan\CastAccountLoanRepository;
+use App\DTOs\CastAccountLoan\CastAccountLoanSaveData;
+use App\DTOs\CastAccountLoan\LoanTransactionSaveData;
+use App\DTOs\CastAccountLoan\LoanMoveTransactionSaveData;
+use App\DTOs\CastAccountLoan\CastAccountLoanFilterData;
+
 /**
  * Class CastAccountsCrudController
  * @package App\Http\Controllers\Admin
@@ -27,6 +34,12 @@ use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
  */
 class CastAccountsLoanCrudController extends CrudController
 {
+    public function __construct(
+        protected CastAccountLoanService $service,
+        protected CastAccountLoanRepository $repository
+    ) {
+        parent::__construct();
+    }
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
@@ -125,22 +138,8 @@ class CastAccountsLoanCrudController extends CrudController
 
         $this->data['is_disabled_list'] = true;
 
-        $listCashAccountsQuery = CastAccount::leftJoin('account_transactions', 'account_transactions.cast_account_id', '=', 'cast_accounts.id')
-            ->where('cast_accounts.status', CastAccount::LOAN);
-
-        $listCashAccounts = $listCashAccountsQuery->groupBy('cast_accounts.id')
-            ->orderBy('id', 'ASC')->select(DB::raw(
-                '
-            cast_accounts.id,
-            MAX(cast_accounts.name) as name,
-            MAX(cast_accounts.bank_name) as bank_name,
-            MAX(cast_accounts.no_account) as no_account,
-            MAX(cast_accounts.status) as status,
-            MAX(cast_accounts.account_id) as account_id,
-            SUM(IF(account_transactions.status = "enter", account_transactions.nominal_transaction, 0)) as total_saldo_enter,
-            SUM(IF(account_transactions.status = "out", account_transactions.nominal_transaction, 0)) as total_saldo_out
-        '
-            ))->get();
+        $filters = CastAccountLoanFilterData::fromRequest(request());
+        $listCashAccounts = $this->repository->getLoanAccountsWithBalance($filters);
         $this->listCardComponents($listCashAccounts);
 
         $this->data['year_options'] = CustomHelper::getYearOptions('account_transactions', 'date_transaction');
@@ -193,14 +192,14 @@ class CastAccountsLoanCrudController extends CrudController
         $this->crud->query = $this->crud->query->groupBy('cast_accounts.id')
             ->orderBy('id', 'ASC');
 
-        $year = request()->get('filter_year') ?? null;
+        $year = request()->filter_year ?? null;
         $tableBalance = DB::table('account_transactions')
             ->select(DB::raw('
                 account_transactions.cast_account_id,
                 (SUM(IF(account_transactions.status = "enter", account_transactions.nominal_transaction, 0)) - SUM(IF(account_transactions.status = "out", account_transactions.nominal_transaction, 0))) as saldo
             '))
             ->when($year, function ($query) use ($year) {
-                if ($year) {
+                if ($year != "all") {
                     $query->whereYear('date_transaction', $year);
                 }
             })
@@ -519,113 +518,6 @@ class CastAccountsLoanCrudController extends CrudController
         ], 400);
     }
 
-    function ruleValidation()
-    {
-        $id = request('id') ?? '';
-        // 'name' => 'required|min:5|max:255'
-        return [
-            'name' => 'required|max:100|unique:cast_accounts,name,' . $id,
-            'bank_name' => 'required|max:50',
-            'no_account' => 'required|max:100|unique:cast_accounts,no_account,' . $id,
-            'account_id' => 'required|exists:accounts,id',
-            'total_saldo' => 'required|numeric|min:0',
-            'status' => 'required|in:loan',
-            'date_transaction_init' => 'nullable|date',
-        ];
-    }
-
-
-    function ruleValidationTransaction()
-    {
-        $cast_account_id = request()->cast_account_id;
-        $status = request()->status;
-        $cast_account_destination_id = request()->cast_account_destination_id;
-        $rule = [
-            'date_transaction' => 'required',
-            'nominal_transaction' => [
-                'required',
-                'numeric',
-                'min:1000',
-                function ($attribute, $value, $fail) use ($cast_account_id, $status, $cast_account_destination_id) {
-                    if ($status == CastAccount::ENTER) {
-                        $balance = CustomHelper::total_balance_cast_account($cast_account_destination_id, CastAccount::CASH);
-                        if ($value > $balance) {
-                            $fail(trans("backpack::crud.cash_account.field_transfer.errors.nominal_transfer_to_more"));
-                        }
-                    } else if ($status == CastAccount::OUT) {
-                        $balance = CustomHelper::total_balance_cast_account($cast_account_id, CastAccount::LOAN);
-                        if ($value > $balance) {
-                            $fail(trans("backpack::crud.cash_account.field_transfer.errors.nominal_transfer_to_more"));
-                        }
-                    }
-                }
-            ],
-            'cast_account_destination_id' => 'required|exists:cast_accounts,id',
-            'kdp' => 'max:50',
-            'job_name' => 'max:100',
-            'no_invoice' => 'max:100',
-            'account_id' => 'exists:accounts,id',
-            'status' => [
-                'nullable',
-                'in:enter,out',
-                function ($attr, $value, $fail) use ($cast_account_destination_id) {
-                    if ($cast_account_destination_id == AccountTransaction::BANK_LOAN) {
-                        if ($value != CastAccount::ENTER) {
-                            $fail(trans('backpack::crud.cash_account_loan.field.cast_account_destination_id.bank_loan_alert'));
-                        }
-                    }
-                }
-            ],
-        ];
-
-        if ($cast_account_destination_id == AccountTransaction::BANK_LOAN) {
-            $rule['cast_account_destination_id'] = 'required|in:' . AccountTransaction::BANK_LOAN;
-            $rule['nominal_transaction'] = 'required|numeric|min:1000';
-        }
-        return $rule;
-    }
-
-
-    function ruleValidationMoveTransfer()
-    {
-        $req = request();
-        $loan_transaction_flag_id = $req->loan_transaction_flag_id;
-        $cast_account_destination_id = $req->cast_account_destination_id;
-        return [
-            'loan_transaction_flag_id' => 'required|exists:loan_transaction_flags,id',
-            'date_loan_transaction' => 'required|date',
-            'cast_account_destination_id' => [
-                'required',
-                'exists:cast_accounts,id',
-            ],
-            'payment_price' => [
-                'required',
-                'numeric',
-                'min:1000',
-                function ($attribute, $value, $fail) use ($loan_transaction_flag_id, $cast_account_destination_id) {
-                    $cast_account_destination = CastAccount::find($cast_account_destination_id);
-                    $total_balance_destination = CustomHelper::balanceAccount($cast_account_destination->account->code);
-
-                    if ($total_balance_destination < $value) {
-                        $fail(trans("backpack::crud.cash_account.field_transfer.errors.nominal_transfer_to_more_destination"));
-                    }
-
-                    $total_loan_transaction = AccountTransaction::where("reference_id", $loan_transaction_flag_id)
-                        ->whereNull('cast_account_destination_id')
-                        ->where("reference_type", LoanTransactionFlag::class)
-                        ->where('status', CastAccount::OUT)
-                        ->sum('nominal_transaction');
-
-                    $loan_transaction_flag = LoanTransactionFlag::find($loan_transaction_flag_id);
-
-                    $remaining_balance = $loan_transaction_flag->total_price - $total_loan_transaction - $value;
-                    if ($remaining_balance < 0) {
-                        $fail(trans("backpack::crud.cash_account.field_transfer.errors.nominal_payment_to_more"));
-                    }
-                }
-            ],
-        ];
-    }
 
 
     function account_select2()
@@ -701,7 +593,7 @@ class CastAccountsLoanCrudController extends CrudController
     {
 
         CRUD::setModel(AccountTransaction::class);
-        CRUD::setValidation($this->ruleValidationTransaction());
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\LoanTransactionRequest::class);
         $settings = Setting::first();
 
         CRUD::addField([
@@ -808,7 +700,7 @@ class CastAccountsLoanCrudController extends CrudController
     function createMoveTransactionOperation($id = null)
     {
         CRUD::setModel(AccountTransaction::class);
-        CRUD::setValidation($this->ruleValidationMoveTransfer());
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\LoanMoveTransactionRequest::class);
         $settings = Setting::first();
 
         CRUD::addField([
@@ -967,9 +859,7 @@ class CastAccountsLoanCrudController extends CrudController
             }
             if ($request->type == 'cast_account') {
                 $id = $request->id ?? '';
-                CRUD::setValidation([
-                    'name' => 'required|max:100|unique:cast_accounts,name,' . $id,
-                ]);
+                CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
                 CRUD::addField([
                     'name' => 'name',
                     'label' => trans('backpack::crud.cash_account.field.name.label'),
@@ -981,7 +871,7 @@ class CastAccountsLoanCrudController extends CrudController
                 return;
             }
         } else {
-            CRUD::setValidation($this->ruleValidation());
+            CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
             CRUD::addField([
                 'name' => 'name',
                 'label' => trans('backpack::crud.cash_account_loan.field.name.label'),
@@ -1130,57 +1020,17 @@ class CastAccountsLoanCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
 
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
         $request = $this->crud->validateRequest();
 
         $this->crud->registerFieldEvents();
 
         DB::beginTransaction();
         try {
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
+            $data = CastAccountLoanSaveData::fromRequest($request);
+            $item = $this->service->storeLoanAccount($data);
 
             $this->data['entry'] = $this->crud->entry = $item;
-
-            // \Alert::success(trans('backpack::crud.insert_success'))->flash();
-
-            if ($item->status == CastAccount::LOAN && $item->total_saldo > 0) {
-                $codeLoan = $this->generateCodeLoan();
-
-                // Gunakan tanggal dari input user, fallback ke Carbon::now() jika tidak ada
-                $dateTransactionInit = $request->date_transaction_init
-                    ? Carbon::parse($request->date_transaction_init)
-                    : Carbon::now();
-
-                $loan_transaction_flag = new LoanTransactionFlag;
-                $loan_transaction_flag->kode = $codeLoan;
-                $loan_transaction_flag->total_price = $item->total_saldo;
-                $loan_transaction_flag->save();
-
-                $loan_transaction = new AccountTransaction;
-                $loan_transaction->cast_account_id = $item->id;
-                $loan_transaction->date_transaction = $dateTransactionInit;
-                $loan_transaction->nominal_transaction = $item->total_saldo;
-                $loan_transaction->total_saldo_before = $item->total_saldo;
-                $loan_transaction->total_saldo_after = $item->total_saldo;
-                $loan_transaction->status = "enter";
-                $loan_transaction->account_id = $item->account_id;
-                $loan_transaction->description = "Saldo Awal Pinjaman";
-                $loan_transaction->reference_type = LoanTransactionFlag::class;
-                $loan_transaction->reference_id = $loan_transaction_flag->id;
-                $loan_transaction->save();
-
-                CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $item->account_id,
-                    'reference_id' => $loan_transaction->id,
-                    'reference_type' => AccountTransaction::class,
-                    'description' => $loan_transaction->description,
-                    'date' => $dateTransactionInit,
-                    'debit' => $item->total_saldo,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-                ], [
-                    'reference_id' => $loan_transaction->id,
-                    'reference_type' => AccountTransaction::class,
-                ]);
-            }
 
             $this->crud->setSaveAction();
 
@@ -1216,7 +1066,7 @@ class CastAccountsLoanCrudController extends CrudController
     public function storeTransaction()
     {
         $this->crud->hasAccessOrFail('create');
-        CRUD::setValidation($this->ruleValidationTransaction());
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\LoanTransactionRequest::class);
 
         $request = $this->crud->validateRequest();
 
@@ -1224,114 +1074,10 @@ class CastAccountsLoanCrudController extends CrudController
 
         DB::beginTransaction();
         try {
+            $data = LoanTransactionSaveData::fromRequest($request);
+            $item = $this->service->storeTransaction($data);
 
-            $cast_account_id = $request->cast_account_id;
-            $date_transaction = $request->date_transaction;
-            $nominal_transaction = $request->nominal_transaction;
-            $cast_account_destination_id = $request->cast_account_destination_id;
-            $status = "enter";
-            $codeLoan = $this->generateCodeLoan();
-            $description = $request->description;
-
-            $cast_account_loan = CastAccount::find($cast_account_id);
-            $cast_account_destination = CastAccount::find($cast_account_destination_id);
-
-            if ($cast_account_destination_id == AccountTransaction::BANK_LOAN) {
-                $total_saldo_loan_after = $total_saldo_loan_before + $nominal_transaction;
-                $acctTransactionLoan = new AccountTransaction;
-                $acctTransactionLoan->cast_account_id = $cast_account_id;
-                $acctTransactionLoan->date_transaction = $date_transaction;
-                $acctTransactionLoan->nominal_transaction = $nominal_transaction;
-                $acctTransactionLoan->total_saldo_before = $total_saldo_loan_before;
-                $acctTransactionLoan->total_saldo_after = $total_saldo_loan_after;
-                $acctTransactionLoan->status = $status;
-                $acctTransactionLoan->account_id = $cast_account_loan->account_id;
-                $acctTransactionLoan->description = $request->description;
-                $acctTransactionLoan->save();
-
-                $cast_account_loan->total_saldo = $total_saldo_loan_after;
-                $cast_account_loan->save();
-
-                CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $acctTransactionLoan->account_id,
-                    'reference_id' => $acctTransactionLoan->id,
-                    'reference_type' => AccountTransaction::class,
-                    'description' => $request->description,
-                    'date' => Carbon::now(),
-                    'debit' => $nominal_transaction,
-                    'credit' => 0,
-                ], [
-                    'reference_id' => $acctTransactionLoan->id,
-                    'reference_type' => AccountTransaction::class,
-                ]);
-            } else {
-
-                // insert to loan transaction
-                $loan_transaction_flag = new LoanTransactionFlag;
-                $loan_transaction_flag->kode = $codeLoan;
-                $loan_transaction_flag->total_price = $nominal_transaction;
-                $loan_transaction_flag->save();
-
-                // insert to loan transaction
-                $loan_transaction = new AccountTransaction;
-                $loan_transaction->cast_account_id = $cast_account_id;
-                $loan_transaction->cast_account_destination_id = $cast_account_destination_id;
-                $loan_transaction->date_transaction = $date_transaction;
-                $loan_transaction->nominal_transaction = $nominal_transaction;
-                $loan_transaction->total_saldo_before = $nominal_transaction;
-                $loan_transaction->total_saldo_after = $nominal_transaction;
-                $loan_transaction->status = $status;
-                $loan_transaction->account_id = $cast_account_loan->account_id;
-                $loan_transaction->description = $description;
-                $loan_transaction->reference_type = LoanTransactionFlag::class;
-                $loan_transaction->reference_id = $loan_transaction_flag->id;
-                $loan_transaction->save();
-
-                // insert to transaction destination
-                $add_transaction_destination = new AccountTransaction;
-                $add_transaction_destination->cast_account_id = $cast_account_destination_id;
-                $add_transaction_destination->cast_account_destination_id = $cast_account_id;
-                $add_transaction_destination->date_transaction = $date_transaction;
-                $add_transaction_destination->nominal_transaction = $nominal_transaction;
-                $add_transaction_destination->total_saldo_before = 0;
-                $add_transaction_destination->total_saldo_after = 0;
-                $add_transaction_destination->status = $status;
-                $add_transaction_destination->account_id = $cast_account_destination->account_id;
-                $add_transaction_destination->description = $description;
-                $add_transaction_destination->save();
-
-                // insert journal entry transaction loan
-                CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $cast_account_loan->account_id,
-                    'reference_id' => $loan_transaction->id,
-                    'reference_type' => AccountTransaction::class,
-                    'description' => $description,
-                    'date' => Carbon::now(),
-                    'debit' => ($status == CastAccount::ENTER) ? $nominal_transaction : 0,
-                    'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-                ], [
-                    'reference_id' => $loan_transaction->id,
-                    'reference_type' => AccountTransaction::class,
-                ]);
-
-                // insert journal entry transaction destination
-                CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $cast_account_destination->account_id,
-                    'reference_id' => $add_transaction_destination->id,
-                    'reference_type' => AccountTransaction::class,
-                    'description' => $description,
-                    'date' => Carbon::now(),
-                    'debit' => ($status == CastAccount::ENTER) ? $nominal_transaction : 0,
-                    'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-                ], [
-                    'reference_id' => $add_transaction_destination->id,
-                    'reference_type' => AccountTransaction::class,
-                ]);
-            }
-
-            $total_saldo = CustomHelper::balanceAccount($cast_account_loan->account->code);
-
-            $item = $cast_account_loan;
+            $total_saldo = CustomHelper::balanceAccount($item->account->code);
             $item->new_saldo = CustomHelper::formatRupiahWithCurrency($total_saldo);
 
             $this->data['entry'] = $this->crud->entry = $item;
@@ -1346,8 +1092,8 @@ class CastAccountsLoanCrudController extends CrudController
                     'success' => true,
                     'data' => $item,
                     'events' => [
-                        'card_cast_account' . $cast_account_id . '_create_success' => $item,
-                        'card_cast_account' . $cast_account_id . '_store_move_success' => $item
+                        'card_cast_account' . $data->cast_account_id . '_create_success' => $item,
+                        'card_cast_account' . $data->cast_account_id . '_store_move_success' => $item
                     ]
                 ]);
             }
@@ -1366,72 +1112,26 @@ class CastAccountsLoanCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
         DB::beginTransaction();
         try {
-
-            $event = [];
-
-            if ($request->type == 'cast_account') {
-                $item = CastAccount::find($request->id);
-                $item->name = $request->name;
-                $item->save();
-                $event['cast_account_store_success'] = true;
-            }
-
-            // $type = $request->_type;
-            // if($type == 'category_project'){
-            //     $event['setup_category_project_create_success'] = true;
-            //     $item = CategoryProject::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'status_project'){
-            //     $event['setup_status_project_create_success'] = true;
-            //     $item = SetupStatusProject::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'status_offering'){
-            //     $event['setup_status_offering_create_success'] = true;
-            //     $item = SetupOffering::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'client'){
-            //     $event['setup_client_create_success'] = true;
-            //     $item = SetupClient::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'ppn'){
-            //     $event['setup_ppn_create_success'] = true;
-            //     $item = SetupPpn::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }
-
-            $this->data['entry'] = $item;
+            $data = CastAccountLoanSaveData::fromRequest($request);
+            $item = $this->service->storeLoanAccount($data); // Service should handle update if ID exists, or create updateCastAccount
 
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-
-            $this->crud->setSaveAction();
-
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'data' => $item,
-                'events' => $event
+                'events' => ['cast_account_store_success' => true]
             ]);
-            // return $this->crud->performSaveAction($item->getKey());
-
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'status' => false,
-                'success' => false,
-                'error' => $e->getMessage(),
-            ]);
+            return response()->json(['status' => false, 'success' => false, 'error' => $e->getMessage()]);
         }
     }
 
@@ -1439,101 +1139,17 @@ class CastAccountsLoanCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
 
-        CRUD::setValidation($this->ruleValidationMoveTransfer());
+        CRUD::setValidation(\App\Http\Requests\CastAccountLoan\LoanMoveTransactionRequest::class);
 
         $request = $this->crud->validateRequest();
         $this->crud->registerFieldEvents();
         DB::beginTransaction();
 
         try {
+            $data = LoanMoveTransactionSaveData::fromRequest($request);
+            $item = $this->service->storeMoveTransaction($data);
 
-            $cast_account_id = $request->cast_account_id;
-            $payment_price = $request->payment_price;
-            $loan_transaction_flag_id = $request->loan_transaction_flag_id;
-            $description = $request->description;
-            $date_loan_transaction = $request->date_loan_transaction;
-            $cast_account_destination_id = $request->cast_account_destination_id;
-
-            $account_destination = CastAccount::find($cast_account_destination_id)->account;
-            $balance_destination_before = CustomHelper::balanceAccount($account_destination->code);
-            $balance_destination_after = $balance_destination_before - $payment_price;
-
-            $first_account_transaction = AccountTransaction::where("reference_id", $loan_transaction_flag_id)
-                ->where("reference_type", LoanTransactionFlag::class)
-                ->first();
-
-            $total_loan_transaction = AccountTransaction::where("reference_id", $loan_transaction_flag_id)
-                ->whereNull('cast_account_destination_id')
-                ->where("reference_type", LoanTransactionFlag::class)
-                ->where('status', CastAccount::OUT)
-                ->select(
-                    DB::raw("SUM(nominal_transaction) as total_loan_transaction"),
-                )->first();
-
-            $loan_transaction_flag = LoanTransactionFlag::find($loan_transaction_flag_id);
-
-            $remaining_balance = $loan_transaction_flag->total_price - $total_loan_transaction->total_loan_transaction - $payment_price;
-
-            $new_cast_transaction = new AccountTransaction;
-            $new_cast_transaction->cast_account_id = $cast_account_destination_id;
-            $new_cast_transaction->cast_account_destination_id = $cast_account_id;
-            $new_cast_transaction->reference_type = LoanTransactionFlag::class;
-            $new_cast_transaction->reference_id = $loan_transaction_flag_id;
-            $new_cast_transaction->date_transaction = $date_loan_transaction;
-            $new_cast_transaction->description = $description;
-            $new_cast_transaction->account_id = $account_destination->id;
-            $new_cast_transaction->nominal_transaction = $payment_price;
-            $new_cast_transaction->total_saldo_before = $balance_destination_before;
-            $new_cast_transaction->total_saldo_after = $balance_destination_after;
-            $new_cast_transaction->status = CastAccount::OUT;
-            $new_cast_transaction->save();
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $account_destination->id,
-                'reference_id' => $new_cast_transaction->id,
-                'reference_type' => AccountTransaction::class,
-                'description' => $description,
-                'date' => $date_loan_transaction,
-                'debit' => 0,
-                'credit' => $payment_price,
-            ], [
-                'reference_id' => $new_cast_transaction->id,
-                'reference_type' => AccountTransaction::class,
-            ]);
-
-            $new_loan_transaction = new AccountTransaction;
-            $new_loan_transaction->cast_account_id = $cast_account_id;
-            $new_loan_transaction->cast_account_destination_id = null;
-            $new_loan_transaction->reference_type = LoanTransactionFlag::class;
-            $new_loan_transaction->reference_id = $loan_transaction_flag_id;
-            $new_loan_transaction->date_transaction = $date_loan_transaction;
-            $new_loan_transaction->description = $description;
-            $new_loan_transaction->account_id = $first_account_transaction->account_id;
-            $new_loan_transaction->nominal_transaction = $payment_price;
-            $new_loan_transaction->total_saldo_before = $total_loan_transaction->total_loan_transaction ?? 0;
-            $new_loan_transaction->total_saldo_after = $remaining_balance;
-            $new_loan_transaction->status = CastAccount::OUT;
-            $new_loan_transaction->save();
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $first_account_transaction->account_id,
-                'reference_id' => $new_loan_transaction->id,
-                'reference_type' => AccountTransaction::class,
-                'description' => $description,
-                'date' => $date_loan_transaction,
-                'debit' => 0,
-                'credit' => $payment_price,
-            ], [
-                'reference_id' => $new_loan_transaction->id,
-                'reference_type' => AccountTransaction::class,
-            ]);
-
-            if ($remaining_balance == 0) {
-                $loan_transaction_flag->status = 1;
-                $loan_transaction_flag->save();
-            }
-
-            $item = $new_loan_transaction;
+            $first_account_transaction = $this->repository->getFirstAccountTransactionByFlagId($data->loan_transaction_flag_id);
             $total_balance = CustomHelper::balanceAccount(Account::find($first_account_transaction->account_id)->code);
             $item->saldo = CustomHelper::formatRupiahWithCurrency($total_balance);
 
@@ -1546,7 +1162,7 @@ class CastAccountsLoanCrudController extends CrudController
                 return response()->json([
                     'success' => true,
                     'events' => [
-                        'card_cast_account' . $cast_account_id . '_store_move_success' => $item,
+                        'card_cast_account' . $data->cast_account_id . '_store_move_success' => $item,
                     ]
                 ]);
             }
@@ -1564,53 +1180,37 @@ class CastAccountsLoanCrudController extends CrudController
     public function destroy($id)
     {
         $this->crud->hasAccessOrFail('delete');
-
         $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        $journal = JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id) {
-            $q->where('cast_account_id', $id)
-                ->orWhere('cast_account_destination_id', $id);
-        })->orWhereHasMorph('reference', CastAccount::class, function ($q) use ($id) {
-            $q->where('id', $id);
-        })->orWhereHasMorph('reference', LoanTransactionFlag::class, function ($q) use ($id) {
-            $q->where('id', $id);
-        })->delete();
+        DB::beginTransaction();
+        try{
+            $result = $this->service->deleteLoanAccount($id);
+            DB::commit();
+            $event = [];
+            $event['cast_account_store_success'] = true;
 
-        $accountTransaction = AccountTransaction::where('cast_account_id', $id)
-            ->orWhere('cast_account_destination_id', $id)
-            ->delete();
-
-        return $this->crud->delete($id);
+            $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
+            $messages['events'] = $event;
+            return response()->json($messages);
+        }
+        catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'type' => 'errors',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function showTransaction()
     {
         $id = request()->_id;
         $page = request()->page ?? 1;
-        $per_page = request()->per_page ?? 2; // Set 2 untuk testing sesuai permintaan
+        $per_page = request()->per_page ?? 2;
         $filter_year = request()->filter_year;
 
-        $castAccount = CastAccount::where('id', $id)->first();
-
-        $query = AccountTransaction::select([
-            'account_transactions.id',
-            'account_transactions.cast_account_id',
-            'loan_transaction_flags.kode as kode',
-            'account_transactions.date_transaction',
-            'account_transactions.total_saldo_after as loan_remaining',
-            'account_transactions.nominal_transaction as nominal',
-            'account_transactions.description',
-            'loan_transaction_flags.status',
-        ])
-            ->join("loan_transaction_flags", function ($join) {
-                $join->on('loan_transaction_flags.id', '=', 'account_transactions.reference_id')
-                    ->where('account_transactions.reference_type', LoanTransactionFlag::class);
-            })
-            ->where('account_transactions.cast_account_id', $id);
-
-        if ($filter_year && $filter_year != 'all') {
-            $query->whereYear('account_transactions.date_transaction', $filter_year);
-        }
+        $castAccount = $this->repository->findById($id);
+        $query = $this->repository->getTransactionQuery($id, $filter_year);
 
         $query->orderByDesc('account_transactions.reference_id')
             ->orderBy('account_transactions.id');
@@ -1661,7 +1261,7 @@ class CastAccountsLoanCrudController extends CrudController
             } else {
                 $entry->status_str = '-';
                 $entry->kode_str = '-';
-                $entry->nominal_str = CustomHelper::formatRupiahWithCurrency($entry->nominal);
+                $entry->nominal_str = CustomHelper::formatRupiahWithCurrency($entry->nominal_transaction);
             }
             $entry->loan_str = CustomHelper::formatRupiahWithCurrency($entry->loan_remaining);
             $entry->date_str = \Carbon\Carbon::parse($entry->date_transaction)->translatedFormat('d/m/Y');
