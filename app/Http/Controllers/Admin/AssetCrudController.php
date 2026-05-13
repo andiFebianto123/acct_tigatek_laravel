@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use Carbon\Carbon;
 use App\Models\Asset;
 use App\Models\Account;
+use App\Models\Company;
 use App\Models\Setting;
 use App\Models\JournalEntry;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -20,8 +21,19 @@ use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\PermissionAccess;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
+use App\Services\Asset\AssetService;
+use App\Repositories\Asset\AssetRepository;
+use App\DTOs\Asset\AssetSaveData;
+use App\Http\Requests\Asset\AssetRequest;
+
 class AssetCrudController extends CrudController
 {
+    public function __construct(
+        protected AssetService $service,
+        protected AssetRepository $repository
+    ) {
+        parent::__construct();
+    }
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\CreateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
@@ -97,6 +109,17 @@ class AssetCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            CRUD::addColumn([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
+        }
 
         CRUD::column([
             // 1-n relationship
@@ -552,18 +575,6 @@ class AssetCrudController extends CrudController
         ], 400);
     }
 
-    function ruleAsset()
-    {
-        return [
-            'account_id' => 'required|exists:accounts,id',
-            'depreciation_account_id' => 'required|exists:accounts,id',
-            'expense_account_id' => 'required|exists:accounts,id',
-            'description' => 'required|max:150',
-            'year_acquisition' => 'required',
-            'price_acquisition' => 'required|numeric|min:1000',
-            'economic_age' => 'required|numeric',
-        ];
-    }
 
     public function select2account()
     {
@@ -609,7 +620,21 @@ class AssetCrudController extends CrudController
 
     protected function setupCreateOperation()
     {
-        CRUD::setValidation($this->ruleAsset());
+        CRUD::setValidation(AssetRequest::class);
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+                'type'      => 'select2_array',
+                'name'      => 'company_id',
+                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
+            ]);
+        }
+
         $settings = Setting::first();
         CRUD::field([   // 1-n relationship
             'label'       => trans('backpack::crud.asset.field.account_id.label'), // Table column heading
@@ -855,107 +880,20 @@ class AssetCrudController extends CrudController
         ]);
     }
 
-    function getInclusiveMonthDiff($fromDateStr)
-    {
-        $fromDate = Carbon::parse($fromDateStr);
-        $toDate = Carbon::create(date('Y'), 12, 1); // Desember tahun sekarang
-
-        return $fromDate->diffInMonths($toDate) + 1; // +1 untuk inklusif
-    }
 
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
         DB::beginTransaction();
         try {
+            $data = AssetSaveData::fromRequest($request);
+            $item = $this->service->storeAsset($data);
 
-            $price_acquisition = (float) str_replace('.', '', $request->price_acquisition); // contoh: 1000000
-            $economic_age = (int) $request->economic_age; // contoh: 5
-            $year_acquisition = $request->year_acquisition; // contoh: '2022-03-01'
-
-            $period = $this->getInclusiveMonthDiff($year_acquisition);
-
-            $penyusutan_per_tahun = $economic_age == 0 ? 0 : ($price_acquisition / $economic_age);
-
-            $tarif = $price_acquisition == 0 ? 0 : ($penyusutan_per_tahun / $price_acquisition) * 100;
-
-            $tarif_penyusutan_tahun_ini = $price_acquisition - $penyusutan_per_tahun;
-
-            $akumulasi_desember_tahun_ini = round(($penyusutan_per_tahun / 12 * $period) / 10) * 10;
-
-            $nilai_buku_desember = $price_acquisition - $akumulasi_desember_tahun_ini;
-
-            $aset = new Asset;
-            $aset->account_id = $request->account_id;
-            $aset->depreciation_account_id = $request->depreciation_account_id;
-            $aset->expense_account_id = $request->expense_account_id;
-            $aset->description = $request->description;
-            $aset->year_acquisition = $request->year_acquisition;
-            $aset->price_acquisition = $request->price_acquisition;
-            $aset->economic_age = $request->economic_age;
-            $aset->tarif = $tarif;
-            $aset->price_rate_per_year = $penyusutan_per_tahun;
-            $aset->price_rate_year_ago = $request->price_rate_year_ago;
-            $aset->accumulated_until_december_last_year = $request->accumulated_until_december_last_year;
-            $aset->book_value_last_december = $request->book_value_last_december;
-            $aset->this_year_depreciation_rate = $tarif_penyusutan_tahun_ini;
-            $aset->accumulated_until_december_this_year = $akumulasi_desember_tahun_ini;
-            $aset->book_value_this_december = $nilai_buku_desember;
-            $aset->save();
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->price_acquisition,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->depreciation_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->price_rate_per_year,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->depreciation_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->expense_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->book_value_this_december,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->expense_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-
-            $item = $aset;
             $this->data['entry'] = $this->crud->entry = $item;
-
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
-
             $this->crud->setSaveAction();
 
             DB::commit();
@@ -1006,107 +944,23 @@ class AssetCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-
         $request = $this->crud->validateRequest();
-
         $this->crud->registerFieldEvents();
 
         DB::beginTransaction();
         try {
+            $data = AssetSaveData::fromRequest($request);
+            $item = $this->service->storeAsset($data);
 
-            $price_acquisition = (float) str_replace('.', '', $request->price_acquisition); // contoh: 1000000
-            $economic_age = (int) $request->economic_age; // contoh: 5
-            $year_acquisition = $request->year_acquisition; // contoh: '2022-03-01'
-
-            $period = $this->getInclusiveMonthDiff($year_acquisition);
-
-            $penyusutan_per_tahun = $economic_age == 0 ? 0 : ($price_acquisition / $economic_age);
-
-            $tarif = $price_acquisition == 0 ? 0 : ($penyusutan_per_tahun / $price_acquisition) * 100;
-
-            $tarif_penyusutan_tahun_ini = $price_acquisition - $penyusutan_per_tahun;
-
-            $akumulasi_desember_tahun_ini = round(($penyusutan_per_tahun / 12 * $period) / 10) * 10;
-
-            $nilai_buku_desember = $price_acquisition - $akumulasi_desember_tahun_ini;
-
-            $aset = Asset::where('id', $request->id)->first();
-            $aset->account_id = $request->account_id;
-            $aset->depreciation_account_id = $request->depreciation_account_id;
-            $aset->expense_account_id = $request->expense_account_id;
-            $aset->description = $request->description;
-            $aset->year_acquisition = $request->year_acquisition;
-            $aset->price_acquisition = $request->price_acquisition;
-            $aset->economic_age = $request->economic_age;
-            $aset->tarif = $tarif;
-            $aset->price_rate_per_year = $penyusutan_per_tahun;
-            $aset->price_rate_year_ago = $request->price_rate_year_ago;
-            $aset->accumulated_until_december_last_year = $request->accumulated_until_december_last_year;
-            $aset->book_value_last_december = $request->book_value_last_december;
-            $aset->this_year_depreciation_rate = $tarif_penyusutan_tahun_ini;
-            $aset->accumulated_until_december_this_year = $akumulasi_desember_tahun_ini;
-            $aset->book_value_this_december = $nilai_buku_desember;
-            $aset->save();
-
-            JournalEntry::where('reference_id', $request->id)
-                ->where('reference_type', Asset::class)->delete();
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->price_acquisition,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->depreciation_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->price_rate_per_year,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->depreciation_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $aset->expense_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $aset->book_value_this_december,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $aset->expense_account_id,
-                'reference_id' => $aset->id,
-                'reference_type' => Asset::class,
-            ]);
-
-
-            $this->data['entry'] = $this->crud->entry = $aset;
-
-
+            $this->data['entry'] = $this->crud->entry = $item;
             \Alert::success(trans('backpack::crud.update_success'))->flash();
-
-
             $this->crud->setSaveAction();
 
             DB::commit();
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'data' => $aset,
+                    'data' => $item,
                 ]);
             }
 
@@ -1171,12 +1025,9 @@ class AssetCrudController extends CrudController
         DB::beginTransaction();
         try {
             $this->crud->hasAccessOrFail('delete');
-            $item = $this->crud->model::findOrFail($id);
-            JournalEntry::where('reference_id', $id)
-                ->where('reference_type', Asset::class)->delete();
-            $delete = $item->delete();
+            $this->service->deleteAsset((int) $id);
             DB::commit();
-            return $delete;
+            return true;
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

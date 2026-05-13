@@ -40,6 +40,10 @@ class Asset extends Model
         return $this->belongsTo(Account::class, 'account_id');
     }
 
+    function company(){
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
     function account_depreciation(){
         return $this->belongsTo(Account::class, 'depreciation_account_id');
     }
