@@ -20,6 +20,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\DTOs\CastAccount\CastAccountSaveData;
+use App\DTOs\CastAccount\CastAccountFilterData;
+use App\DTOs\CastAccount\TransactionSaveData;
+use App\DTOs\CastAccount\TransferBalanceData;
+use App\Services\CastAccount\CastAccountService;
+use App\Repositories\CastAccount\CastAccountRepository;
 
 /**
  * Class CastAccountsCrudController
@@ -34,6 +40,14 @@ class CastAccountsCrudController extends CrudController
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
+
+    public function __construct(
+        protected CastAccountService $service,
+        protected CastAccountRepository $repository
+    ) {
+        parent::__construct();
+    }
+
     /**
      * Configure the CrudPanel object. Apply settings to all operations.
      *
@@ -161,26 +175,8 @@ class CastAccountsCrudController extends CrudController
 
         $this->data['is_disabled_list'] = true;
 
-        $listCashAccountsQuery = CastAccount::leftJoin('account_transactions', 'account_transactions.cast_account_id', '=', 'cast_accounts.id')
-            ->where('cast_accounts.status', CastAccount::CASH)
-            ->groupBy('cast_accounts.id')
-            ->orderBy('id', 'ASC');
-
-        if (request()->has('filter_year') && request()->filter_year != 'all') {
-            $listCashAccountsQuery->whereYear('account_transactions.date_transaction', request()->filter_year);
-        }
-
-        $listCashAccounts = $listCashAccountsQuery->select(DB::raw(
-            '
-            cast_accounts.id,
-            MAX(cast_accounts.name) as name,
-            MAX(cast_accounts.bank_name) as bank_name,
-            MAX(cast_accounts.no_account) as no_account,
-            MAX(cast_accounts.status) as status,
-            SUM(IF(account_transactions.status = "enter", account_transactions.nominal_transaction, 0)) as total_saldo_enter,
-            SUM(IF(account_transactions.status = "out", account_transactions.nominal_transaction, 0)) as total_saldo_out
-        '
-        ))->get();
+        $filters = CastAccountFilterData::fromRequest(request());
+        $listCashAccounts = $this->repository->getCastAccountsWithBalance($filters);
 
         $this->listCardComponents($listCashAccounts);
 
@@ -552,10 +548,11 @@ class CastAccountsCrudController extends CrudController
 
     public function exportTransPdf()
     {
+        $id = request()->id;
         $cast = $this->setuplistExportTrans();
 
         $columns = $this->crud->columns();
-        $items =  $this->crud->getEntries();
+        $items =  $this->repository->getTransactionsByCastAccountId((int)$id, request()->filter_year);
         $row_number = 0;
 
         $all_items = [];
@@ -594,10 +591,11 @@ class CastAccountsCrudController extends CrudController
 
     public function exportTransExcel()
     {
+        $id = request()->id;
         $this->setuplistExportTrans();
 
         $columns = $this->crud->columns();
-        $items =  $this->crud->getEntries();
+        $items =  $this->repository->getTransactionsByCastAccountId((int)$id, request()->filter_year);
 
         $row_number = 0;
 
@@ -633,11 +631,6 @@ class CastAccountsCrudController extends CrudController
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Download Failure',
-        ], 400);
     }
 
     function ruleValidation()
@@ -887,12 +880,19 @@ class CastAccountsCrudController extends CrudController
 
         $search = request()->input('q');
         $r_type = request()->type;
-        $invoices = InvoiceClient::where('status', 'Unpaid')
-            ->where(function ($q) use ($search) {
-                $q->where('invoice_number', 'LIKE', "%$search%")
-                    ->orWhere('name', 'LIKE', "%$search%")
-                    ->orWhere('kdp', 'LIKE', "%$search%");
-            });
+        $company_id = request()->input('company_id');
+
+        $invoices = InvoiceClient::where('status', 'Unpaid');
+
+        if (!empty($company_id)) {
+            $invoices->where('company_id', $company_id);
+        }
+
+        $invoices->where(function ($q) use ($search) {
+            $q->where('invoice_number', 'LIKE', "%$search%")
+                ->orWhere('name', 'LIKE', "%$search%")
+                ->orWhere('kdp', 'LIKE', "%$search%");
+        });
 
         $dataset = $invoices->paginate(20);
 
@@ -1038,6 +1038,19 @@ class CastAccountsCrudController extends CrudController
                         </div>
                     </div>
                 ',
+            ]);
+        }
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+                'type'      => 'select2_array',
+                'name'      => 'company_id',
+                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
             ]);
         }
 
@@ -1192,7 +1205,9 @@ class CastAccountsCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.voucher.field.work_code.placeholder'),
                 ...$invoice_disabled,
-            ]
+            ],
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
         ]);
 
         CRUD::addField([
@@ -1241,7 +1256,9 @@ class CastAccountsCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.cash_account.field_transaction.no_invoice.placeholder'),
                 ...$invoice_disabled,
-            ]
+            ],
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
         ]);
 
 
@@ -1457,6 +1474,7 @@ class CastAccountsCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
 
         $request = $this->crud->validateRequest();
+        $dto = CastAccountSaveData::fromRequest($request);
 
         $this->crud->registerFieldEvents();
 
@@ -1466,32 +1484,8 @@ class CastAccountsCrudController extends CrudController
 
         DB::beginTransaction();
         try {
-
-            $item = $this->crud->create($this->crud->getStrippedSaveRequest($request));
-
+            $item = $this->service->storeCastAccount($dto);
             $this->data['entry'] = $this->crud->entry = $item;
-
-            $acctTransaction = new AccountTransaction;
-            $acctTransaction->cast_account_id = $item->id;
-            $acctTransaction->date_transaction = Carbon::now()->format('Y-m-d');
-            $acctTransaction->nominal_transaction = $item->total_saldo ?? 0;
-            $acctTransaction->total_saldo_before = 0;
-            $acctTransaction->total_saldo_after = $item->total_saldo ?? 0;
-            $acctTransaction->status = CastAccount::ENTER;
-            $acctTransaction->is_first = 1;
-            $acctTransaction->save();
-
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $item->account_id,
-                'reference_id' => $item->id,
-                'reference_type' => CastAccount::class,
-                'description' => 'Start Saldo',
-                'date' => Carbon::now(),
-                'debit' => $item->total_saldo,
-            ], [
-                'reference_id' => $item->id,
-                'reference_type' => CastAccount::class,
-            ]);
 
             $this->crud->setSaveAction();
 
@@ -1517,20 +1511,18 @@ class CastAccountsCrudController extends CrudController
     public function updateTransaction()
     {
         $request = request();
-
         CRUD::setModel(AccountTransaction::class);
 
-        $old_item = AccountTransaction::find($request->id);
+        $old_item = AccountTransaction::findOrFail($request->id);
 
+        // Determine status_account for validation and DTO
         if ($request->has('status') && in_array($request->status, ['enter', 'out'])) {
             $status_account = $request->status;
         } else {
             $has_access_primary = $this->accessAccount($old_item->cast_account_id);
-            // Tentukan status: prioritas dari form jika transaksi murni (tanpa reference_type)
             if (empty($old_item->reference_type)) {
                 $status_account = $request->input('status', $old_item->status);
             } else {
-                // Logika otomatis fallback untuk transaksi dengan referensi (backward compatibility)
                 $status_account = AccountTransaction::OUT;
                 $has_payment_access = $this->accessPaymentAccount($old_item->cast_account_id);
                 if ($has_payment_access > 0 || $has_access_primary > 0) {
@@ -1538,8 +1530,7 @@ class CastAccountsCrudController extends CrudController
                 }
             }
 
-            if (request()->has('type')) {
-                // edit
+            if ($request->has('type')) {
                 if ($has_access_primary > 0) {
                     $request->validate($this->ruleValidationStoreTransactionAccountPrimary());
                 } else {
@@ -1548,58 +1539,16 @@ class CastAccountsCrudController extends CrudController
             }
         }
 
-        $this->crud->registerFieldEvents();
+        // Merge status back to request so DTO fromRequest can capture it
+        $request->merge(['status' => $status_account]);
+        $dto = TransactionSaveData::fromRequest($request);
 
         DB::beginTransaction();
 
         try {
-            $log_payment_exists = LogPayment::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($request) {
-                $q->where('id', $request->id);
-            })->exists();
-
-            if ($log_payment_exists) {
-                if ($request->has('kdp') || $request->has('no_invoice')) {
-                    $id = $request->kdp ?? $request->no_invoice;
-                    $invoice = InvoiceClient::find($id);
-                    if ($invoice) {
-                        CustomVoid::rollbackPayment(InvoiceClient::class, $invoice->id, 'CREATE_PAYMENT_INVOICE');
-                    }
-                }
-                CustomVoid::rollbackPayment(AccountTransaction::class, $request->id);
-                $storeTransaction = CustomVoid::storeTransaction($request, $status_account);
-                $item = $storeTransaction;
-            } else {
-                $journal = JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($request) {
-                    $q->where('id', $request->id);
-                })->get();
-
-                $item = AccountTransaction::find($request->id);
-                $item->date_transaction = $request->date_transaction;
-                $item->description = $request->description;
-                $item->account_id = $request->account_id;
-                $item->no_invoice = $request->no_invoice;
-                $item->nominal_transaction = $request->nominal_transaction;
-
-                $item->save();
-
-                foreach ($journal as $j) {
-                    $j->description = $item->description;
-                    $j->account_id = $item->account_id;
-                    $j->date = $item->date_transaction;
-                    if ($status_account == AccountTransaction::OUT) {
-                        $j->credit = $item->nominal_transaction;
-                        $j->debit = 0;
-                    } else {
-                        $j->debit = $item->nominal_transaction;
-                        $j->credit = 0;
-                    }
-                    $j->save();
-                }
-            }
-
+            $item = $this->service->updateTransaction((int)$request->id, $dto);
 
             $event = [];
-
             $this->data['entry'] = $item;
             $event['cast_account_store_success'] = true;
 
@@ -1638,6 +1587,7 @@ class CastAccountsCrudController extends CrudController
         ]);
 
         $request = $this->crud->validateRequest();
+        $dto = CastAccountSaveData::fromRequest($request);
 
         $this->crud->registerFieldEvents();
 
@@ -1647,43 +1597,9 @@ class CastAccountsCrudController extends CrudController
 
         DB::beginTransaction();
         try {
-
             $event = [];
-
-            if ($request->type == 'cast_account') {
-                $item = CastAccount::find($request->id);
-                $item->name = $request->name;
-                $item->save();
-                $event['cast_account_store_success'] = true;
-            }
-
-            // $type = $request->_type;
-            // if($type == 'category_project'){
-            //     $event['setup_category_project_create_success'] = true;
-            //     $item = CategoryProject::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'status_project'){
-            //     $event['setup_status_project_create_success'] = true;
-            //     $item = SetupStatusProject::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'status_offering'){
-            //     $event['setup_status_offering_create_success'] = true;
-            //     $item = SetupOffering::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'client'){
-            //     $event['setup_client_create_success'] = true;
-            //     $item = SetupClient::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }else if($type == 'ppn'){
-            //     $event['setup_ppn_create_success'] = true;
-            //     $item = SetupPpn::find($request->id);
-            //     $item->name = $request->name;
-            //     $item->save();
-            // }
+            $item = $this->service->updateCastAccount((int)$request->id, $dto);
+            $event['cast_account_store_success'] = true;
 
             $this->data['entry'] = $item;
 
@@ -1697,7 +1613,6 @@ class CastAccountsCrudController extends CrudController
                 'data' => $item,
                 'events' => $event
             ]);
-            // return $this->crud->performSaveAction($item->getKey());
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1714,14 +1629,10 @@ class CastAccountsCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
         $request = request();
         $request->validate($this->ruleValidationTransaction());
-
-        // Gunakan status dari pilihan user jika ada, jika tidak gunakan logika otomatis
-        if ($request->has('status') && in_array($request->status, ['enter', 'out'])) {
-            $status_account = $request->status;
-        } else {
-            // Logika otomatis (backward compatibility)
+        
+        // Determine status_account for DTO consistency
+        if (!$request->has('status') || !in_array($request->status, ['enter', 'out'])) {
             $has_access_primary = $this->accessAccount($request->cast_account_id);
-
             if ($has_access_primary > 0) {
                 $status_account = AccountTransaction::ENTER;
             } else {
@@ -1732,14 +1643,17 @@ class CastAccountsCrudController extends CrudController
                     $status_account = AccountTransaction::OUT;
                 }
             }
+            $request->merge(['status' => $status_account]);
         }
+
+        $dto = TransactionSaveData::fromRequest($request);
 
         $this->crud->registerFieldEvents();
 
         DB::beginTransaction();
         try {
 
-            $storeTransaction = CustomVoid::storeTransaction($request, $status_account);
+            $storeTransaction = $this->service->storeTransaction($dto);
             $this->data['entry'] = $this->crud->entry = $storeTransaction;
 
             $this->crud->setSaveAction();
@@ -1787,206 +1701,41 @@ class CastAccountsCrudController extends CrudController
         ]);
     }
 
-    public function storeMoveTransfer()
+    public function storeMoveTransfer(\App\Http\Requests\CastAccount\TransferBalanceRequest $request)
     {
         $this->crud->hasAccessOrFail('create');
 
-        $castAccount = CastAccount::where('id', request()->cast_account_id)->first();
-        $balance = CustomHelper::total_balance_cast_account(request()->cast_account_id, CastAccount::CASH);
+        $dto = TransferBalanceData::fromRequest($request);
 
-        CRUD::setValidation([
-            'cast_account_id' => ['required', 'exists:cast_accounts,id'],
-            'to_account' => [
-                'required',
-                function ($attr, $value, $fail) use ($castAccount) {
-                    if (strpos($value, 'acc_') === 0) {
-                        $accountId = str_replace('acc_', '', $value);
-                        if (!\App\Models\Account::where('id', $accountId)->exists()) {
-                            $fail(trans('backpack::crud.cash_account.field_transfer.errors.account_not_found'));
-                        }
-                    } else {
-                        if (!CastAccount::where('id', $value)->exists()) {
-                            $fail(trans('backpack::crud.cash_account.field_transfer.errors.cast_account_not_found'));
-                        }
-                        if ($value == $castAccount->id) {
-                            $fail(trans('backpack::crud.cash_account.field_transfer.errors.to_account_is_same'));
-                        }
-                    }
-                }
-            ],
-            'nominal_transfer' => [
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) use ($balance) {
-                    if ($value > $balance) {
-                        $fail(trans("backpack::crud.cash_account.field_transfer.errors.nominal_transfer_to_more"));
-                    }
-                }
-            ],
-        ]);
-
-        $request = $this->crud->validateRequest();
         $this->crud->registerFieldEvents();
         DB::beginTransaction();
 
-        $date_transfer = ($request->has('date_move_balance')) ? $request->date_move_balance : Carbon::now()->format('Y-m-d');
-        // $date_transfer = Carbon::now();
-
         try {
-            $log_payment = [];
-            $old_saldo = $balance;
-            $new_saldo = $balance - $request->nominal_transfer;
-            $description = $request->description;
-
-            $isAccount = strpos($request->to_account, 'acc_') === 0;
-            $target_id = str_replace('acc_', '', $request->to_account);
-
-            $newTransaction = new AccountTransaction;
-            $newTransaction->cast_account_id = $request->cast_account_id;
-            if ($isAccount) {
-                $newTransaction->account_id = $target_id;
-            } else {
-                $newTransaction->cast_account_destination_id = $target_id;
-            }
-            $newTransaction->date_transaction = $date_transfer;
-            $newTransaction->nominal_transaction = $request->nominal_transfer;
-            $newTransaction->total_saldo_before = $old_saldo;
-            $newTransaction->total_saldo_after = $new_saldo;
-            $newTransaction->status = 'out';
-            $newTransaction->description = $description;
-            $newTransaction->save();
-
-            $castAccount->total_saldo = $new_saldo;
-            $castAccount->save();
-            $castAccount->new_saldo = 'Rp' . CustomHelper::formatRupiah($new_saldo);
-
-            $log_payment[] = [
-                'id' => $newTransaction->id,
-                'type' => AccountTransaction::class,
-                'reference_id' => $newTransaction->id,
-                'reference_type' => AccountTransaction::class,
-            ];
-
-            // kurangi saldo utama
-            $journal_balance = CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $castAccount->account_id,
-                'reference_id' => $newTransaction->id,
-                'reference_type' => AccountTransaction::class,
-                'description' => $description,
-                'date' => Carbon::parse($date_transfer),
-                'debit' => 0,
-                'credit' => $request->nominal_transfer,
-            ], [
-                'account_id' => $castAccount->account_id,
-                'reference_id' => $newTransaction->id,
-                'reference_type' => AccountTransaction::class,
-            ]);
-
-            $log_payment[] = [
-                'id' => $journal_balance->id,
-                'type' => JournalEntry::class,
-                'reference_id' => $newTransaction->id,
-                'reference_type' => AccountTransaction::class,
-            ];
-
-            if (!$isAccount) {
-                // other account
-                $otherAccount = CastAccount::where('id', $request->to_account)->first();
-                $other_old_saldo = $otherAccount->total_saldo;
-                $other_new_saldo = $other_old_saldo + $newTransaction->nominal_transaction;
-
-                $newTransaction_2 = new AccountTransaction;
-                $newTransaction_2->cast_account_id = $otherAccount->id;
-                $newTransaction_2->cast_account_destination_id = $newTransaction->cast_account_id;
-                $newTransaction_2->date_transaction = $date_transfer;
-                $newTransaction_2->nominal_transaction = $request->nominal_transfer;
-                $newTransaction_2->total_saldo_before = $other_old_saldo;
-                $newTransaction_2->total_saldo_after = $other_new_saldo;
-                $newTransaction_2->status = 'enter';
-                $newTransaction_2->description = $description;
-                $newTransaction_2->save();
-
-                $otherAccount->total_saldo = $other_new_saldo;
-                $otherAccount->save();
-                $otherAccount->new_saldo = 'Rp' . CustomHelper::formatRupiah($other_new_saldo);
-
-                $log_payment[] = [
-                    'id' => $newTransaction_2->id,
-                    'type' => AccountTransaction::class,
-                    'reference_id' => $newTransaction->id,
-                    'reference_type' => AccountTransaction::class,
-                ];
-            } else {
-                $otherAccount = Account::where('id', $target_id)->first();
-                $otherAccount->account_id = $target_id;
-                $newTransaction_2 = $newTransaction;
-            }
-
-
-            // tambah saldo di akun tujuan
-            $journal_destination = CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $otherAccount->account_id,
-                'reference_id' => $newTransaction_2->id,
-                'reference_type' => AccountTransaction::class,
-                'description' => $description,
-                'date' => Carbon::parse($date_transfer),
-                'debit' => $request->nominal_transfer,
-                'credit' => 0,
-            ], [
-                'account_id' => $otherAccount->account_id,
-                'reference_id' => $newTransaction_2->id,
-                'reference_type' => AccountTransaction::class,
-            ]);
-
-            $log_payment[] = [
-                'id' => $journal_destination->id,
-                'type' => JournalEntry::class,
-                'reference_id' => $newTransaction->id,
-                'reference_type' => AccountTransaction::class,
-            ];
-
-            if (sizeof($log_payment) > 0) {
-                $newLogPayment = new LogPayment;
-                $newLogPayment->reference_type = AccountTransaction::class;
-                $newLogPayment->reference_id = $newTransaction->id;
-                $newLogPayment->name = "CREATE_TRANSACTION";
-                $newLogPayment->snapshot = json_encode($log_payment);
-                $newLogPayment->save();
-                if (!$isAccount) {
-                    $newLogPayment = new LogPayment;
-                    $newLogPayment->reference_type = AccountTransaction::class;
-                    $newLogPayment->reference_id = $newTransaction_2->id;
-                    $newLogPayment->name = "CREATE_TRANSACTION";
-                    $newLogPayment->snapshot = json_encode($log_payment);
-                    $newLogPayment->save();
-                }
-            }
-
-
-            $item = $newTransaction_2;
+            $item = $this->service->transferBalance($dto);
             $this->data['entry'] = $this->crud->entry = $item;
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
 
             $this->crud->setSaveAction();
 
-            DB::commit();
             if ($request->ajax()) {
                 $events = [
                     'cast_account_store_success' => true,
-                    'card_cast_account' . $newTransaction->cast_account_id . '_create_success' => $castAccount,
+                    'card_cast_account' . $dto->cast_account_id . '_create_success' => $this->repository->findById($dto->cast_account_id),
                 ];
 
-                if (!$isAccount) {
-                    $events['card_cast_account' . $newTransaction_2->cast_account_id . '_create_success'] = $otherAccount;
+                if ($item->cast_account_destination_id) {
+                    $otherAccount = CastAccount::find($item->cast_account_destination_id);
+                    $events['card_cast_account' . $item->cast_account_destination_id . '_create_success'] = $otherAccount;
                 }
 
+                DB::commit();
                 return response()->json([
                     'success' => true,
                     'events' => $events
                 ]);
             }
-            return $this->crud->performSaveAction($newTransaction_2->getKey());
+            return $this->crud->performSaveAction($item->getKey());
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -2000,19 +1749,26 @@ class CastAccountsCrudController extends CrudController
     public function destroy($id)
     {
         $this->crud->hasAccessOrFail('delete');
+        DB::beginTransaction();
+        try{
 
-        $id = $this->crud->getCurrentEntryId() ?? $id;
+            $id = $this->crud->getCurrentEntryId() ?? $id;
+            $result = $this->service->deleteCastAccount((int)$id);
 
-        // delete journal entry
-        JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id) {
-            $q->where('cast_account_id', $id)
-                ->orWhere('cast_account_destination_id', $id);
-        })->orWhereHasMorph('reference', CastAccount::class, function ($q) use ($id) {
-            $q->where('id', $id);
-        })
-            ->delete();
+            DB::commit();
+            $event = [];
+            $event['cast_account_store_success'] = true;
 
-        return $this->crud->delete($id);
+            $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
+            $messages['events'] = $event;
+            return response()->json($messages);
+        }catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'type' => 'errors',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroyTransaction($id)
@@ -2020,16 +1776,9 @@ class CastAccountsCrudController extends CrudController
         $this->crud->hasAccessOrFail('delete');
         DB::beginTransaction();
         try {
+            $this->service->deleteTransaction((int)$id);
+
             $event = [];
-            $request = request();
-
-            $at = AccountTransaction::find($request->id);
-            JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id) {
-                $q->where('id', $id);
-            })->delete();
-
-            $at->delete();
-
             $event['cast_account_store_success'] = true;
 
             $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
@@ -2074,54 +1823,12 @@ class CastAccountsCrudController extends CrudController
     public function getTransactionDataTable()
     {
         $id = request()->_id;
-        $castAccount = CastAccount::where('id', $id)->first();
+        $castAccount = $this->repository->findById((int)$id);
         if (!$castAccount) {
             return response()->json(['data' => []]);
         }
 
-        $query = AccountTransaction::leftJoin('log_payments', function ($q) {
-            $q->on('account_transactions.id', 'log_payments.reference_id')
-                ->where('log_payments.reference_type', AccountTransaction::class);
-        })
-            ->where('account_transactions.cast_account_id', $id)
-            ->where('account_transactions.is_first', 0);
-
-        if (request()->has('filter_year') && request()->filter_year != 'all') {
-            $query->whereYear('account_transactions.date_transaction', request()->filter_year);
-        }
-
-        $query = $query->leftJoin('invoice_clients', function ($join) {
-            $join->on('account_transactions.reference_id', 'invoice_clients.id')
-                ->where('account_transactions.reference_type', 'App\\Models\\InvoiceClient');
-        });
-
-        $query = $query->leftJoin('vouchers', function ($join) {
-            $join->on('account_transactions.reference_id', 'vouchers.id')
-                ->where('account_transactions.reference_type', 'App\\Models\\Voucher');
-        });
-
-        $query = $query->leftJoin('invoice_clients as voucher_invoice', function ($join) {
-            $join->on('vouchers.client_po_id', 'voucher_invoice.client_po_id');
-        });
-
-        $query = $query->leftJoin('accounts as voucher_account', 'vouchers.account_id', '=', 'voucher_account.id');
-
-        $query = $query->leftJoin('cast_accounts as trans_cast_account', 'account_transactions.cast_account_id', '=', 'trans_cast_account.id');
-        $query = $query->leftJoin('accounts as trans_account', 'trans_cast_account.account_id', '=', 'trans_account.id');
-
-        $query->select([
-            'account_transactions.*',
-            'log_payments.id as log_payment_id',
-            'invoice_clients.invoice_number as invoice_number',
-            'invoice_clients.kdp as invoice_kdp',
-            'vouchers.work_code as voucher_kdp',
-            'vouchers.payment_description as voucher_description',
-            'voucher_account.code as voucher_account_code',
-            'voucher_account.name as voucher_account_name',
-            'trans_account.code as trans_account_code',
-            'trans_account.name as trans_account_name',
-            'voucher_invoice.invoice_number as indirect_invoice_number'
-        ]);
+        $query = $this->repository->getTransactionQuery((int)$id, request()->filter_year);
 
         // Access Check
         $has_access_primary = $this->accessAccount($id);

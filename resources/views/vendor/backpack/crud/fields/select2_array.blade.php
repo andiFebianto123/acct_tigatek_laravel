@@ -64,15 +64,18 @@
     </style>
     <script>
         async function bpFieldInitSelect2(element){
+            var formCrud = "{{ $crud->getActionMethod() }}";
             await new Promise((resolve) => {
                 setTimeout(() => {
                     resolve(1);
                 }, 100);
             })
+            var form = (formCrud == 'create') ? '#modalCreate' : '#modalEdit';
+
             element.select2({
                 // theme: 'bootstrap-5',
                 width: '100%',
-                dropdownParent: $(".modal.show .modal-body")
+                dropdownParent: $(form+" .modal-body")
             });
         }
     </script>

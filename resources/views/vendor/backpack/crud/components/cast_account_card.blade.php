@@ -328,13 +328,30 @@
                                     // trigger one or more bubble notifications
                                     Object.entries(result).forEach(function(entry, index) {
                                         var type = entry[0];
-                                        entry[1].forEach(function(message, i) {
-                                            new Noty({
-                                            type: type,
-                                            text: message
-                                            }).show();
-                                        });
+                                        // entry[1].forEach(function(message, i) {
+                                        //     new Noty({
+                                        //     type: type,
+                                        //     text: message
+                                        //     }).show();
+                                        // });
+                                        if(type != 'events'){
+                                            entry[1].forEach(function(message, i) {
+                                                swal({
+                                                    title: "Success",
+                                                    text: message,
+                                                    icon: "success",
+                                                    timer: 4000,
+                                                    buttons: false,
+                                                });
+
+                                            });
+                                        }
                                     });
+                                    if(result.events){
+                                        forEachFlexible(result.events, function(eventname, data){
+                                            eventEmitter.emit(eventname, data);
+                                        });
+                                    }
                                     } else {// Show an error alert
                                         swal({
                                         title: "{!! trans('backpack::crud.delete_confirmation_not_title') !!}",

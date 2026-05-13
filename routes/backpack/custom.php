@@ -128,7 +128,7 @@ Route::group([
         Route::get('cast-accounts-show', [CastAccountsCrudController::class, 'showTransaction']);
         Route::get('cast-accounts-datatable', [CastAccountsCrudController::class, 'getTransactionDataTable']);
         Route::get('cast-accounts-select-to-account', [CastAccountsCrudController::class, 'getSelectToAccount']);
-        Route::post('cast-accounts-select-to-invoice', [CastAccountsCrudController::class, 'select2Invoice']);
+        Route::match(['post', 'put'], 'cast-accounts-select-to-invoice', [CastAccountsCrudController::class, 'select2Invoice']);
         Route::get('cast-accounts/get-invoice', [CastAccountsCrudController::class, 'get_invoice_ajax']);
         Route::post('cast-accounts-move-transaction', [CastAccountsCrudController::class, 'storeMoveTransfer']);
         Route::delete('cast-accounts/delete-transaction/{id}', [CastAccountsCrudController::class, 'destroyTransaction']);
