@@ -10,8 +10,13 @@ return [
     | The following language lines are used by the CRUD interface.
     | You are free to change them to anything
     | you want to customize your views to better match your application.
-    |
     */
+    'payment' => [
+        'title' => 'Payment',
+        'payment' => 'Pay',
+    ],
+    'loading' => 'Loading...',
+    'please_wait' => 'Please wait...',
 
     // Forms
     'save_action_save_and_new' => 'Save and new item',

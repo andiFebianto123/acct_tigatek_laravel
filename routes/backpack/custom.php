@@ -115,6 +115,7 @@ Route::group([
     Route::match(['get', 'post', 'put'], 'invoice-client/get-client-po', [InvoiceClientCrudController::class, 'selectedClientPo']);
     Route::get('invoice-client/total', [InvoiceClientCrudController::class, 'total_price']);
     Route::delete('invoice-client/void-payment/{id}', [InvoiceClientCrudController::class, 'voidPayment']);
+    Route::post('invoice-client/payment', [InvoiceClientCrudController::class, 'storePayment']);
     Route::crud('invoice-client', 'InvoiceClientCrudController');
 
     Route::prefix('cash-flow')->group(function () {

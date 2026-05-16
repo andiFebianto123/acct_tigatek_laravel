@@ -10,8 +10,13 @@ return [
     | The following language lines are used by the CRUD interface.
     | You are free to change them to anything
     | you want to customize your views to better match your application.
-    |
     */
+    'payment' => [
+        'title' => 'Pembayaran',
+        'payment' => 'Bayar',
+    ],
+    'loading' => 'Memuat...',
+    'please_wait' => 'Mohon tunggu...',
 
     // Forms
     'save_action_save_and_new' => 'Simpan dan buat baru',
@@ -761,6 +766,7 @@ return [
                 'label' => 'Wajib Pungut',
                 'placeholder' => '- PILIH WAJIB PUNGUT -',
             ],
+            'invoice_payment_success' => 'Pembayaran invoice berhasil disimpan.',
         ],
     ],
     'cash_account' => [

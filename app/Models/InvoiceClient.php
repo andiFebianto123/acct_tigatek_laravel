@@ -62,6 +62,11 @@ class InvoiceClient extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    function account_source()
+    {
+        return $this->belongsTo(CastAccount::class, 'account_source_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES
@@ -73,6 +78,12 @@ class InvoiceClient extends Model
     | ACCESSORS
     |--------------------------------------------------------------------------
     */
+
+    public function getAccountSourceLabelAttribute()
+    {
+        if (!$this->account_source) return '-';
+        return '[' . $this->account_source->no_account . '] - ' . $this->account_source->name;
+    }
 
     /*
     |--------------------------------------------------------------------------

@@ -11,6 +11,7 @@ use App\Http\Exports\ExportExcel;
 use App\Http\Helpers\CustomHelper;
 use App\Http\Helpers\CustomVoid;
 use App\Http\Requests\InvoiceClientRequest;
+use App\Models\CastAccount;
 use App\Models\ClientPo;
 use App\Models\InvoiceClient;
 use App\Models\InvoiceClientDetail;
@@ -21,6 +22,7 @@ use App\Services\Invoice\InvoiceClientService;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use App\Models\AccountTransaction;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -392,6 +394,7 @@ class InvoiceClientCrudController extends CrudController
         CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
         CRUD::addButtonFromView('line', 'show', 'show', 'end');
+        CRUD::addButtonFromView('line', 'payment_invoice', 'payment_invoice', 'end');
         CRUD::addButtonFromView('line', 'update', 'update', 'end');
         CRUD::addButtonFromView('line', 'print', 'print', 'end');
         CRUD::addButtonFromView('line', 'delete', 'delete', 'end');
@@ -742,6 +745,11 @@ class InvoiceClientCrudController extends CrudController
      */
     protected function setupCreateOperation()
     {
+        if (request('type') == 'payment') {
+            $id = request('id');
+            return $this->setupPaymentOperation($id);
+        }
+
         CRUD::setValidation(InvoiceClientRequest::class);
         $settings = Setting::first();
         $inv_prefix_value = [];
@@ -1014,7 +1022,6 @@ class InvoiceClientCrudController extends CrudController
             ],
         ]);
 
-
         CRUD::addField([
             'name'        => 'status',
             'label'       => trans('backpack::crud.invoice_client.field.status.label'),
@@ -1027,17 +1034,38 @@ class InvoiceClientCrudController extends CrudController
             'attributes' => [
                 'disabled' => true,
             ]
-            // 'allows_multiple' => true, // OPTIONAL; needs you to cast this to array in your model;
         ]);
 
+        $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
+
+        $cash_account_options = [
+            '' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+        ];
+        foreach ($cash_accounts as $key => $value) {
+            $cash_account_options[$value->id] = $value->name;
+        }
+
         CRUD::addField([
-            'name' => 'space_2',
-            'label' => '',
-            'type' => 'hidden',
+            'name' => 'account_source_id',
+            'label' => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type' => 'select2_array',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
+            'options' => $cash_account_options,
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+            ]
         ]);
+
+        // CRUD::addField([
+        //     'name' => 'space_2',
+        //     'label' => '',
+        //     'type' => 'hidden',
+        //     'wrapper'   => [
+        //         'class' => 'form-group col-md-6',
+        //     ],
+        // ]);
 
         CRUD::addField([
             'name' => 'nominal_information',
@@ -1464,6 +1492,15 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'account_source_label',
+            'label'       => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'        => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'nominal_information',
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'type' => 'text',
@@ -1677,6 +1714,12 @@ class InvoiceClientCrudController extends CrudController
         );
 
         CRUD::column([
+            'label'     => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'      => 'wrap_text',
+            'name'      => 'account_source_label',
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'name' => 'price_total',
             'type' => 'closure',
@@ -1804,5 +1847,307 @@ class InvoiceClientCrudController extends CrudController
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function storePayment(\App\Http\Requests\InvoicePaymentRequest $request)
+    {
+        $this->crud->hasAccessOrFail('update');
+
+        DB::beginTransaction();
+        try {
+            $status_account = $request->status;
+            $storeTransaction = CustomVoid::storeTransaction($request, $status_account);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'result' => [],
+                'message' => 'Pembayaran berhasil disimpan',
+                'events' => [
+                    'crudTable-invoice_payment_success' => true,
+                    'crudTable-filter_invoice_plugin_load' => true,
+                    'crudTable-invoice_create_success' => true,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    protected function setupPaymentOperation($id)
+    {
+        $invoice = InvoiceClient::findOrFail($id);
+        $settings = Setting::first();
+
+        // Change model for this operation
+        CRUD::setModel(AccountTransaction::class);
+        $this->data['invoice'] = $invoice;
+        $this->data['entry'] = $invoice;
+        
+        // Define fields based on CastAccountsCrudController::createTransactionOperation
+        CRUD::addField([
+            'name' => 'cast_account_id',
+            'type' => 'hidden',
+            'value' => $invoice->account_source_id,
+        ]);
+
+        $cast_account = CastAccount::find($invoice->account_source_id);
+        if ($cast_account) {
+            CRUD::addField([
+                'name' => 'account_info',
+                'type' => 'custom_html',
+                'value' => '
+                    <div class="alert alert-info" style="margin-bottom: 20px;">
+                        <h5 style="margin-top: 0; margin-bottom: 10px;">
+                            <i class="la la-bank"></i> ' . trans('backpack::crud.cash_account.account_info.title') . '
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>' . trans('backpack::crud.cash_account.account_info.account_name') . ':</strong><br>
+                                ' . e($cast_account->name) . '
+                            </div>
+                            <div class="col-md-4">
+                                <strong>' . trans('backpack::crud.cash_account.account_info.bank_name') . ':</strong><br>
+                                ' . e($cast_account->bank_name) . '
+                            </div>
+                            <div class="col-md-4">
+                                <strong>' . trans('backpack::crud.cash_account.account_info.account_number') . ':</strong><br>
+                                ' . e($cast_account->no_account) . '
+                            </div>
+                        </div>
+                    </div>
+                ',
+            ]);
+        }
+
+        if (backpack_user()->hasRole('Super Admin')) {
+            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
+            CRUD::addField([
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+                'type'      => 'select2_array',
+                'name'      => 'company_id',
+                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
+                'default'   => $invoice->company_id,
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
+            ]);
+        }
+
+        CRUD::addField([
+            'name'  => 'date_transaction',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.cash_account.field_transaction.date_transaction.label'),
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
+            ],
+            'default' => Carbon::now()->format('Y-m-d'),
+        ]);
+
+        CRUD::addField([
+            'name' => 'nominal_transaction',
+            'label' =>  trans('backpack::crud.cash_account.field_transaction.nominal_transaction.label'),
+            'type' => 'mask',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'default' => $invoice->price_total_exclude_ppn,
+        ]);
+
+        CRUD::addField([
+            'name' => 'withholding_agent_status',
+            'label' => trans('backpack::crud.cash_account.field_transaction.withholding_agent_status.label'),
+            'type' => 'text',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'readonly' => true,
+            ],
+            'default' => $invoice->withholding_agent,
+        ]);
+
+        CRUD::addField([
+            'name' => 'tax_ppn_nominal',
+            'label' => trans('backpack::crud.cash_account.field_transaction.tax_ppn_nominal.label'),
+            'type' => 'text',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'readonly' => true,
+            ],
+            'default' => $invoice->price_total_exclude_ppn * ($invoice->tax_ppn / 100),
+        ]);
+
+        CRUD::addField([
+            'name' => 'pph_nominal',
+            'label' => trans('backpack::crud.cash_account.field_transaction.pph_nominal.label'),
+            'type' => 'text',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'readonly' => true,
+            ],
+            'default' => $invoice->discount_pph,
+        ]);
+
+        CRUD::addField([
+            'name' => 'total_nominal_transfer',
+            'label' => trans('backpack::crud.cash_account.field_transaction.total_nominal_transfer.label'),
+            'type' => 'text',
+            'mask' => '000.000.000.000.000.000',
+            'mask_options' => [
+                'reverse' => true
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'readonly' => true,
+            ],
+            'default' => $invoice->price_total,
+        ]);
+
+        CRUD::addField([
+            'name'        => 'status',
+            'label'       => trans('backpack::crud.cash_account.field_transaction.status.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'enter' => trans('backpack::crud.cash_account.field_transaction.status.enter'),
+                'out' => trans('backpack::crud.cash_account.field_transaction.status.out')
+            ],
+            'default'     => 'enter',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'description',
+            'label' => trans('backpack::crud.cash_account.field_transaction.description.label'),
+            'type' => 'textarea',
+            'default' => 'Pembayaran Invoice ' . $invoice->invoice_number,
+        ]);
+
+        CRUD::addField([
+            'label'       => trans('backpack::crud.cash_account.field_transaction.kdp.label'),
+            'type'        => "select2_ajax_custom",
+            'name'        => 'kdp',
+            'model'       => 'App\Models\ClientPo',
+            'attribute'   => "work_code",
+            'data_source' => backpack_url('cash-flow/cast-accounts-select-to-invoice?type=kdp'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'default' => $invoice->id,
+            'attributes' => [
+                'readonly' => true,
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'space_1',
+            'type' => 'hidden',
+            'wrapper' => [
+                'class' => 'form-group col-md-6'
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'job_name',
+            'label' => trans('backpack::crud.cash_account.field_transaction.job_name.label'),
+            'type' => 'text',
+            'default' => $invoice->client_po->job_name,
+        ]);
+
+        CRUD::addField([
+            'label'       => trans('backpack::crud.cash_account.field_transaction.account_id.label'),
+            'type'        => "select2_ajax_custom",
+            'name'        => 'account_id',
+            'entity'      => 'account',
+            'model'       => 'App\Models\Account',
+            'attribute'   => "name",
+            'data_source' => backpack_url('account/select2-account'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'label' => trans('backpack::crud.cash_account.field_transaction.no_invoice.label'),
+            'type'        => "select2_ajax_custom",
+            'name'        => 'no_invoice',
+            'model'       => 'App\Models\ClientPo',
+            'attribute'   => "work_code",
+            'data_source' => backpack_url('cash-flow/cast-accounts-select-to-invoice?type=invoice'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'default' => $invoice->id,
+            'attributes' => [
+                'readonly' => true,
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'kdp',
+            'type' => 'hidden',
+            'value' => $invoice->id,
+        ]);
+
+        CRUD::addField([
+            'name' => 'no_invoice',
+            'type' => 'hidden',
+            'value' => $invoice->id,
+        ]);
+
+        CRUD::addField([
+            'name' => 'cast_account_id',
+            'type' => 'hidden',
+            'value' => $invoice->account_source_id,
+        ]);
+
+        // CRUD::addField([
+        //     'name' => 'company_id',
+        //     'type' => 'hidden',
+        //     'value' => $invoice->company_id,
+        // ]);
+
+        CRUD::addField([
+            'name' => 'logic_invoice_payment',
+            'type' => 'logic-account-transaction',
+        ]);
+
+        $this->crud->setRoute(config('backpack.base.route_prefix') . '/invoice-client/payment');
+        
+        $this->data['crud'] = $this->crud;
+        $this->data['saveAction'] = $this->crud->getSaveAction();
+        $this->data['title'] = trans('backpack::crud.payment.title');
     }
 }
