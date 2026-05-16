@@ -99,6 +99,7 @@ Route::group([
         Route::get('po/total', [ClientPoCrudController::class, 'countAllPPn']);
         Route::get('po/get-quotations', [ClientPoCrudController::class, 'getQuotations']);
         Route::get('po/get-quotation-details', [ClientPoCrudController::class, 'getQuotationDetails']);
+        Route::get('po/{id}/print', [ClientPoCrudController::class, 'printPo']);
 
         Route::crud('quotation', 'ClientQuotationCrudController');
         // Route::match(['get', 'post'], 'quotation/select2-client', 'ClientQuotationCrudController@select2Client');

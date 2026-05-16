@@ -94,6 +94,8 @@ class ClientPoCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
+
+        CRUD::addButtonFromView('line', 'print_po_client', 'print_po_client', 'beginning');
     }
 
     public function index()
@@ -2039,5 +2041,19 @@ class ClientPoCrudController extends CrudController
             'crudTable-client_po_create_success' => true,
         ];
         return response()->json($messages);
+    }
+
+    public function printPo($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+        $entry = $this->crud->getEntry($id);
+        $settings = Setting::first();
+
+        $pdf = Pdf::loadView('exports.client-po-pdf', [
+            'entry' => $entry,
+            'settings' => $settings,
+        ]);
+
+        return $pdf->stream('PO-' . ($entry->po_number ?? $entry->id) . '.pdf');
     }
 }
