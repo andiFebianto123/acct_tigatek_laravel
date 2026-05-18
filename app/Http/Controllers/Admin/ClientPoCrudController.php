@@ -1982,6 +1982,7 @@ class ClientPoCrudController extends CrudController
         $dto = QuotationSelectionRequestData::fromRequest($request);
         $result = $this->quotationRepository->getQuotationsForSelection($dto);
 
+        // return json
         return response()->json([
             'draw' => $dto->draw,
             'recordsTotal' => $result['total'],
