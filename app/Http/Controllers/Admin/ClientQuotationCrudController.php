@@ -92,6 +92,8 @@ class ClientQuotationCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
+
+        CRUD::addButtonFromView('line', 'print_quotation_client', 'print_quotation_client', 'beginning');
     }
 
     public function index()
@@ -1310,5 +1312,19 @@ class ClientQuotationCrudController extends CrudController
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
+    }
+
+    public function printQuotation($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+        $entry = $this->crud->getEntry($id);
+        $settings = Setting::first();
+
+        $pdf = Pdf::loadView('exports.client-quotation-pdf', [
+            'entry' => $entry,
+            'settings' => $settings,
+        ]);
+
+        return $pdf->stream('Quotation-' . ($entry->work_code ?? $entry->id) . '.pdf');
     }
 }

@@ -47,10 +47,12 @@ class InvoiceClientRequest extends FormRequest
             $items_total_price = 0;
             if ($items != null) {
                 foreach ($items as $item) {
-                    $items_total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-                    if ($items_total_price > 0) {
-                        $status_empty = false;
-                    }
+                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                    $qty = (int) ($item['qty'] ?? 1);
+                    $items_total_price += ($price * $qty);
+                }
+                if ($items_total_price > 0) {
+                    $status_empty = false;
                 }
             }
             $this->merge([
@@ -66,7 +68,9 @@ class InvoiceClientRequest extends FormRequest
                         $price_total = $client->job_value;
                         $items_total_price = 0;
                         foreach ($items as $item) {
-                            $items_total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
+                            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                            $qty = (int) ($item['qty'] ?? 1);
+                            $items_total_price += ($price * $qty);
                         }
                         if ($price_total != $items_total_price) {
                             $fail(trans('backpack::crud.invoice_client.field.item.errors.total_price'));
@@ -82,10 +86,12 @@ class InvoiceClientRequest extends FormRequest
             $items_total_price = 0;
             if ($items != null) {
                 foreach ($items as $item) {
-                    $items_total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
-                    if ($items_total_price > 0) {
-                        $status_empty = false;
-                    }
+                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                    $qty = (int) ($item['qty'] ?? 1);
+                    $items_total_price += ($price * $qty);
+                }
+                if ($items_total_price > 0) {
+                    $status_empty = false;
                 }
             }
             $this->merge([
@@ -102,7 +108,9 @@ class InvoiceClientRequest extends FormRequest
 
                         $items_total_price = 0;
                         foreach ($items as $item) {
-                            $items_total_price += (int) ($item['price'] != '' && $item['price'] != null) ? $item['price'] : 0;
+                            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                            $qty = (int) ($item['qty'] ?? 1);
+                            $items_total_price += ($price * $qty);
                         }
 
                         if ($price_total != $items_total_price) {

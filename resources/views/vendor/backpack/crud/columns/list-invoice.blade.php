@@ -28,7 +28,9 @@
             <tr>
                 <th>No</th>
                 <th>Nama</th>
+                <th>Qty</th>
                 <th>Harga</th>
+                <th>Total</th>
             </tr>
         </thead>
         <tbody>
@@ -36,11 +38,14 @@
                 @php
                     $row_number++;
                     $price_str = \App\Http\Helpers\CustomHelper::formatRupiahWithCurrency($item->price);
+                    $total_price_str = \App\Http\Helpers\CustomHelper::formatRupiahWithCurrency($item->price * $item->qty);
                 @endphp
                 <tr>
                     <td>{{$row_number}}</td>
                     <td>{{$item->name}}</td>
+                    <td>{{$item->qty}}</td>
                     <td>{{$price_str}}</td>
+                    <td>{{$total_price_str}}</td>
                 </tr>
             @endforeach
         </tbody>

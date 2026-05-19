@@ -112,9 +112,15 @@
                         var total_price = 0;
                          $(form+' input[data-alt="price_masked"]').each(function(){
                             var price_origin_field = $(this).parent().next();
-                            var price_origin = price_origin_field.val();
-                            total_price += Number(price_origin);
+                            var price_origin = Number(price_origin_field.val() || 0);
+                            
+                            // Find sibling qty input inside the same repeatable row
+                            var row = $(this).closest('.repeatable-group, .row');
+                            var qty = Number(row.find('input[data-repeatable-input-name="qty"]').val() || 1);
+                            
+                            total_price += (price_origin * qty);
                         });
+                        console.log(total_price);
                         var price_between = instance.total_price - total_price;
                         var price_between_rupiah = price_between.toLocaleString('id-ID');
                         $(form+' input[name="nominal_information"]').val(price_between_rupiah);
@@ -131,8 +137,8 @@
                     if(form == '#form-edit'){
                         countTotalPrice();
                         setTimeout(() => {
-                            $(form+' input[data-alt="price_masked"]').each(function(){
-                                $(this).off('keyup').on('keyup', function(){
+                            $(form+' input[data-alt="price_masked"], ' + form + ' input[data-repeatable-input-name="qty"]').each(function(){
+                                $(this).off('keyup change').on('keyup change', function(){
                                     countTotalPrice();
                                 });
                             });
@@ -145,8 +151,8 @@
 
                     $(form+' .add-repeatable-element-button').on('click', function(){
                         setTimeout(() => {
-                            $(form+' input[data-alt="price_masked"]').each(function(){
-                                $(this).off('keyup').on('keyup', function(){
+                            $(form+' input[data-alt="price_masked"], ' + form + ' input[data-repeatable-input-name="qty"]').each(function(){
+                                $(this).off('keyup change').on('keyup change', function(){
                                     countTotalPrice();
                                 });
                             });

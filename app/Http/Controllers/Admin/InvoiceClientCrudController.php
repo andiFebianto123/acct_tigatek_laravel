@@ -1120,7 +1120,19 @@ class InvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-6',
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 1,
                         ]
                     ],
                     [
@@ -1128,7 +1140,7 @@ class InvoiceClientCrudController extends CrudController
                         'type' => 'mask_repeat',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-6',
+                            'class' => 'form-group col-md-5',
                         ],
                         'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
                         'mask' => '000.000.000.000.000.000',
@@ -1150,7 +1162,19 @@ class InvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-6',
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 1,
                         ]
                     ],
                     [
@@ -1163,7 +1187,7 @@ class InvoiceClientCrudController extends CrudController
                         ],
                         'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-6'
+                            'class' => 'form-group col-md-5'
                         ],
                     ]
                 ]
@@ -1821,9 +1845,8 @@ class InvoiceClientCrudController extends CrudController
         $data['header'] = InvoiceClient::where('id', $id)->first();
         $data['details'] = InvoiceClientDetail::where('invoice_client_id', $id)->get();
 
-        $pdf = Pdf::loadView('exports.invoice-client-pdf-new', $data);
-        return $pdf->stream('invoice.pdf');
-        return view('exports.invoice-client-pdf-new');
+        $pdf = Pdf::loadView('exports.invoice-client-single-pdf', $data);
+        return $pdf->stream('Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf');
     }
 
     public function voidPayment($id)

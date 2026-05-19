@@ -89,6 +89,8 @@ class PurchaseOrderCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
+
+        CRUD::addButtonFromView('line', 'print_po_subkon', 'print_po_subkon', 'beginning');
     }
 
     public function setupTabsCrud($nameTabs)
@@ -1395,5 +1397,19 @@ class PurchaseOrderCrudController extends CrudController
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function printPo($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+        $entry = $this->crud->getEntry($id);
+        $settings = Setting::first();
+
+        $pdf = Pdf::loadView('exports.vendor-po-single-pdf', [
+            'entry' => $entry,
+            'settings' => $settings,
+        ]);
+
+        return $pdf->stream('PO-Subkon-' . ($entry->po_number ?? $entry->id) . '.pdf');
     }
 }

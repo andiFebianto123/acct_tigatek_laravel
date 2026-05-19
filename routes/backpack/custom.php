@@ -78,6 +78,7 @@ Route::group([
         Route::post('select2-subkon-id', 'PurchaseOrderCrudController@select2SubkonId')->name('select2-subkon-id');
         Route::crud('purchase-order', 'PurchaseOrderCrudController');
         Route::get('purchase-order/total', [PurchaseOrderCrudController::class, 'total_price']);
+        Route::get('purchase-order/{id}/print', [PurchaseOrderCrudController::class, 'printPo']);
         Route::crud('purchase-order-tab', 'PurchaseOrderTabController');
         Route::crud('spk-trans', 'SpkCrudController');
         Route::get('spk-trans/total', [SpkCrudController::class, 'total_price']);
@@ -108,6 +109,7 @@ Route::group([
         Route::post('quotation/export-excel', [ClientQuotationCrudController::class, 'exportExcel']);
         Route::get('quotation/total', [ClientQuotationCrudController::class, 'countAllPPn']);
         Route::get('quotation/total-without-po', 'ClientQuotationCrudController@totalWithoutPo');
+        Route::get('quotation/{id}/print', [ClientQuotationCrudController::class, 'printQuotation']);
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);

@@ -138,6 +138,7 @@ class InvoiceClientService
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
                 $invoice_item->name = $item['name'] ?? '';
+                $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->save();
             }
@@ -149,7 +150,8 @@ class InvoiceClientService
         $total = $dto->nominal_include_ppn;
         foreach ($dto->invoice_client_details as $item) {
             $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
-            $total += $price;
+            $qty = (int) ($item['qty'] ?? 1);
+            $total += ($price * $qty);
         }
         return $total;
     }
