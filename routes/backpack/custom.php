@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\VoucherCrudController;
 use App\Http\Controllers\Admin\ClientPoCrudController;
 use App\Http\Controllers\Admin\QuotationCrudController;
 use App\Http\Controllers\Admin\ClientQuotationCrudController;
+use App\Http\Controllers\Admin\DeliveryNoteCrudController;
+use App\Http\Controllers\Admin\BastCrudController;
 use App\Http\Controllers\Admin\AccountUserCrudController;
 use App\Http\Controllers\Admin\ProjectListCrudController;
 use App\Http\Controllers\Admin\BalanceSheetCrudController;
@@ -101,6 +103,18 @@ Route::group([
         Route::get('po/get-quotations', [ClientPoCrudController::class, 'getQuotations']);
         Route::get('po/get-quotation-details', [ClientPoCrudController::class, 'getQuotationDetails']);
         Route::get('po/{id}/print', [ClientPoCrudController::class, 'printPo']);
+
+        Route::match(['get', 'post', 'put'], 'delivery-note/select2-po', [DeliveryNoteCrudController::class, 'select2ClientPo']);
+        Route::match(['get', 'post', 'put'], 'delivery-note/client-address', [DeliveryNoteCrudController::class, 'getClientAddress']);
+        Route::crud('delivery-note', 'DeliveryNoteCrudController');
+        Route::post('delivery-note/export-pdf', [DeliveryNoteCrudController::class, 'exportPdf']);
+        Route::post('delivery-note/export-excel', [DeliveryNoteCrudController::class, 'exportExcel']);
+
+        Route::match(['get', 'post', 'put'], 'bast/select2-po', [BastCrudController::class, 'select2ClientPo']);
+        Route::match(['get', 'post', 'put'], 'bast/client-address', [BastCrudController::class, 'getClientAddress']);
+        Route::crud('bast', 'BastCrudController');
+        Route::post('bast/export-pdf', [BastCrudController::class, 'exportPdf']);
+        Route::post('bast/export-excel', [BastCrudController::class, 'exportExcel']);
 
         Route::crud('quotation', 'ClientQuotationCrudController');
         // Route::match(['get', 'post'], 'quotation/select2-client', 'ClientQuotationCrudController@select2Client');

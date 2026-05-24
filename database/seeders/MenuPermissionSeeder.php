@@ -45,6 +45,8 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX PENGATURAN SISTEM',
             'MENU INDEX PENGATURAN AKUN',
             'MENU INDEX MONITORING TRACKER',
+            'MENU INDEX CLIENT SURAT JALAN',
+            'MENU INDEX CLIENT BAST',
         ];
 
         foreach ($permissions as $permission) {

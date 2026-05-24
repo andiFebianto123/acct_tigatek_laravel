@@ -145,7 +145,6 @@
                                 }
                             });
                         }
-                        console.log(query, 'andi');
                     }
 
                     return query;

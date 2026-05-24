@@ -210,6 +210,8 @@ return [
 
     'menu' => [
         'tracker' => 'Monitoring Tracker',
+        'delivery_note' => 'Surat Jalan',
+        'bast' => 'BAST',
     ],
     'monitoring_tracker' => [
         'tab' => [
@@ -355,6 +357,101 @@ return [
                 'label' => 'Select from Quotation (Client Quotation)',
             ],
             'quotation_selection_info' => 'Select one or more quotations below to auto-fill PO data.',
+        ],
+    ],
+    'delivery_note' => [
+        'title_header' => 'Delivery Note',
+        'column' => [
+            'number' => 'Number',
+            'date' => 'Date',
+            'client_id' => 'Client Name',
+            'description' => 'Description',
+            'qty' => 'Qty',
+            'information' => 'Keterangan',
+        ],
+        'field' => [
+            'client_po_id' => [
+                'label' => 'No. PO',
+                'placeholder' => '- SELECT PO NO -',
+            ],
+            'client_id' => [
+                'label' => 'Kirim Ke',
+                'placeholder' => '- SELECT CLIENT -',
+            ],
+            'address' => [
+                'label' => 'Address',
+                'placeholder' => 'Enter shipping address',
+            ],
+            'date' => [
+                'label' => 'Date',
+            ],
+            'number' => [
+                'label' => 'No. Surat Jalan',
+                'placeholder' => 'Enter delivery note number',
+            ],
+            'description' => [
+                'label' => 'Item',
+                'placeholder' => 'Enter item description',
+            ],
+            'qty' => [
+                'label' => 'Qty',
+            ],
+            'information' => [
+                'label' => 'Keterangan',
+                'placeholder' => 'Additional notes',
+            ],
+        ],
+    ],
+    'bast' => [
+        'title_header' => 'BAST',
+        'column' => [
+            'number' => 'Number',
+            'date' => 'Date',
+            'client_id' => 'Client Name',
+            'first_party' => 'Penyerah',
+            'description' => 'Description',
+            'qty' => 'Qty',
+            'information' => 'Keterangan',
+        ],
+        'field' => [
+            'client_po_id' => [
+                'label' => 'No. PO',
+                'placeholder' => '- SELECT PO NO -',
+            ],
+            'first_party' => [
+                'label' => 'First Party',
+                'placeholder' => 'Enter first party name',
+            ],
+            'first_party_address' => [
+                'label' => 'First Party Address',
+                'placeholder' => 'Enter first party address',
+            ],
+            'client_id' => [
+                'label' => 'Second Party',
+                'placeholder' => '- SELECT CLIENT -',
+            ],
+            'address' => [
+                'label' => 'Second Party Address',
+                'placeholder' => 'Enter second party address',
+            ],
+            'date' => [
+                'label' => 'Date',
+            ],
+            'number' => [
+                'label' => 'No. BAST',
+                'placeholder' => 'Enter BAST number',
+            ],
+            'description' => [
+                'label' => 'Item',
+                'placeholder' => 'Enter item description',
+            ],
+            'qty' => [
+                'label' => 'Qty',
+            ],
+            'information' => [
+                'label' => 'Keterangan',
+                'placeholder' => 'Additional notes',
+            ],
         ],
     ],
     'invoice_client' => [

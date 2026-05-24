@@ -69,6 +69,7 @@
             'MENU INDEX CLIENT DAFTAR CLIENT',
             'MENU INDEX CLIENT PO',
             'MENU INDEX CLIENT QUOTATION',
+            'MENU INDEX CLIENT SURAT JALAN',
         ])->count() > 0)
 <x-menu-group-custom
     title="{{trans('backpack::crud.menu.client')}}"
@@ -82,6 +83,12 @@
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.client_po')}}" icon="la la-circle-notch" :link="backpack_url('client/po')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT SURAT JALAN'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.delivery_note')}}" icon="la la-circle-notch" :link="backpack_url('client/delivery-note')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT BAST'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.bast')}}" icon="la la-circle-notch" :link="backpack_url('client/bast')" />
     @endif
 </x-menu-group-custom>
 @endif

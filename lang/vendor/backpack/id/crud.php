@@ -253,6 +253,8 @@ return [
         'setting_system' => 'Pengaturan Sistem',
         'voucher_payment_plan' => 'Rencana Pembayaran',
         'tracker' => 'Monitoring Tracker',
+        'delivery_note' => 'Surat Jalan',
+        'bast' => 'BAST',
     ],
     'monitoring_tracker' => [
         'tab' => [
@@ -531,6 +533,101 @@ return [
         ],
         'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
+    ],
+    'delivery_note' => [
+        'title_header' => 'Surat Jalan',
+        'column' => [
+            'number' => 'Nomer',
+            'date' => 'Tanggal',
+            'client_id' => 'Nama Client',
+            'description' => 'Description',
+            'qty' => 'Qty',
+            'information' => 'Keterangan',
+        ],
+        'field' => [
+            'client_po_id' => [
+                'label' => 'No. PO',
+                'placeholder' => '- PILIH NO. PO',
+            ],
+            'client_id' => [
+                'label' => 'Kirim Ke',
+                'placeholder' => '- PILIH CLIENT',
+            ],
+            'address' => [
+                'label' => 'Alamat',
+                'placeholder' => 'Masukkan alamat pengiriman',
+            ],
+            'date' => [
+                'label' => 'Tanggal',
+            ],
+            'number' => [
+                'label' => 'No. Surat Jalan',
+                'placeholder' => 'Masukkan nomor surat jalan',
+            ],
+            'description' => [
+                'label' => 'Item',
+                'placeholder' => 'Masukkan item barang',
+            ],
+            'qty' => [
+                'label' => 'Qty',
+            ],
+            'information' => [
+                'label' => 'Keterangan',
+                'placeholder' => 'Keterangan tambahan',
+            ],
+        ],
+    ],
+    'bast' => [
+        'title_header' => 'BAST',
+        'column' => [
+            'number' => 'Nomer',
+            'date' => 'Tanggal',
+            'client_id' => 'Nama Client',
+            'first_party' => 'Penyerah',
+            'description' => 'Description',
+            'qty' => 'Qty',
+            'information' => 'Keterangan',
+        ],
+        'field' => [
+            'client_po_id' => [
+                'label' => 'No. PO',
+                'placeholder' => '- PILIH NO. PO',
+            ],
+            'first_party' => [
+                'label' => 'Pihak Pertama',
+                'placeholder' => 'Masukkan nama pihak pertama',
+            ],
+            'first_party_address' => [
+                'label' => 'Alamat Pihak Pertama',
+                'placeholder' => 'Masukkan alamat pihak pertama',
+            ],
+            'client_id' => [
+                'label' => 'Pihak Ke 2',
+                'placeholder' => '- PILIH CLIENT',
+            ],
+            'address' => [
+                'label' => 'Alamat Pihak Ke 2',
+                'placeholder' => 'Masukkan alamat pihak ke 2',
+            ],
+            'date' => [
+                'label' => 'Tanggal',
+            ],
+            'number' => [
+                'label' => 'No. BAST',
+                'placeholder' => 'Masukkan nomor BAST',
+            ],
+            'description' => [
+                'label' => 'Item',
+                'placeholder' => 'Masukkan item barang',
+            ],
+            'qty' => [
+                'label' => 'Qty',
+            ],
+            'information' => [
+                'label' => 'Keterangan',
+                'placeholder' => 'Keterangan tambahan',
+            ],
+        ],
     ],
     'client_quotation' => [
         'title_header' => 'Penawaran',
