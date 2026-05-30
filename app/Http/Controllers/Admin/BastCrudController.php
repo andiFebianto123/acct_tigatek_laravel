@@ -22,6 +22,7 @@ use App\DTOs\ClientManagement\BastData;
 use App\DTOs\ClientManagement\BastFilterData;
 use App\Services\ClientManagement\BastService;
 use App\Repositories\ClientManagement\BastRepository;
+use App\Repositories\ClientManagement\ClientPoRepository;
 use Illuminate\Http\Request;
 
 /**
@@ -41,14 +42,17 @@ class BastCrudController extends CrudController
 
     protected $service;
     protected $repository;
+    protected $clientPoRepository;
 
     public function __construct(
         BastService $service,
-        BastRepository $repository
+        BastRepository $repository,
+        ClientPoRepository $clientPoRepository
     ) {
         parent::__construct();
         $this->service = $service;
         $this->repository = $repository;
+        $this->clientPoRepository = $clientPoRepository;
     }
 
     /**
@@ -548,7 +552,7 @@ class BastCrudController extends CrudController
         CRUD::column([
             'label'  => trans('backpack::crud.bast.column.information'),
             'name'   => 'information',
-            'type'   => 'text'
+            'type'   => 'wrap_text'
         ]);
     }
 
@@ -559,35 +563,9 @@ class BastCrudController extends CrudController
     {
         CRUD::setValidation(BastRequest::class);
 
-        // Scripts to widen parent modal and handle client address autocomplete
-        \Backpack\CRUD\app\Library\Widget::add([
-            'type' => 'script',
-            'content' => '
-                $(document).ready(function() {
-                    let modal = window.parent.$(".modal-dialog");
-                    if (modal.length) {
-                        modal.addClass("modal-xl").css("max-width", "90%");
-                    }
-                    $(".modal-dialog", window.parent.document).addClass("modal-xl").css("max-width", "90%");
-
-                    // Event listener for autofilling client (Pihak Ke 2) address
-                    $(document).on("change", "select[name=\'client_id\']", function() {
-                        let clientId = $(this).val();
-                        if (clientId) {
-                            $.ajax({
-                                url: "' . backpack_url('client/bast/client-address') . '",
-                                type: "GET",
-                                data: { client_id: clientId },
-                                success: function(response) {
-                                    if (response && response.address) {
-                                        $("textarea[name=\'address\']").val(response.address);
-                                    }
-                                }
-                            });
-                        }
-                    });
-                });
-            '
+        CRUD::addField([
+            'name' => 'logic_bast',
+            'type' => 'logic_bast',
         ]);
 
         if (backpack_user()->hasRole('Super Admin')) {
@@ -746,6 +724,23 @@ class BastCrudController extends CrudController
         $this->setupCreateOperation();
     }
 
+    public function destroy($id)
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        // get entry ID from Request (makes sure its the last ID for nested resources)
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+
+        $this->crud->delete($id);
+
+        $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
+        $messages['events'] = [
+            'crudTable-filter_bast_plugin_load' => true,
+            'crudTable-bast_create_success' => true,
+        ];
+        return response()->json($messages);
+    }
+
     /**
      * Custom show method to return AJAX modal render JSON
      */
@@ -777,6 +772,7 @@ class BastCrudController extends CrudController
     protected function setupShowOperation()
     {
         $this->setupCreateOperation();
+        CRUD::removeField('logic_bast');
 
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::column([
@@ -853,7 +849,8 @@ class BastCrudController extends CrudController
         CRUD::column([
             'label'  => trans('backpack::crud.bast.field.information.label'),
             'name'   => 'information',
-            'type'   => 'text',
+            'width_box' => '100%',
+            'type'   => 'wrap_text',
         ]);
     }
 
@@ -869,5 +866,19 @@ class BastCrudController extends CrudController
         $filename = 'BAST-' . str_replace(['/', '\\'], '-', $entry->number ?? $entry->id) . '.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    public function getPoDetails()
+    {
+        $this->crud->hasAccessOrFail('create');
+        $id = request()->input('po_id');
+        $po = $this->clientPoRepository->findWithClient((int) $id);
+
+        return response()->json([
+            'client_id' => $po?->client_id ?? '',
+            'client_name' => $po?->client?->name ?? '',
+            'address' => $po?->client?->address ?? '',
+            'job_name' => $po?->job_name ?? ''
+        ]);
     }
 }

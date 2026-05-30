@@ -128,4 +128,12 @@ class ClientPoRepository
             'total_job_value_ppn' => $result->total_job_value_ppn ?? 0,
         ];
     }
+
+    /**
+     * Find Client PO by ID with client relationship.
+     */
+    public function findWithClient(int $id)
+    {
+        return ClientPo::with('client')->find($id);
+    }
 }

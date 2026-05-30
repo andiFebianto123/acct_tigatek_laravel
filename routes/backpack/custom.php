@@ -110,6 +110,7 @@ Route::group([
         Route::post('delivery-note/export-pdf', [DeliveryNoteCrudController::class, 'exportPdf']);
         Route::post('delivery-note/export-excel', [DeliveryNoteCrudController::class, 'exportExcel']);
         Route::get('delivery-note/{id}/print', [DeliveryNoteCrudController::class, 'printDeliveryNote']);
+        Route::get('delivery-note/get-po-details', [DeliveryNoteCrudController::class, 'getPoDetails']);
 
         Route::match(['get', 'post', 'put'], 'bast/select2-po', [BastCrudController::class, 'select2ClientPo']);
         Route::match(['get', 'post', 'put'], 'bast/client-address', [BastCrudController::class, 'getClientAddress']);
@@ -117,6 +118,7 @@ Route::group([
         Route::post('bast/export-pdf', [BastCrudController::class, 'exportPdf']);
         Route::post('bast/export-excel', [BastCrudController::class, 'exportExcel']);
         Route::get('bast/{id}/print', [BastCrudController::class, 'printBast']);
+        Route::get('bast/get-po-details', [BastCrudController::class, 'getPoDetails']);
 
         Route::crud('quotation', 'ClientQuotationCrudController');
         // Route::match(['get', 'post'], 'quotation/select2-client', 'ClientQuotationCrudController@select2Client');
