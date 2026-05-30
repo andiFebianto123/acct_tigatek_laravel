@@ -88,6 +88,8 @@ class DeliveryNoteCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
+
+        CRUD::addButtonFromView('line', 'print_delivery_note', 'print_delivery_note', 'beginning');
     }
 
     public function index()
@@ -803,5 +805,19 @@ class DeliveryNoteCrudController extends CrudController
             'name'   => 'information',
             'type'   => 'text',
         ]);
+    }
+
+    public function printDeliveryNote($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+        $entry = $this->crud->getEntry($id);
+
+        $pdf = Pdf::loadView('exports.delivery-note-pdf', [
+            'entry' => $entry,
+        ]);
+
+        $filename = 'SURAT_JALAN-' . str_replace(['/', '\\'], '-', $entry->number ?? $entry->id) . '.pdf';
+
+        return $pdf->stream($filename);
     }
 }

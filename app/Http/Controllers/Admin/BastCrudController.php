@@ -88,6 +88,8 @@ class BastCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
+
+        CRUD::addButtonFromView('line', 'print_bast', 'print_bast', 'beginning');
     }
 
     public function index()
@@ -853,5 +855,19 @@ class BastCrudController extends CrudController
             'name'   => 'information',
             'type'   => 'text',
         ]);
+    }
+
+    public function printBast($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+        $entry = $this->crud->getEntry($id);
+
+        $pdf = Pdf::loadView('exports.bast-pdf', [
+            'entry' => $entry,
+        ]);
+
+        $filename = 'BAST-' . str_replace(['/', '\\'], '-', $entry->number ?? $entry->id) . '.pdf';
+
+        return $pdf->stream($filename);
     }
 }
