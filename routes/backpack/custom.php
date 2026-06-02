@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ProjectListCrudController;
 use App\Http\Controllers\Admin\BalanceSheetCrudController;
 use App\Http\Controllers\Admin\CastAccountsCrudController;
 use App\Http\Controllers\Admin\InvoiceClientCrudController;
+use App\Http\Controllers\Admin\ProformaInvoiceCrudController;
 use App\Http\Controllers\Admin\PurchaseOrderCrudController;
 use App\Http\Controllers\Admin\SettingSystemCrudController;
 use App\Http\Controllers\Admin\StatusProjectCrudController;
@@ -88,6 +89,14 @@ Route::group([
         Route::post('spk-trans/export-excel', [SpkCrudController::class, 'exportExcel']);
         Route::post('download-po', 'PurchaseOrderCrudController@exportExcel');
         Route::post('download-po-pdf', 'PurchaseOrderCrudController@exportPdf');
+
+        Route::post('proforma-invoice/export-pdf', [ProformaInvoiceCrudController::class, 'exportPdf']);
+        Route::post('proforma-invoice/export-excel', [ProformaInvoiceCrudController::class, 'exportExcel']);
+        Route::get('proforma-invoice/{id}/print', [ProformaInvoiceCrudController::class, 'printInvoice']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-po', [ProformaInvoiceCrudController::class, 'select2ClientPo']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/get-client-po', [ProformaInvoiceCrudController::class, 'selectedClientPo']);
+        Route::get('proforma-invoice/total', [ProformaInvoiceCrudController::class, 'total_price']);
+        Route::crud('proforma-invoice', 'ProformaInvoiceCrudController');
     });
 
     Route::prefix('client')->group(function () {

@@ -47,6 +47,7 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX MONITORING TRACKER',
             'MENU INDEX CLIENT SURAT JALAN',
             'MENU INDEX CLIENT BAST',
+            'MENU INDEX VENDOR PROFORMA INVOICE',
         ];
 
         foreach ($permissions as $permission) {

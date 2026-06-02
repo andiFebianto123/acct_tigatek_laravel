@@ -38,7 +38,8 @@
             // 'AKSES MENU VENDOR'
             'MENU INDEX VENDOR DAFTAR SUBKON',
             'MENU INDEX VENDOR PO',
-            'MENU INDEX VENDOR SPK'
+            'MENU INDEX VENDOR SPK',
+            'MENU INDEX VENDOR PROFORMA INVOICE'
         ])->count() > 0)
 <x-menu-group-custom
     title="{{trans('backpack::crud.menu.vendor_subkon')}}"
@@ -58,6 +59,11 @@
             'MENU INDEX VENDOR SPK',
         ])->count() > 0)
         <x-menu-group-item-custom title="{{ trans('backpack::crud.menu.spk') }}" icon="la la-circle-notch" :link="backpack_url('vendor/spk-trans')" />
+    @endif
+    @if($permissions->whereIn('name', [
+            'MENU INDEX VENDOR PROFORMA INVOICE',
+        ])->count() > 0)
+        <x-menu-group-item-custom title="Invoice Proforma" icon="la la-circle-notch" :link="backpack_url('vendor/proforma-invoice')" />
     @endif
 </x-menu-group-custom>
 @endif

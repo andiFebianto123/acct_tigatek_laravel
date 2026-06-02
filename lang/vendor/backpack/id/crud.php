@@ -231,6 +231,7 @@ return [
         'list_client' => 'Daftar Client',
         'client_po' => 'PO',
         'invoice_client' => 'Invoice',
+        'proforma_invoice' => 'Invoice Proforma',
         'cash_flow' => 'Arus Rekening',
         'cash_flow_cash' => 'Rekening Kas',
         'cash_flow_loan' => 'Rekening Pinjaman',
@@ -2180,5 +2181,11 @@ return [
     'save_changes_submit' => 'Simpan Perubahan',
     'approve_submit' => 'Setujui',
     'title_modal_voucher_payment' => 'Pembayaran Manual',
+    'proforma_invoice' => [
+        'title_header' => 'Invoice Proforma',
+        'title_modal_create' => 'Data Invoice Proforma',
+        'title_modal_edit' => 'Data Invoice Proforma',
+        'title_modal_delete' => 'Invoice Proforma',
+    ],
 
 ];
