@@ -2182,10 +2182,10 @@ return [
     'approve_submit' => 'Setujui',
     'title_modal_voucher_payment' => 'Pembayaran Manual',
     'proforma_invoice' => [
-        'title_header' => 'Invoice Proforma',
-        'title_modal_create' => 'Data Invoice Proforma',
-        'title_modal_edit' => 'Data Invoice Proforma',
-        'title_modal_delete' => 'Invoice Proforma',
+        'title_header' => 'Proforma Invoice',
+        'title_modal_create' => 'Data Proforma Invoice',
+        'title_modal_edit' => 'Data Proforma Invoice',
+        'title_modal_delete' => 'Proforma Invoice',
     ],
 
 ];
