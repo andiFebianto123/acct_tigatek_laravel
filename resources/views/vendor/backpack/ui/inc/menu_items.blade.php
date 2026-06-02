@@ -70,11 +70,22 @@
             'MENU INDEX CLIENT PO',
             'MENU INDEX CLIENT QUOTATION',
             'MENU INDEX CLIENT SURAT JALAN',
+            'MENU INDEX CLIENT BAST',
+            'MENU INDEX INVOICE',
         ])->count() > 0)
+@php
+    if(request()->is('admin/client*')) {
+        $route_client = backpack_url('client');
+    } else if(request()->is('admin/invoice-client*')){
+        $route_client = backpack_url('invoice-client');
+    }else{
+        $route_client = backpack_url('client-empty');
+    }
+@endphp
 <x-menu-group-custom
     title="{{trans('backpack::crud.menu.client')}}"
     :logo_url="asset('storage/logos/menu/logo-client.png')"
-    :link="backpack_url('client')" >
+    :link="$route_client" >
     @if($permissions->contains('name', 'MENU INDEX CLIENT DAFTAR CLIENT'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.list_client')}}" icon="la la-circle-notch" :link="backpack_url('client/client-list')" />
     @endif
@@ -89,6 +100,9 @@
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT BAST'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.bast')}}" icon="la la-circle-notch" :link="backpack_url('client/bast')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX INVOICE'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.invoice_client')}}" icon="la la-circle-notch" :link="backpack_url('invoice-client')" />
     @endif
 </x-menu-group-custom>
 @endif
@@ -164,14 +178,7 @@
 </x-menu-group-custom>
 @endif
 
-@if($permissions->whereIn('name', [
-            "MENU INDEX INVOICE",
-        ])->count() > 0)
-    <x-menu-item-custom
-        title="{{ trans('backpack::crud.menu.invoice_client') }}"
-        :logo_url="asset('storage/logos/menu/logo-invoice.png')"
-        :link="backpack_url('invoice-client')" />
-@endif
+
 
 @if($permissions->whereIn('name', [
             // 'AKSES SEMUA VIEW PROJECT',

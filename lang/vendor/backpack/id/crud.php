@@ -230,7 +230,7 @@ return [
         'client' => 'Client',
         'list_client' => 'Daftar Client',
         'client_po' => 'PO',
-        'invoice_client' => 'Invoice (Client)',
+        'invoice_client' => 'Invoice',
         'cash_flow' => 'Arus Rekening',
         'cash_flow_cash' => 'Rekening Kas',
         'cash_flow_loan' => 'Rekening Pinjaman',
