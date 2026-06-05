@@ -49,6 +49,11 @@ class ProformaInvoice extends Model
         return $this->belongsTo(ClientTransaction::class, 'client_id');
     }
 
+    public function subkon()
+    {
+        return $this->belongsTo(Subkon::class, 'subkon_id');
+    }
+
     public function proforma_invoice_details()
     {
         return $this->hasMany(ProformaInvoiceDetail::class, 'proforma_invoice_id');

@@ -91,6 +91,8 @@ class ProformaInvoiceService
         $invoice->discount_pph = $diskon_pph;
         $invoice->company_id = $dto->company_id;
         $invoice->account_source_id = $dto->account_source_id;
+        $invoice->note = $dto->note;
+        $invoice->subkon_id = $dto->subkon_id;
     }
 
     private function saveDetails(ProformaInvoice $invoice, array $details): void

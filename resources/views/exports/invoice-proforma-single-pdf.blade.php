@@ -279,10 +279,10 @@
     <div class="info-section">
         <div class="client-info">
             <b>Invoice to :</b>
-            <div class="client-name">{{ $header->client->name ?? $header->client_po->client->name ?? '-' }}</div>
-            <div class="client-phone">{{ $header->client->phone ?? $header->client_po->client->phone ?? '0811-293-746' }}</div>
+            <div class="client-name">{{ $header->subkon->name ?? '-' }}</div>
+            <div class="client-phone">{{ $header->subkon->phone ?? '-' }}</div>
             <div style="width: 80%;">
-                {!! nl2br(e($header->client->address ?? $header->client_po->client->address ?? 'Jakarta, Indonesia')) !!}
+                {!! nl2br(e($header->subkon->address ?? '-')) !!}
             </div>
         </div>
         <div class="po-meta">

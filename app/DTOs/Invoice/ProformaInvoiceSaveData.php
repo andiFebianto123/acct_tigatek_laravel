@@ -25,6 +25,8 @@ class ProformaInvoiceSaveData
         public readonly ?int $company_id = null,
         public readonly mixed $invoice_document = null,
         public readonly ?int $account_source_id = null,
+        public readonly ?string $note = null,
+        public readonly ?int $subkon_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -40,7 +42,7 @@ class ProformaInvoiceSaveData
             invoice_number: $request->invoice_number,
             description: $request->description,
             invoice_date: $request->invoice_date,
-            client_po_id: (int) $request->client_po_id,
+            client_po_id: $request->client_po_id ? (int) $request->client_po_id : null,
             nominal_exclude_ppn: $cleanNominal($request->nominal_exclude_ppn),
             nominal_include_ppn: $cleanNominal($request->nominal_include_ppn),
             tax_ppn: (float) $request->tax_ppn,
@@ -52,9 +54,11 @@ class ProformaInvoiceSaveData
             send_invoice_revision: $request->send_invoice_revision,
             address_po: $request->address_po,
             proforma_invoice_details: $details,
-            company_id: (int) $request->company_id,
+            company_id: $request->company_id ? (int) $request->company_id : null,
             invoice_document: $request->file('invoice_document'),
-            account_source_id: (int) $request->account_source_id,
+            account_source_id: $request->account_source_id ? (int) $request->account_source_id : null,
+            note: $request->note,
+            subkon_id: $request->subkon_id ? (int) $request->subkon_id : null,
         );
     }
 }

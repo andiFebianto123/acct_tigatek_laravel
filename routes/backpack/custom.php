@@ -95,6 +95,8 @@ Route::group([
         Route::get('proforma-invoice/{id}/print', [ProformaInvoiceCrudController::class, 'printInvoice']);
         Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-po', [ProformaInvoiceCrudController::class, 'select2ClientPo']);
         Route::match(['get', 'post', 'put'], 'proforma-invoice/get-client-po', [ProformaInvoiceCrudController::class, 'selectedClientPo']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-subkon-id', [ProformaInvoiceCrudController::class, 'select2SubkonId']);
+        Route::get('proforma-invoice/get-subkon-details', [ProformaInvoiceCrudController::class, 'getSubkonDetails']);
         Route::get('proforma-invoice/total', [ProformaInvoiceCrudController::class, 'total_price']);
         Route::crud('proforma-invoice', 'ProformaInvoiceCrudController');
     });

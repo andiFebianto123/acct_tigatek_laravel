@@ -94,6 +94,22 @@
                         });
                     });
 
+                    $(form+ ' select[name="subkon_id"]').off('select2:select').on('select2:select', function (e) {
+                        var id = e.params.data.id;
+                        $.ajax({
+                            url: '{!! backpack_url("vendor/proforma-invoice/get-subkon-details") !!}',
+                            method: 'GET',
+                            data: {
+                                subkon_id: id,
+                            },
+                            success: function(response) {
+                                if (response && response.address) {
+                                    $(form+' input[name="address_po"]').val(response.address);
+                                }
+                            }
+                        });
+                    });
+
                     $(form+' #nominal_exclude_ppn_masked').on('keyup', function(){
                         instance.logicFormulaNoPO();
                         countTotalPrice();

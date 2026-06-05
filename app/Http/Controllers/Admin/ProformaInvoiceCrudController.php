@@ -92,6 +92,47 @@ class ProformaInvoiceCrudController extends CrudController
         return response()->json(['results' => $results]);
     }
 
+    public function select2SubkonId()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $search = request()->input('q');
+        $company_id = request()->input('company_id');
+
+        if (backpack_user()->hasRole('Super Admin') && !$company_id) {
+            return response()->json(['results' => []]);
+        }
+
+        $dataset = \App\Models\Subkon::select(['id', 'name'])
+            ->where('name', 'LIKE', "%$search%");
+
+        if ($company_id) {
+            $dataset = $dataset->where('company_id', $company_id);
+        }
+
+        $dataset = $dataset->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->name,
+            ];
+        }
+        return response()->json(['results' => $results]);
+    }
+
+    public function getSubkonDetails()
+    {
+        $this->crud->hasAccessOrFail('create');
+        $id = request()->input('subkon_id');
+        $subkon = \App\Models\Subkon::find($id);
+
+        return response()->json([
+            'address' => $subkon?->address ?? ''
+        ]);
+    }
+
     public function selectedClientPo()
     {
         $this->crud->hasAccessOrFail('create');
@@ -123,13 +164,13 @@ class ProformaInvoiceCrudController extends CrudController
             ->label(trans('backpack::crud.invoice_client.column.po_date'))
             ->type('date');
 
-        $this->crud->filter('send_invoice_normal11crudTable-invoice')
-            ->label(trans('backpack::crud.invoice_client.column.send_invoice_normal'))
-            ->type('date');
+        // $this->crud->filter('send_invoice_normal11crudTable-invoice')
+        //     ->label(trans('backpack::crud.invoice_client.column.send_invoice_normal'))
+        //     ->type('date');
 
-        $this->crud->filter('send_invoice_revision11crudTable-invoice')
-            ->label(trans('backpack::crud.invoice_client.column.send_invoice_revision'))
-            ->type('date');
+        // $this->crud->filter('send_invoice_revision11crudTable-invoice')
+        //     ->label(trans('backpack::crud.invoice_client.column.send_invoice_revision'))
+        //     ->type('date');
 
         $columns = [
             [
@@ -151,27 +192,9 @@ class ProformaInvoiceCrudController extends CrudController
 
         $columns = array_merge($columns, [
             [
-                'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
+                'label'  => trans('backpack::crud.proforma_invoice.column.invoice_number'),
                 'name' => 'invoice_number',
                 'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-                'name' => 'kdp',
-                'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label'  => trans('backpack::crud.invoice_client.column.name'),
-                'name' => 'name',
-                'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.description'),
-                'name' => 'description',
-                'type' => 'text',
                 'orderable' => true,
             ],
             [
@@ -181,65 +204,42 @@ class ProformaInvoiceCrudController extends CrudController
                 'orderable' => true,
             ],
             [
-                'label'  => trans('backpack::crud.invoice_client.column.client_po_id'),
-                'name' => 'client_po_id',
-                'type'  => 'text',
-                'orderable' => true,
-                'limit' => 40,
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.po_date'),
-                'name' => 'po_date_from_po',
+                'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
                 'type' => 'text',
+                'name' => 'subkon_name',
                 'orderable' => true,
             ],
             [
-                'label' => trans('backpack::crud.invoice_client.column.client_id'),
-                'type' => 'text',
-                'name' => 'client_name',
+                'label' => trans('backpack::crud.invoice_client.column.description'),
+                'name' => 'description',
+                'type' => 'wrap_text',
                 'orderable' => true,
             ],
             [
-                'label'  => trans('backpack::crud.invoice_client.column.price_total_exclude_ppn'),
+                'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
                 'name' => 'price_total_exclude_ppn',
                 'type'  => 'text',
                 'orderable' => true,
             ],
             [
-                'label'  => trans('backpack::crud.invoice_client.column.price_total_include_ppn'),
+                'label'  => trans('backpack::crud.proforma_invoice.column.ppn'),
+                'name' => 'tax_ppn',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.proforma_invoice.column.amount'),
                 'name' => 'price_total_include_ppn',
                 'type'  => 'text',
                 'orderable' => true,
             ],
             [
-                'label'  => trans('backpack::crud.invoice_client.column.discount_pph'),
-                'name' => 'discount_pph',
-                'type'  => 'text',
+                'label' => trans('backpack::crud.proforma_invoice.column.note'),
+                'name' => 'note',
+                'type' => 'wrap_text',
                 'orderable' => true,
             ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.send_invoice_normal'),
-                'name' => 'send_invoice_normal',
-                'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.send_invoice_revision'),
-                'name' => 'send_invoice_revision',
-                'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.status'),
-                'name' => 'status',
-                'type' => 'text',
-            ],
-            [
-                'label' => trans('backpack::crud.invoice_client.column.document_invoice'),
-                'name' => 'invoice_document',
-                'type' => 'text',
-                'orderable' => false,
-            ],
+
             [
                 'name' => 'action',
                 'type' => 'action',
@@ -257,7 +257,7 @@ class ProformaInvoiceCrudController extends CrudController
                 'crud_custom' => $this->crud,
                 'hide_title' => true,
                 'columns' => $columns,
-                'filter_table' => collect($this->crud->filters())->slice(0, 4),
+                'filter_table' => collect($this->crud->filters())->slice(0, 2),
                 'route' => backpack_url('vendor/proforma-invoice/search'),
             ]
         ]);
@@ -265,7 +265,7 @@ class ProformaInvoiceCrudController extends CrudController
         $this->card->addCard([
             'name' => 'invoice-plugin',
             'line' => 'top',
-            'view' => 'crud::components.invoice-plugin',
+            'view' => 'crud::components.proforma-invoice-plugin',
             'parent_view' => 'crud::components.filter-parent',
             'params' => [],
         ]);
@@ -327,12 +327,12 @@ class ProformaInvoiceCrudController extends CrudController
         $this->crud->registerFieldEvents();
 
         $entry = $this->crud->getEntryWithLocale($id);
-        $entry->po_date = Carbon::parse($entry->client_po->date_po)->format('d/m/Y');
+        $entry->po_date = $entry->client_po ? Carbon::parse($entry->client_po->date_po)->format('d/m/Y') : null;
         $entry->price_total_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->price_total_include_ppn = $entry->price_total_include_ppn;
 
         $entry->proforma_invoice_details_edit = $entry->proforma_invoice_details;
-        $entry->client_name = $entry->client_po->client->name;
+        $entry->subkon_name = $entry->subkon?->name;
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->nominal_include_ppn = $entry->price_total_include_ppn;
         $entry->send_invoice_normal = $entry->send_invoice_normal_date;
@@ -363,7 +363,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
-        CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
+        // CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
         CRUD::addButtonFromView('line', 'show', 'show', 'end');
         CRUD::addButtonFromView('line', 'update', 'update', 'end');
@@ -413,35 +413,9 @@ class ProformaInvoiceCrudController extends CrudController
         }
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
+            'label'  => trans('backpack::crud.proforma_invoice.column.invoice_number'),
             'name' => 'invoice_number',
             'type'  => 'text'
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-            'name' => 'kdp',
-            'type'  => 'text'
-        ]);
-
-        CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.name'),
-            'name' => 'name',
-            'type'  => 'closure',
-            'width_box' => '300px',
-            'function' => function ($entry) {
-                return $entry->client_po?->job_name;
-            },
-            'orderable' => true,
-            'orderLogic' => function ($query, $column, $columnDir) {
-                return $query->orderBy('client_po.job_name', $columnDir);
-            },
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.description'),
-            'name' => 'description',
-            'type' => 'wrap_text'
         ]);
 
         CRUD::column([
@@ -452,33 +426,22 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.client_po_id'),
-            'type'      => 'select',
-            'name'      => 'client_po_id',
-            'entity'    => 'client_po',
-            'attribute' => 'po_number',
-            'model'     => "App\Models\ClientPo",
-            'limit' => 40,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.po_date'),
-            'name' => 'po_date_from_po',
-            'type' => 'date',
-            'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.client_id'),
+            'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
             'type'      => 'closure',
-            'name'      => 'client_name',
+            'name'      => 'subkon_name',
             'function' => function ($entry) {
-                return $entry->client_po?->client?->name;
+                return $entry->subkon?->name;
             }
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.price_total_exclude_ppn'),
+            'label' => trans('backpack::crud.invoice_client.column.description'),
+            'name' => 'description',
+            'type' => 'wrap_text'
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
             'name' => 'price_total_exclude_ppn',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
@@ -487,7 +450,16 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.price_total_include_ppn'),
+            'label'  => trans('backpack::crud.proforma_invoice.column.ppn'),
+            'name' => 'tax_ppn',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return $status_file == 'excel' ? $entry->tax_ppn : $entry->tax_ppn . '%';
+            },
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.column.amount'),
             'name' => 'price_total_include_ppn',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
@@ -496,40 +468,12 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.discount_pph'),
-            'name' => 'discount_pph',
-            'type'  => 'closure',
-            'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->discount_pph);
-            },
+            'label' => trans('backpack::crud.proforma_invoice.column.note'),
+            'name' => 'note',
+            'type' => 'wrap_text'
         ]);
 
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.send_invoice_normal'),
-            'name' => 'send_invoice_normal_date',
-            'type'  => 'date',
-            'format' => $new_format_date,
-        ]);
 
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.send_invoice_revision'),
-            'name' => 'send_invoice_revision_date',
-            'type'  => 'date',
-            'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.status'),
-            'name' => 'status',
-            'type' => 'text',
-        ]);
-
-        CRUD::column([
-            'name'   => 'invoice_document',
-            'type'   => 'upload',
-            'label'  => trans('backpack::crud.client_po.column.document_path'),
-            'disk'   => 'public',
-        ]);
     }
 
     public function search()
@@ -680,13 +624,13 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'invoice_number',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_number.label'),
+            'label' => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
             ],
             'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.invoice_number.placeholder'),
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.invoice_number.placeholder'),
             ],
             ...$inv_prefix_value,
         ]);
@@ -707,16 +651,18 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'client_name',
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
-            'type' => 'text',
-            'wrapper'   => [
+            'label'       => trans('backpack::crud.proforma_invoice.field.subkon_id.label'),
+            'type'        => 'select2_ajax_custom',
+            'name'        => 'subkon_id',
+            'entity'      => 'subkon',
+            'attribute'   => 'name',
+            'data_source' => backpack_url('vendor/proforma-invoice/select2-subkon-id'),
+            'wrapper'     => [
                 'class' => 'form-group col-md-6',
             ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.client_id.placeholder'),
-                'disabled' => true,
-            ]
+            'dependencies'            => ['company_id'],
+            'include_all_form_fields' => true,
+            'placeholder' => trans('backpack::crud.proforma_invoice.field.subkon_id.placeholder'),
         ]);
 
         CRUD::addField([
@@ -728,35 +674,6 @@ class ProformaInvoiceCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.invoice_client.field.address.placeholder'),
-            ]
-        ]);
-
-        CRUD::addField([
-            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'        => "select2_ajax_custom",
-            'name'        => 'client_po_id',
-            'entity'      => 'client_po',
-            'attribute'   => 'po_number',
-            'data_source' => backpack_url('vendor/proforma-invoice/select2-client-po'),
-            'dependencies' => ['company_id'],
-            'include_all_form_fields' => true,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder'),
-        ]);
-
-        CRUD::addField([
-            'name'  => 'po_date',
-            'type'  => 'text',
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-            'suffix' => '<i class="la la-calendar"></i>',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.po_date.placeholder'),
-                'disabled' => true
             ]
         ]);
 
@@ -868,88 +785,6 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'kdp',
-            'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.kdp.placeholder'),
-            ]
-        ]);
-
-        CRUD::addField([
-            'name'        => 'withholding_agent',
-            'label'       => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
-            'type'        => 'select_from_array',
-            'options'     => ['WAPU' => 'WAPU', 'NON WAPU' => 'NON WAPU'],
-            'allows_null' => true,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'send_invoice_normal',
-            'type'  => 'date_picker',
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_normal.label'),
-            'date_picker_options' => [
-                'language' => App::getLocale(),
-            ],
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'send_invoice_revision',
-            'type'  => 'date_picker',
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_revision.label'),
-            'date_picker_options' => [
-                'language' => App::getLocale(),
-            ],
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'        => 'status',
-            'label'       => trans('backpack::crud.invoice_client.field.status.label'),
-            'type'        => 'select_from_array',
-            'options'     => ['' => trans('backpack::crud.invoice_client.field.status.placeholder'), 'Paid' => 'Paid', 'Unpaid' => 'Unpaid'],
-            'allows_null' => false,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'disabled' => true,
-            ]
-        ]);
-
-        $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
-        $cash_account_options = [
-            '' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
-        ];
-        foreach ($cash_accounts as $value) {
-            $cash_account_options[$value->id] = $value->name;
-        }
-
-        CRUD::addField([
-            'name' => 'account_source_id',
-            'label' => trans('backpack::crud.voucher.field.account_source_id.label'),
-            'type' => 'select2_array',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'options' => $cash_account_options,
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
-            ]
-        ]);
-
-        CRUD::addField([
             'name' => 'nominal_information',
             'label' => trans('backpack::crud.invoice_client.field.nominal_information.label'),
             'type' => 'text',
@@ -963,29 +798,18 @@ class ProformaInvoiceCrudController extends CrudController
             ]
         ]);
 
-        CRUD::addField([
-            'name' => 'space_3',
-            'label' => '',
-            'type' => 'hidden',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
+
 
         CRUD::addField([
-            'name' => 'invoice_document',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
-            'type' => 'upload',
-            'upload' => true,
-            'disk' => 'public',
-            'prefix' => 'document_invoice/',
+            'name' => 'note',
+            'label' => trans('backpack::crud.proforma_invoice.field.note.label'),
+            'type' => 'textarea',
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
             ],
             'attributes' => [
-                'accept' => '.pdf',
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.note.placeholder'),
             ],
-            'hint' => trans('backpack::crud.invoice_client.field.invoice_document.hint'),
         ]);
 
         $id = request()->segment(4); // Adjusted for prefix vendor/proforma-invoice
@@ -1092,13 +916,11 @@ class ProformaInvoiceCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
         $request = request();
-        $po = ClientPo::find($request->client_po_id);
-
-        if ($po != null) {
-            $request->merge([
-                'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
-            ]);
-        }
+        $exclude_ppn = (float) str_replace('.', '', $request->nominal_exclude_ppn ?? '0');
+        $tax_ppn = (float) ($request->tax_ppn ?? 0);
+        $request->merge([
+            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
+        ]);
 
         $this->crud->validateRequest();
 
@@ -1135,13 +957,11 @@ class ProformaInvoiceCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('update');
         $request = request();
-        $po = ClientPo::find($request->client_po_id);
-
-        if ($po != null) {
-            $request->merge([
-                'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
-            ]);
-        }
+        $exclude_ppn = (float) str_replace('.', '', $request->nominal_exclude_ppn ?? '0');
+        $tax_ppn = (float) ($request->tax_ppn ?? 0);
+        $request->merge([
+            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
+        ]);
 
         $this->crud->validateRequest();
 
@@ -1210,16 +1030,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'invoice_number',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_number.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-12',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name' => 'name_label',
-            'label' => trans('backpack::crud.invoice_client.column.name'),
+            'label' => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
@@ -1236,38 +1047,14 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'client_name',
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
-            'type' => 'text',
+            'name' => 'subkon_id',
+            'label' => trans('backpack::crud.proforma_invoice.field.subkon_id.label'),
+            'type' => 'select',
+            'entity' => 'subkon',
+            'attribute' => 'name',
+            'model' => 'App\Models\Subkon',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name' => 'address_po',
-            'label' => trans('backpack::crud.invoice_client.field.address.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-12',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'        => 'client_po_id',
-            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'        => "text",
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'po_date',
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-            'type'  => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
             ],
         ]);
 
@@ -1282,7 +1069,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'nominal_exclude_ppn',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
+            'label' => trans('backpack::crud.proforma_invoice.column.unit_price'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
@@ -1290,17 +1077,8 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'dpp_other',
-            'label' => trans('backpack::crud.invoice_client.field.dpp_other.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
             'name' => 'tax_ppn',
-            'label' => trans('backpack::crud.invoice_client.field.tax_ppn.label'),
+            'label' => trans('backpack::crud.proforma_invoice.column.ppn'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
@@ -1309,7 +1087,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'nominal_include_ppn',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_include_ppn.label'),
+            'label' => trans('backpack::crud.proforma_invoice.column.amount'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
@@ -1317,17 +1095,8 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'pph',
-            'label' => trans('backpack::crud.invoice_client.field.pph.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
-            'name' => 'discount_pph',
-            'label' => trans('backpack::crud.invoice_client.field.discount_pph.label'),
+            'name' => 'note',
+            'label' => trans('backpack::crud.proforma_invoice.field.note.label'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
@@ -1335,61 +1104,7 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'kdp',
-            'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'        => 'withholding_agent',
-            'label'       => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
-            'type'        => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'send_invoice_normal_label',
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_normal.label'),
-            'type'  => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'send_invoice_revision_label',
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_revision.label'),
-            'type'  => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'        => 'status_label',
-            'label'       => trans('backpack::crud.invoice_client.field.status.label'),
-            'type'        => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'        => 'account_source_label',
-            'label'       => trans('backpack::crud.voucher.field.account_source_id.label'),
-            'type'        => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name' => 'nominal_information',
+            'name' => 'price_total',
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'type' => 'text',
             'wrapper'   => [
@@ -1397,14 +1112,7 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ]);
 
-        CRUD::addField([
-            'name' => 'invoice_document_label',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-12',
-            ],
-        ]);
+
 
         CRUD::addField([
             'name' => 'item_details_label',
@@ -1416,19 +1124,9 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.invoice_number.label'),
+            'label'  => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'name' => 'invoice_number',
             'type'  => 'text'
-        ]);
-
-        CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.column.name'),
-            'name' => 'name',
-            'type'  => 'closure',
-            'width_box' => '100%',
-            'function' => function ($entry) {
-                return $entry->client_po?->job_name;
-            }
         ]);
 
         CRUD::column([
@@ -1439,34 +1137,12 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
+            'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
             'type'      => 'closure',
-            'name'      => 'client_name',
+            'name'      => 'subkon_id',
             'function' => function ($entry) {
-                return $entry->client_po?->client?->name;
+                return $entry->subkon?->name;
             }
-        ]);
-
-        CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.address.label'),
-            'name' => 'address_po',
-            'type'  => 'text'
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'      => 'select',
-            'name'      => 'client_po_id',
-            'entity'    => 'client_po',
-            'attribute' => 'po_number',
-            'model'     => "App\Models\ClientPo",
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-            'name' => 'po_date_from_po',
-            'type' => 'date',
-            'format' => $new_format_date,
         ]);
 
         CRUD::column([
@@ -1480,96 +1156,37 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
-            'name' => 'price_total_exclude_ppn',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
+            'name' => 'nominal_exclude_ppn',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatRupiahWithCurrency($entry->price_total_exclude_ppn);
+            }
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.dpp_other.label'),
-            'name' => 'price_dpp',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
-        ]);
-
-        CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.tax_ppn.label'),
+            'label'  => trans('backpack::crud.proforma_invoice.column.ppn'),
             'name' => 'tax_ppn',
             'type'  => 'number',
             'suffix' => '%',
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.nominal_include_ppn.label'),
-            'name' => 'price_total_include_ppn',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'label'  => trans('backpack::crud.proforma_invoice.column.amount'),
+            'name' => 'nominal_include_ppn',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatRupiahWithCurrency($entry->price_total_include_ppn);
+            }
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.pph.label'),
-            'name' => 'pph',
-            'type'  => 'number',
-            'suffix' => '%',
+            'label'  => trans('backpack::crud.proforma_invoice.column.note'),
+            'name' => 'note',
+            'type'  => 'wrap_text',
         ]);
 
-        CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.discount_pph.label'),
-            'name' => 'discount_pph',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
-        ]);
 
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-            'name' => 'kdp',
-            'type' => 'text',
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
-            'name' => 'withholding_agent',
-            'type' => 'text',
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_normal.label'),
-            'name' => 'send_invoice_normal_date',
-            'type' => 'date',
-            'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.send_invoice_revision.label'),
-            'name' => 'send_invoice_revision_date',
-            'type' => 'date',
-            'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.status.label'),
-            'name' => 'status',
-            'type' => 'text',
-        ]);
-
-        CRUD::column([
-            'label'     => trans('backpack::crud.voucher.field.account_source_id.label'),
-            'type'      => 'wrap_text',
-            'name'      => 'account_source_label',
-        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
@@ -1586,25 +1203,11 @@ class ProformaInvoiceCrudController extends CrudController
             }
         ]);
 
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
-            'name' => 'invoice_document',
-            'type' => 'closure',
-            'width_box' => '400px',
-            'function' => function ($entry) {
-                if ($entry->invoice_document) {
-                    $url = asset('storage/' . $entry->invoice_document);
-                    $filename = basename($entry->invoice_document);
-                    return '<a href="' . $url . '" target="_blank"><i class="la la-file-pdf"></i> ' . $filename . '</a>';
-                }
-                return '';
-            },
-            'escaped' => false,
-        ]);
+
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.item.label'),
-            'name' => 'list_invoice',
+            'name' => 'item_details_label',
             'type' => 'list-proforma',
         ]);
     }

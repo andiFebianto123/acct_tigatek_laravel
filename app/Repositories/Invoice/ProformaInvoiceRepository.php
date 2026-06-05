@@ -11,7 +11,8 @@ class ProformaInvoiceRepository
     public function applyListQuery($query, ProformaInvoiceFilterData $dto): void
     {
         $query->leftJoin('client_po', 'client_po.id', '=', 'proforma_invoices.client_po_id')
-            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoices.company_id');
+            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoices.company_id')
+            ->leftJoin('subkons', 'subkons.id', '=', 'proforma_invoices.subkon_id');
 
         $this->applyFilters($query, $dto);
     }
@@ -75,31 +76,29 @@ class ProformaInvoiceRepository
                 match ($name) {
                     'company' => $query->where('companies.name', 'like', "%{$value}%"),
                     'invoice_number' => $query->where('proforma_invoices.invoice_number', 'like', "%{$value}%"),
-                    'kdp' => $query->where('proforma_invoices.kdp', 'like', "%{$value}%"),
-                    'name' => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
+                    'invoice_date' => $query->where('proforma_invoices.invoice_date', 'like', "%{$value}%"),
                     'description' => $query->where('proforma_invoices.description', 'like', "%{$value}%"),
-                    'client_po_id' => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
-                    'client_name' => $query->whereHas('client_po.client', fn($q) => $q->where('name', 'like', "%{$value}%")),
+                    'subkon_name' => $query->where('subkons.name', 'like', "%{$value}%"),
                     'price_total_exclude_ppn' => $query->where('proforma_invoices.price_total_exclude_ppn', 'like', "%{$value}%"),
+                    'tax_ppn' => $query->where('proforma_invoices.tax_ppn', 'like', "%{$value}%"),
                     'price_total_include_ppn' => $query->where('proforma_invoices.price_total_include_ppn', 'like', "%{$value}%"),
-                    'discount_pph' => $query->where('proforma_invoices.discount_pph', 'like', "%{$value}%"),
+                    'note' => $query->where('proforma_invoices.note', 'like', "%{$value}%"),
                     default => null
                 };
             } else {
                 if ($offset === 1 && $index === 1) {
                     $query->where('companies.name', 'like', "%{$value}%");
                 }
-
+ 
                 match ($index - $offset) {
                     1 => $query->where('proforma_invoices.invoice_number', 'like', "%{$value}%"),
-                    2 => $query->where('proforma_invoices.kdp', 'like', "%{$value}%"),
-                    3 => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
+                    2 => $query->where('proforma_invoices.invoice_date', 'like', "%{$value}%"),
+                    3 => $query->where('subkons.name', 'like', "%{$value}%"),
                     4 => $query->where('proforma_invoices.description', 'like', "%{$value}%"),
-                    6 => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
-                    8 => $query->whereHas('client_po.client', fn($q) => $q->where('name', 'like', "%{$value}%")),
-                    9 => $query->where('proforma_invoices.price_total_exclude_ppn', 'like', "%{$value}%"),
-                    10 => $query->where('proforma_invoices.price_total_include_ppn', 'like', "%{$value}%"),
-                    11 => $query->where('proforma_invoices.discount_pph', 'like', "%{$value}%"),
+                    5 => $query->where('proforma_invoices.price_total_exclude_ppn', 'like', "%{$value}%"),
+                    6 => $query->where('proforma_invoices.tax_ppn', 'like', "%{$value}%"),
+                    7 => $query->where('proforma_invoices.price_total_include_ppn', 'like', "%{$value}%"),
+                    8 => $query->where('proforma_invoices.note', 'like', "%{$value}%"),
                     default => null
                 };
             }
@@ -113,7 +112,8 @@ class ProformaInvoiceRepository
             DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
             DB::raw("SUM(discount_pph) as total_discount_pph")
         )->leftJoin('client_po', 'client_po.id', '=', 'proforma_invoices.client_po_id')
-            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoices.company_id');
+            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoices.company_id')
+            ->leftJoin('subkons', 'subkons.id', '=', 'proforma_invoices.subkon_id');
 
         $this->applyFilters($query, $dto);
 

@@ -2186,6 +2186,28 @@ return [
         'title_modal_create' => 'Data Proforma Invoice',
         'title_modal_edit' => 'Data Proforma Invoice',
         'title_modal_delete' => 'Proforma Invoice',
+        'column' => [
+            'invoice_number' => 'No. PI',
+            'subkon_name' => 'Nama Subkon',
+            'unit_price' => 'Unit Price',
+            'ppn' => 'PPN',
+            'amount' => 'Amount',
+            'note' => 'Keterangan',
+        ],
+        'field' => [
+            'invoice_number' => [
+                'label' => 'No. PI',
+                'placeholder' => 'Masukan nomor PI',
+            ],
+            'subkon_id' => [
+                'label' => 'Nama Subkon',
+                'placeholder' => '- PILIH SUBKON',
+            ],
+            'note' => [
+                'label' => 'Keterangan',
+                'placeholder' => 'Masukan keterangan tambahan',
+            ]
+        ],
     ],
 
 ];
