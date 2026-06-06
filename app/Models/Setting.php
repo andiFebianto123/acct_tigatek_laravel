@@ -26,6 +26,10 @@ class Setting extends Model
         'vouhcer_prefix',
         'faktur_prefix',
         'invoice_prefix',
+        'pi_prefix',
+        'quotation_prefix',
+        'surat_jalan_prefix',
+        'bast_prefix',
         // Tambahkan field lain jika ada dari form
         'name_company',
         'address',

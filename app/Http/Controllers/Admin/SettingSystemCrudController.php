@@ -176,6 +176,10 @@ class SettingSystemCrudController extends CrudController
             'vouhcer_prefix'        => 'nullable|string|max:10',
             'faktur_prefix'         => 'nullable|string|max:10',
             'invoice_prefix'        => 'nullable|string|max:10',
+            'pi_prefix'             => 'nullable|string|max:10',
+            'quotation_prefix'      => 'nullable|string|max:10',
+            'surat_jalan_prefix'    => 'nullable|string|max:10',
+            'bast_prefix'           => 'nullable|string|max:10',
         ]);
 
         $request = $this->crud->validateRequest();

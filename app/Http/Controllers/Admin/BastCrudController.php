@@ -665,10 +665,13 @@ class BastCrudController extends CrudController
             ],
         ]);
 
+        $defaultBastNumber = $this->repository->generateNextNumber();
+
         CRUD::addField([
             'name'  => 'number',
             'type'  => 'text',
             'label' => trans('backpack::crud.bast.field.number.label'),
+            'default' => $defaultBastNumber,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],

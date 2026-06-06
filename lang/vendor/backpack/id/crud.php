@@ -257,6 +257,12 @@ return [
         'delivery_note' => 'Surat Jalan',
         'bast' => 'BAST',
     ],
+    'setting' => [
+        'pi_prefix' => 'PI Prefix',
+        'quotation_prefix' => 'Quotation Prefix',
+        'surat_jalan_prefix' => 'Surat Jalan Prefix',
+        'bast_prefix' => 'BAST Prefix',
+    ],
     'monitoring_tracker' => [
         'tab' => [
             'tracker' => 'Monitoring Tracker',
@@ -2188,6 +2194,7 @@ return [
         'title_modal_delete' => 'Proforma Invoice',
         'column' => [
             'invoice_number' => 'No. PI',
+            'invoice_date' => 'Tanggal',
             'subkon_name' => 'Nama Subkon',
             'unit_price' => 'Unit Price',
             'ppn' => 'PPN',
@@ -2198,6 +2205,10 @@ return [
             'invoice_number' => [
                 'label' => 'No. PI',
                 'placeholder' => 'Masukan nomor PI',
+            ],
+            'invoice_date' => [
+                'label' => 'Tanggal',
+                'placeholder' => 'Pilih tanggal',
             ],
             'subkon_id' => [
                 'label' => 'Nama Subkon',

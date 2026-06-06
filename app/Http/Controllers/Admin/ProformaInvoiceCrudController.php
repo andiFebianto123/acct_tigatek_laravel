@@ -157,7 +157,7 @@ class ProformaInvoiceCrudController extends CrudController
         }
 
         $this->crud->filter('invoice_date11crudTable-invoice')
-            ->label(trans('backpack::crud.invoice_client.column.invoice_date'))
+            ->label(trans('backpack::crud.proforma_invoice.field.invoice_date.label'))
             ->type('date');
 
         $this->crud->filter('po_date11crudTable-invoice')
@@ -198,7 +198,7 @@ class ProformaInvoiceCrudController extends CrudController
                 'orderable' => true,
             ],
             [
-                'label'  => trans('backpack::crud.invoice_client.column.invoice_date'),
+                'label'  => trans('backpack::crud.proforma_invoice.column.invoice_date'),
                 'name' => 'invoice_date',
                 'type'  => 'text',
                 'orderable' => true,
@@ -602,11 +602,9 @@ class ProformaInvoiceCrudController extends CrudController
     {
         CRUD::setValidation(ProformaInvoiceRequest::class);
         $settings = Setting::first();
-        $inv_prefix_value = [];
+        $defaultProformaInvoiceNumber = null;
         if (!$this->crud->getCurrentEntryId()) {
-            $inv_prefix_value = [
-                'value' => $settings?->invoice_prefix,
-            ];
+            $defaultProformaInvoiceNumber = $this->repository->generateNextNumber();
         }
 
         if (backpack_user()->hasRole('Super Admin')) {
@@ -626,19 +624,19 @@ class ProformaInvoiceCrudController extends CrudController
             'name' => 'invoice_number',
             'label' => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'type' => 'text',
+            'default' => $defaultProformaInvoiceNumber,
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.proforma_invoice.field.invoice_number.placeholder'),
             ],
-            ...$inv_prefix_value,
         ]);
 
         CRUD::addField([
             'name'  => 'invoice_date',
             'type'  => 'date_picker',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_date.label'),
+            'label' => trans('backpack::crud.proforma_invoice.field.invoice_date.label'),
             'date_picker_options' => [
                 'language' => App::getLocale(),
             ],
@@ -646,7 +644,7 @@ class ProformaInvoiceCrudController extends CrudController
                 'class' => 'form-group col-md-6'
             ],
             'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.invoice_date.placeholder')
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.invoice_date.placeholder')
             ]
         ]);
 
@@ -706,22 +704,7 @@ class ProformaInvoiceCrudController extends CrudController
             ]
         ]);
 
-        CRUD::addField([
-            'name' => 'dpp_other',
-            'label' => trans('backpack::crud.invoice_client.field.dpp_other.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.dpp_other.placeholder'),
-            ]
-        ]);
+
 
         CRUD::addField([
             'name' => 'tax_ppn',
@@ -1039,7 +1022,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addField([
             'name'  => 'invoice_date',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_date.label'),
+            'label' => trans('backpack::crud.proforma_invoice.field.invoice_date.label'),
             'type'  => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
@@ -1130,7 +1113,7 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.invoice_date.label'),
+            'label'  => trans('backpack::crud.proforma_invoice.column.invoice_date'),
             'name' => 'invoice_date',
             'type'  => 'date',
             'format' => $new_format_date,

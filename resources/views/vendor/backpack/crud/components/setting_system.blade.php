@@ -133,9 +133,17 @@
                                     <label for="kodeKerjaPrefix" class="form-label">Kode Kerja Prefix</label>
                                     <input type="text" class="form-control" id="kodeKerjaPrefix" name="work_code_prefix" value="{{$setting?->work_code_prefix}}">
                                 </div>
-                                <div class="mb-3 form-group">
+                                 <div class="mb-3 form-group">
                                     <label for="fakturPrefix" class="form-label">Faktur Prefix</label>
                                     <input type="text" class="form-control" id="fakturPrefix" name="faktur_prefix" value="{{$setting?->faktur_prefix}}">
+                                </div>
+                                <div class="mb-3 form-group">
+                                    <label for="piPrefix" class="form-label">{{ trans('backpack::crud.setting.pi_prefix') }}</label>
+                                    <input type="text" class="form-control" id="piPrefix" name="pi_prefix" value="{{$setting?->pi_prefix}}">
+                                </div>
+                                <div class="mb-3 form-group">
+                                    <label for="quotationPrefix" class="form-label">{{ trans('backpack::crud.setting.quotation_prefix') }}</label>
+                                    <input type="text" class="form-control" id="quotationPrefix" name="quotation_prefix" value="{{$setting?->quotation_prefix}}">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -158,6 +166,14 @@
                                 <div class="mb-3 form-group">
                                     <label for="invoicePrefix" class="form-label">Invoice Prefix</label>
                                     <input type="text" class="form-control" id="invoicePrefix" name="invoice_prefix" value="{{$setting?->invoice_prefix}}">
+                                </div>
+                                <div class="mb-3 form-group">
+                                    <label for="suratJalanPrefix" class="form-label">{{ trans('backpack::crud.setting.surat_jalan_prefix') }}</label>
+                                    <input type="text" class="form-control" id="suratJalanPrefix" name="surat_jalan_prefix" value="{{$setting?->surat_jalan_prefix}}">
+                                </div>
+                                <div class="mb-3 form-group">
+                                    <label for="bastPrefix" class="form-label">{{ trans('backpack::crud.setting.bast_prefix') }}</label>
+                                    <input type="text" class="form-control" id="bastPrefix" name="bast_prefix" value="{{$setting?->bast_prefix}}">
                                 </div>
                             </div>
                         </div>

@@ -88,4 +88,26 @@ class BastRepository
 
         return $query;
     }
+
+    /**
+     * Generate next BAST number.
+     */
+    public function generateNextNumber()
+    {
+        $settings = \App\Models\Setting::first();
+        $bastPrefix = $settings?->bast_prefix ?? 'BAST';
+        $monthYear = now()->format('my');
+        $pattern = $bastPrefix . '/' . $monthYear . '/';
+        $lastEntry = Bast::where('number', 'like', $pattern . '%')
+            ->orderBy('number', 'desc')
+            ->first();
+        if ($lastEntry) {
+            $parts = explode('/', $lastEntry->number);
+            $lastIndex = (int) end($parts);
+            $nextIndex = $lastIndex + 1;
+        } else {
+            $nextIndex = 1;
+        }
+        return $pattern . sprintf('%02d', $nextIndex);
+    }
 }

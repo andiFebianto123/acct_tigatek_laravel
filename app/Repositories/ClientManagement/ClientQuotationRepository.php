@@ -150,4 +150,26 @@ class ClientQuotationRepository
     {
         return ClientQuotation::whereIn('id', $ids)->get();
     }
+
+    /**
+     * Generate next Quotation number.
+     */
+    public function generateNextNumber()
+    {
+        $settings = \App\Models\Setting::first();
+        $prefix = $settings?->quotation_prefix ?? 'QUO';
+        $monthYear = now()->format('my');
+        $pattern = $prefix . '/' . $monthYear . '/';
+        $lastEntry = ClientQuotation::where('po_number', 'like', $pattern . '%')
+            ->orderBy('po_number', 'desc')
+            ->first();
+        if ($lastEntry) {
+            $parts = explode('/', $lastEntry->po_number);
+            $lastIndex = (int) end($parts);
+            $nextIndex = $lastIndex + 1;
+        } else {
+            $nextIndex = 1;
+        }
+        return $pattern . sprintf('%02d', $nextIndex);
+    }
 }

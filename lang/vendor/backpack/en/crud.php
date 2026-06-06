@@ -213,6 +213,12 @@ return [
         'delivery_note' => 'Surat Jalan',
         'bast' => 'BAST',
     ],
+    'setting' => [
+        'pi_prefix' => 'PI Prefix',
+        'quotation_prefix' => 'Quotation Prefix',
+        'surat_jalan_prefix' => 'Surat Jalan Prefix',
+        'bast_prefix' => 'BAST Prefix',
+    ],
     'monitoring_tracker' => [
         'tab' => [
             'tracker' => 'Monitoring Tracker',

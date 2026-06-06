@@ -589,7 +589,7 @@ class ClientQuotationCrudController extends CrudController
         CRUD::setValidation(ClientQuotationRequest::class);
         $settings = Setting::first();
 
-        $po_prefix = [];
+        $defaultQuotationNumber = null;
         $work_code_prefix = [];
         $work_code_disabled = [
             // 'disabled' => true,
@@ -598,11 +598,7 @@ class ClientQuotationCrudController extends CrudController
             'disabled' => true,
         ];
         if (!$this->crud->getCurrentEntryId()) {
-            if ($settings?->po_prefix) {
-                $po_prefix = [
-                    'value' => $settings->po_prefix,
-                ];
-            }
+            $defaultQuotationNumber = $this->quotationRepository->generateNextNumber();
             if ($settings?->work_code_prefix) {
                 $work_code_prefix = [
                     'value' => $settings->work_code_prefix,
@@ -677,12 +673,12 @@ class ClientQuotationCrudController extends CrudController
             'label' => trans('backpack::crud.client_quotation.field.po_number.label'),
             'name'  => 'po_number',
             'type'  => 'text',
+            'default' => $defaultQuotationNumber,
             'wrapper' => ['class' => 'form-group col-md-6'],
             'attributes' => [
                 ...$po_number_disabled,
                 'placeholder' => trans('backpack::crud.client_quotation.field.po_number.placeholder'),
             ],
-            ...$po_prefix,
         ]);
 
         // CRUD::field([

@@ -79,7 +79,6 @@ class ProformaInvoiceService
         $invoice->invoice_date = $dto->invoice_date;
         $invoice->client_po_id = $dto->client_po_id;
         $invoice->tax_ppn = $dto->tax_ppn;
-        $invoice->price_dpp = $dto->dpp_other;
         $invoice->kdp = $dto->kdp;
         $invoice->withholding_agent = $dto->withholding_agent;
         $invoice->send_invoice_normal_date = $dto->send_invoice_normal;

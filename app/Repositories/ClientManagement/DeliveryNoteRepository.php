@@ -86,4 +86,26 @@ class DeliveryNoteRepository
 
         return $query;
     }
+
+    /**
+     * Generate next Delivery Note number.
+     */
+    public function generateNextNumber()
+    {
+        $settings = \App\Models\Setting::first();
+        $prefix = $settings?->surat_jalan_prefix ?? 'SJ';
+        $monthYear = now()->format('my');
+        $pattern = $prefix . '/' . $monthYear . '/';
+        $lastEntry = DeliveryNote::where('number', 'like', $pattern . '%')
+            ->orderBy('number', 'desc')
+            ->first();
+        if ($lastEntry) {
+            $parts = explode('/', $lastEntry->number);
+            $lastIndex = (int) end($parts);
+            $nextIndex = $lastIndex + 1;
+        } else {
+            $nextIndex = 1;
+        }
+        return $pattern . sprintf('%02d', $nextIndex);
+    }
 }

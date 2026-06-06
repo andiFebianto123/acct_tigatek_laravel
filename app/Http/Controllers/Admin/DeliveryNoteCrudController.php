@@ -632,6 +632,7 @@ class DeliveryNoteCrudController extends CrudController
             'name'  => 'number',
             'type'  => 'text',
             'label' => trans('backpack::crud.delivery_note.field.number.label'),
+            'default' => $this->repository->generateNextNumber(),
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],

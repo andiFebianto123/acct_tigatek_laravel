@@ -119,4 +119,26 @@ class ProformaInvoiceRepository
 
         return $query->first()?->toArray() ?? [];
     }
+
+    /**
+     * Generate next Proforma Invoice number.
+     */
+    public function generateNextNumber()
+    {
+        $settings = \App\Models\Setting::first();
+        $prefix = $settings?->pi_prefix ?? 'PI';
+        $monthYear = now()->format('my');
+        $pattern = $prefix . '/' . $monthYear . '/';
+        $lastEntry = ProformaInvoice::where('invoice_number', 'like', $pattern . '%')
+            ->orderBy('invoice_number', 'desc')
+            ->first();
+        if ($lastEntry) {
+            $parts = explode('/', $lastEntry->invoice_number);
+            $lastIndex = (int) end($parts);
+            $nextIndex = $lastIndex + 1;
+        } else {
+            $nextIndex = 1;
+        }
+        return $pattern . sprintf('%02d', $nextIndex);
+    }
 }
