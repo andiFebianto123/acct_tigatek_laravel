@@ -147,7 +147,7 @@
         .totals-table .label-bold {
             text-align: right;
             font-weight: bold;
-            font-size: 12pt;
+            font-size: 10pt;
         }
         .totals-table .val-bold {
             font-weight: bold;
