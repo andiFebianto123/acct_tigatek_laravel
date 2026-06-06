@@ -1410,6 +1410,9 @@ class PurchaseOrderCrudController extends CrudController
             'settings' => $settings,
         ]);
 
-        return $pdf->stream('PO-Subkon-' . ($entry->po_number ?? $entry->id) . '.pdf');
+        $fileName = 'PO-Subkon-' . ($entry->po_number ?? $entry->id) . '.pdf';
+        $safeFileName = str_replace(['/', '\\'], '-', $fileName);
+
+        return $pdf->stream($safeFileName);
     }
 }

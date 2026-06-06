@@ -1321,6 +1321,9 @@ class ClientQuotationCrudController extends CrudController
             'settings' => $settings,
         ]);
 
-        return $pdf->stream('Quotation-' . ($entry->work_code ?? $entry->id) . '.pdf');
+        $fileName = 'Quotation-' . ($entry->work_code ?? $entry->id) . '.pdf';
+        $safeFileName = str_replace(['/', '\\'], '-', $fileName);
+
+        return $pdf->stream($safeFileName);
     }
 }

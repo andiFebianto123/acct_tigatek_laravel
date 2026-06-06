@@ -1244,6 +1244,9 @@ class ProformaInvoiceCrudController extends CrudController
         $data['details'] = ProformaInvoiceDetail::where('proforma_invoice_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-proforma-single-pdf', $data);
-        return $pdf->stream('Proforma-Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf');
+        $fileName = 'Proforma-Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf';
+        $safeFileName = str_replace(['/', '\\'], '-', $fileName);
+
+        return $pdf->stream($safeFileName);
     }
 }

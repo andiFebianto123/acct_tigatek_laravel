@@ -1846,7 +1846,10 @@ class InvoiceClientCrudController extends CrudController
         $data['details'] = InvoiceClientDetail::where('invoice_client_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-client-single-pdf', $data);
-        return $pdf->stream('Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf');
+        $fileName = 'Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf';
+        $safeFileName = str_replace(['/', '\\'], '-', $fileName);
+
+        return $pdf->stream($safeFileName);
     }
 
     public function voidPayment($id)
