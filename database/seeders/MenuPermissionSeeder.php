@@ -47,42 +47,53 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX MONITORING TRACKER',
             'MENU INDEX CLIENT SURAT JALAN',
             'MENU INDEX CLIENT BAST',
+            'MENU INDEX CLIENT BILLING DEVICE',
+            'MENU INDEX CLIENT BILLING SIMCARD',
             'MENU INDEX VENDOR PROFORMA INVOICE',
         ];
+
+        $permissionModels = [];
 
         foreach ($permissions as $permission) {
             $originPermission = $permission;
             $createPermission = str_replace('MENU', 'CREATE', $originPermission);
             $updatePermission = str_replace('MENU', 'UPDATE', $originPermission);
             $deletePermission = str_replace('MENU', 'DELETE', $originPermission);
-            Permission::updateOrCreate(
+            
+            $permissionModels[] = Permission::updateOrCreate(
                 ['name' => $originPermission],                  // condition (cari berdasarkan nama)
                 [
                     'name' => $originPermission,
                     'guard_name' => 'web'
                 ]                   // jika ketemu, update ini; kalau tidak, buat baru
             );
-            Permission::updateOrCreate(
+            $permissionModels[] = Permission::updateOrCreate(
                 ['name' => $createPermission],                  // condition (cari berdasarkan nama)
                 [
                     'name' => $createPermission,
                     'guard_name' => 'web'
                 ]                   // jika ketemu, update ini; kalau tidak, buat baru
             );
-            Permission::updateOrCreate(
+            $permissionModels[] = Permission::updateOrCreate(
                 ['name' => $updatePermission],                  // condition (cari berdasarkan nama)
                 [
                     'name' => $updatePermission,
                     'guard_name' => 'web'
                 ]                   // jika ketemu, update ini; kalau tidak, buat baru
             );
-            Permission::updateOrCreate(
+            $permissionModels[] = Permission::updateOrCreate(
                 ['name' => $deletePermission],                  // condition (cari berdasarkan nama)
                 [
                     'name' => $deletePermission,
                     'guard_name' => 'web'
                 ]                   // jika ketemu, update ini; kalau tidak, buat baru
             );
+        }
+
+        // Assign to Super Admin role
+        $role = \Spatie\Permission\Models\Role::where('name', 'Super Admin')->first();
+        if ($role) {
+            $role->givePermissionTo($permissionModels);
         }
     }
 }

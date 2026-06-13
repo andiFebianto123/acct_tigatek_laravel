@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\QuotationCrudController;
 use App\Http\Controllers\Admin\ClientQuotationCrudController;
 use App\Http\Controllers\Admin\DeliveryNoteCrudController;
 use App\Http\Controllers\Admin\BastCrudController;
+use App\Http\Controllers\Admin\BillingDeviceCrudController;
+use App\Http\Controllers\Admin\BillingSimcardCrudController;
 use App\Http\Controllers\Admin\AccountUserCrudController;
 use App\Http\Controllers\Admin\ProjectListCrudController;
 use App\Http\Controllers\Admin\BalanceSheetCrudController;
@@ -139,6 +141,18 @@ Route::group([
         Route::get('quotation/total', [ClientQuotationCrudController::class, 'countAllPPn']);
         Route::get('quotation/total-without-po', 'ClientQuotationCrudController@totalWithoutPo');
         Route::get('quotation/{id}/print', [ClientQuotationCrudController::class, 'printQuotation']);
+    });
+
+    Route::prefix('billing')->group(function () {
+        Route::crud('billing-device', 'BillingDeviceCrudController');
+        Route::post('billing-device/import', [BillingDeviceCrudController::class, 'import']);
+        Route::post('billing-device/export-pdf', [BillingDeviceCrudController::class, 'exportPdf']);
+        Route::post('billing-device/export-excel', [BillingDeviceCrudController::class, 'exportExcel']);
+
+        Route::crud('billing-simcard', 'BillingSimcardCrudController');
+        Route::post('billing-simcard/import', [BillingSimcardCrudController::class, 'import']);
+        Route::post('billing-simcard/export-pdf', [BillingSimcardCrudController::class, 'exportPdf']);
+        Route::post('billing-simcard/export-excel', [BillingSimcardCrudController::class, 'exportExcel']);
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);

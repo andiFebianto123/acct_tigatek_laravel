@@ -133,6 +133,32 @@
 </x-menu-group-custom>
 @endif
 
+@if($permissions->whereIn('name', [
+            'MENU INDEX CLIENT BILLING DEVICE',
+            'MENU INDEX CLIENT BILLING SIMCARD',
+        ])->count() > 0)
+@php
+    if(request()->is('admin/billing/billing-device*')) {
+        $route_billing = backpack_url('billing/billing-device');
+    } else if(request()->is('admin/billing/billing-simcard*')){
+        $route_billing = backpack_url('billing/billing-simcard');
+    } else {
+        $route_billing = backpack_url('billing-empty');
+    }
+@endphp
+<x-menu-group-custom
+    title="Management Billing"
+    :logo_url="asset('storage/logos/menu/logo-billing.png')"
+    :link="$route_billing" >
+    @if($permissions->contains('name', 'MENU INDEX CLIENT BILLING DEVICE'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_device')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-device')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT BILLING SIMCARD'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_simcard')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-simcard')" />
+    @endif
+</x-menu-group-custom>
+@endif
+
 @if($permissions->contains('name', 'MENU INDEX RENCANA PEMBAYARAN'))
     <x-menu-item-custom
         title="{{trans('backpack::crud.menu.voucher_payment_plan')}}"
