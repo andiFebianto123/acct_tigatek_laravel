@@ -258,6 +258,7 @@ return [
         'bast' => 'BAST',
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
+        'transaction_history' => 'Riwayat Transaksi',
     ],
     'setting' => [
         'pi_prefix' => 'PI Prefix',
@@ -670,6 +671,21 @@ return [
             'subscription_expiry_date' => 'Subscription Expiry Date',
             'installation_date' => 'Installation Date',
             'expired_date' => 'Expired date',
+        ],
+    ],
+    'transaction_history' => [
+        'title_header' => 'Riwayat Transaksi',
+        'column' => [
+            'transaction_id' => 'Transaction Id',
+            'device_id' => 'Device Id',
+            'msisdn' => 'MSISDN',
+            'op_completion_time' => 'Op Completion Time',
+            'operations' => 'Oprations',
+            'devices_upload' => 'Devices Upload',
+            'device_prosses' => 'Device Prosses',
+            'device_update' => 'Device Update',
+            'last_update' => 'Last Update',
+            'status' => 'Status',
         ],
     ],
     'client_quotation' => [

@@ -136,12 +136,15 @@
 @if($permissions->whereIn('name', [
             'MENU INDEX CLIENT BILLING DEVICE',
             'MENU INDEX CLIENT BILLING SIMCARD',
+            'MENU INDEX CLIENT RIWAYAT TRANSAKSI',
         ])->count() > 0)
 @php
     if(request()->is('admin/billing/billing-device*')) {
         $route_billing = backpack_url('billing/billing-device');
     } else if(request()->is('admin/billing/billing-simcard*')){
         $route_billing = backpack_url('billing/billing-simcard');
+    } else if(request()->is('admin/billing/transaction-history*')){
+        $route_billing = backpack_url('billing/transaction-history');
     } else {
         $route_billing = backpack_url('billing-empty');
     }
@@ -155,6 +158,9 @@
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT BILLING SIMCARD'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_simcard')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-simcard')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT RIWAYAT TRANSAKSI'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.transaction_history')}}" icon="la la-circle-notch" :link="backpack_url('billing/transaction-history')" />
     @endif
 </x-menu-group-custom>
 @endif

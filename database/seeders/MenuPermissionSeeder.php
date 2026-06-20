@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class MenuPermissionSeeder extends Seeder
 {
@@ -49,6 +48,7 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX CLIENT BAST',
             'MENU INDEX CLIENT BILLING DEVICE',
             'MENU INDEX CLIENT BILLING SIMCARD',
+            'MENU INDEX CLIENT RIWAYAT TRANSAKSI',
             'MENU INDEX VENDOR PROFORMA INVOICE',
         ];
 

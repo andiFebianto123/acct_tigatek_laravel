@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\DeliveryNoteCrudController;
 use App\Http\Controllers\Admin\BastCrudController;
 use App\Http\Controllers\Admin\BillingDeviceCrudController;
 use App\Http\Controllers\Admin\BillingSimcardCrudController;
+use App\Http\Controllers\Admin\TransactionHistoryCrudController;
 use App\Http\Controllers\Admin\AccountUserCrudController;
 use App\Http\Controllers\Admin\ProjectListCrudController;
 use App\Http\Controllers\Admin\BalanceSheetCrudController;
@@ -153,6 +154,12 @@ Route::group([
         Route::post('billing-simcard/import', [BillingSimcardCrudController::class, 'import']);
         Route::post('billing-simcard/export-pdf', [BillingSimcardCrudController::class, 'exportPdf']);
         Route::post('billing-simcard/export-excel', [BillingSimcardCrudController::class, 'exportExcel']);
+
+        Route::get('transaction-history/download-template', [TransactionHistoryCrudController::class, 'downloadTemplate']);
+        Route::crud('transaction-history', 'TransactionHistoryCrudController');
+        Route::post('transaction-history/import', [TransactionHistoryCrudController::class, 'import']);
+        Route::post('transaction-history/export-pdf', [TransactionHistoryCrudController::class, 'exportPdf']);
+        Route::post('transaction-history/export-excel', [TransactionHistoryCrudController::class, 'exportExcel']);
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);
