@@ -215,6 +215,7 @@ return [
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
         'transaction_history' => 'Transaction History',
+        'billing_notification' => 'Billing Notification',
     ],
     'setting' => [
         'pi_prefix' => 'PI Prefix',
@@ -478,6 +479,7 @@ return [
             'subscription_expiry_date' => 'Subscription Expiry Date',
             'installation_date' => 'Installation Date',
             'expired_date' => 'Expired date',
+            'reminder_date' => 'Reminder Date',
         ],
     ],
     'billing_simcard' => [
@@ -495,6 +497,16 @@ return [
             'subscription_expiry_date' => 'Subscription Expiry Date',
             'installation_date' => 'Installation Date',
             'expired_date' => 'Expired date',
+        ],
+    ],
+    'billing_notification' => [
+        'title_header' => 'Billing Notification',
+        'column' => [
+            'billable_type' => 'Billing Type',
+            'billable_id' => 'Item ID',
+            'notification_date' => 'Notification Date',
+            'message' => 'Message',
+            'company' => 'Milik Perusahaan',
         ],
     ],
     'transaction_history' => [
@@ -520,6 +532,17 @@ return [
             'withholding_agent' => [
                 'label' => 'Withholding Agent',
                 'placeholder' => '- SELECT WITHHOLDING AGENT -',
+            ],
+            'type_device' => [
+                'label' => 'Device Type',
+                'placeholder' => 'Select Device Type',
+            ],
+            'item' => [
+                'items' => [
+                    'name' => [
+                        'label' => 'Device ID',
+                    ],
+                ],
             ],
         ],
     ],

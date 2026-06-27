@@ -50,6 +50,7 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX CLIENT BILLING SIMCARD',
             'MENU INDEX CLIENT RIWAYAT TRANSAKSI',
             'MENU INDEX VENDOR PROFORMA INVOICE',
+            'MENU INDEX CLIENT NOTIFIKASI TAGIHAN',
         ];
 
         $permissionModels = [];

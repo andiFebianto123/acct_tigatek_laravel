@@ -9,6 +9,7 @@ use App\Models\BillingSimcard;
 use App\DTOs\ClientManagement\BillingSimcardFilterData;
 use App\Repositories\ClientManagement\BillingSimcardRepository;
 use App\Services\ClientManagement\BillingSimcardService;
+use App\DTOs\ClientManagement\BillingSimcardData;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ use Prologue\Alerts\Facades\Alert;
 class BillingSimcardCrudController extends CrudController
 {
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
@@ -161,6 +163,12 @@ class BillingSimcardCrudController extends CrudController
                 'name'   => 'expired_date',
                 'type'   => 'date',
                 'label'  => trans('backpack::crud.billing_simcard.column.expired_date') ?? 'Expired date',
+                'format' => 'DD/MM/YYYY',
+            ],
+            [
+                'name'   => 'reminder_date',
+                'type'   => 'date',
+                'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
                 'format' => 'DD/MM/YYYY',
             ],
             [
@@ -316,6 +324,13 @@ class BillingSimcardCrudController extends CrudController
             'type'   => 'date',
             'format' => 'DD/MM/YYYY',
         ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'name'   => 'reminder_date',
+            'type'   => 'date',
+            'format' => 'DD/MM/YYYY',
+        ]);
     }
 
     /**
@@ -466,6 +481,18 @@ class BillingSimcardCrudController extends CrudController
     {
         $this->setupCreateOperation();
 
+        CRUD::addField([
+            'name'  => 'reminder_date',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+        ]);
+
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
@@ -548,6 +575,13 @@ class BillingSimcardCrudController extends CrudController
         CRUD::column([
             'label'  => trans('backpack::crud.billing_simcard.column.expired_date') ?? 'Expired date',
             'name'   => 'expired_date',
+            'type'   => 'date',
+            'format' => 'DD/MM/YYYY',
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'name'   => 'reminder_date',
             'type'   => 'date',
             'format' => 'DD/MM/YYYY',
         ]);
@@ -678,6 +712,79 @@ class BillingSimcardCrudController extends CrudController
                 'language' => App::getLocale(),
             ],
         ]);
+    }
+
+    protected function setupUpdateOperation()
+    {
+        CRUD::setValidation(\App\Http\Requests\BillingSimcardRequest::class);
+        
+        $this->setupCreateOperation();
+
+        CRUD::addField([
+            'name'  => 'reminder_date',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+        ]);
+    }
+
+    public function edit($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+        $this->crud->registerFieldEvents();
+
+        $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
+        $this->data['crud'] = $this->crud;
+        $this->data['saveAction'] = $this->crud->getSaveAction();
+        $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.edit') . ' ' . $this->crud->entity_name;
+        $this->data['id'] = $id;
+
+        return response()->json([
+            'html' => view($this->crud->getEditView(), $this->data)->render()
+        ]);
+    }
+
+    public function update()
+    {
+        $this->crud->hasAccessOrFail('update');
+        $request = $this->crud->validateRequest();
+        $this->crud->registerFieldEvents();
+
+        DB::beginTransaction();
+        try {
+            $data = BillingSimcardData::fromRequest($request);
+            $item = $this->service->updateBillingSimcard((int) $request->id, $data);
+
+            DB::commit();
+
+            Alert::success(trans('backpack::crud.update_success'))->flash();
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $item,
+                    'events' => [
+                        'crudTable-billing_simcard_updated_success' => $item,
+                    ]
+                ]);
+            }
+
+            return $this->crud->performSaveAction($item->getKey());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'success' => false,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

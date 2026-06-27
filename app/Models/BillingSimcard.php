@@ -27,12 +27,14 @@ class BillingSimcard extends Model
         'subscription_expiry_date',
         'installation_date',
         'expired_date',
+        'reminder_date',
     ];
 
     protected $casts = [
         'subscription_expiry_date' => 'date',
         'installation_date' => 'date',
         'expired_date' => 'date',
+        'reminder_date' => 'date',
     ];
 
     protected $appends = [

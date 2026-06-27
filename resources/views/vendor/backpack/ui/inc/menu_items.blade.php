@@ -137,6 +137,7 @@
             'MENU INDEX CLIENT BILLING DEVICE',
             'MENU INDEX CLIENT BILLING SIMCARD',
             'MENU INDEX CLIENT RIWAYAT TRANSAKSI',
+            'MENU INDEX CLIENT NOTIFIKASI TAGIHAN',
         ])->count() > 0)
 @php
     if(request()->is('admin/billing/billing-device*')) {
@@ -145,6 +146,8 @@
         $route_billing = backpack_url('billing/billing-simcard');
     } else if(request()->is('admin/billing/transaction-history*')){
         $route_billing = backpack_url('billing/transaction-history');
+    } else if(request()->is('admin/billing/billing-notification*')){
+        $route_billing = backpack_url('billing/billing-notification');
     } else {
         $route_billing = backpack_url('billing-empty');
     }
@@ -161,6 +164,9 @@
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT RIWAYAT TRANSAKSI'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.transaction_history')}}" icon="la la-circle-notch" :link="backpack_url('billing/transaction-history')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT NOTIFIKASI TAGIHAN'))
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_notification')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-notification')" />
     @endif
 </x-menu-group-custom>
 @endif

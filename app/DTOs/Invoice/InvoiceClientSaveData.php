@@ -25,6 +25,7 @@ class InvoiceClientSaveData
         public readonly ?int $company_id = null,
         public readonly mixed $invoice_document = null,
         public readonly ?int $account_source_id = null,
+        public readonly ?string $type_device = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -55,6 +56,7 @@ class InvoiceClientSaveData
             company_id: (int) $request->company_id,
             invoice_document: $request->file('invoice_document'),
             account_source_id: (int) $request->account_source_id,
+            type_device: $request->type_device,
         );
     }
 }

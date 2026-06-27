@@ -1106,6 +1106,20 @@ class InvoiceClientCrudController extends CrudController
             'hint' => trans('backpack::crud.invoice_client.field.invoice_document.hint'),
         ]);
 
+        CRUD::addField([
+            'name'        => 'type_device',
+            'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'App\Models\BillingDevice' => 'Billing Device',
+                'App\Models\BillingSimcard' => 'Billing SIMCARD',
+            ],
+            'allows_null' => true,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
         $id = request()->segment(3);
 
         if ($id != 'create') {

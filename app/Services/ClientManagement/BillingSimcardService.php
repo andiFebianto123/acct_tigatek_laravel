@@ -15,4 +15,16 @@ class BillingSimcardService
     {
         Excel::import(new BillingSimcardImport($companyId), $file);
     }
+
+    /**
+     * Update an existing BillingSimcard.
+     */
+    public function updateBillingSimcard(int $id, \App\DTOs\ClientManagement\BillingSimcardData $data): \App\Models\BillingSimcard
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($id, $data) {
+            $simcard = \App\Models\BillingSimcard::findOrFail($id);
+            $simcard->update($data->toArray());
+            return $simcard;
+        });
+    }
 }

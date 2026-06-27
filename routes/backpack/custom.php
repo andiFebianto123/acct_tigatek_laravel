@@ -160,6 +160,8 @@ Route::group([
         Route::post('transaction-history/import', [TransactionHistoryCrudController::class, 'import']);
         Route::post('transaction-history/export-pdf', [TransactionHistoryCrudController::class, 'exportPdf']);
         Route::post('transaction-history/export-excel', [TransactionHistoryCrudController::class, 'exportExcel']);
+
+        Route::crud('billing-notification', 'BillingNotificationCrudController');
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);

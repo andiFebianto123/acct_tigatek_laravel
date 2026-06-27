@@ -259,6 +259,7 @@ return [
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
         'transaction_history' => 'Riwayat Transaksi',
+        'billing_notification' => 'Notifikasi Tagihan',
     ],
     'setting' => [
         'pi_prefix' => 'PI Prefix',
@@ -654,6 +655,7 @@ return [
             'subscription_expiry_date' => 'Subscription Expiry Date',
             'installation_date' => 'Installation Date',
             'expired_date' => 'Expired date',
+            'reminder_date' => 'Tanggal Reminder',
         ],
     ],
     'billing_simcard' => [
@@ -671,6 +673,16 @@ return [
             'subscription_expiry_date' => 'Subscription Expiry Date',
             'installation_date' => 'Installation Date',
             'expired_date' => 'Expired date',
+        ],
+    ],
+    'billing_notification' => [
+        'title_header' => 'Notifikasi Tagihan',
+        'column' => [
+            'billable_type' => 'Jenis Tagihan',
+            'billable_id' => 'ID Item',
+            'notification_date' => 'Tanggal Notifikasi',
+            'message' => 'Pesan',
+            'company' => 'Milik Perusahaan',
         ],
     ],
     'transaction_history' => [
@@ -889,6 +901,10 @@ return [
             'nominal_information_show' => [
                 'label' => 'Estimasi Nilai Transfer',
             ],
+            'type_device' => [
+                'label' => 'Tipe Barang',
+                'placeholder' => 'Pilih Tipe Barang',
+            ],
             'item' => [
                 'label' => 'Invoice Item',
                 'new_item_label' => 'Tambah Item',
@@ -897,8 +913,8 @@ return [
                 ],
                 'items' => [
                     'name' => [
-                        'label' => 'Nama Item',
-                        'placeholder' => 'Nama Item',
+                        'label' => 'Device ID',
+                        'placeholder' => 'Device ID',
                     ],
                     'price' => [
                         'label' => 'Harga Item',

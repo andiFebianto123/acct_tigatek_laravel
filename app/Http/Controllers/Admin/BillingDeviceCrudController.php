@@ -7,6 +7,7 @@ use App\Http\Controllers\Operation\FormaterExport;
 use App\Http\Controllers\Operation\PermissionAccess;
 use App\Models\BillingDevice;
 use App\DTOs\ClientManagement\BillingDeviceFilterData;
+use App\DTOs\ClientManagement\BillingDeviceData;
 use App\Repositories\ClientManagement\BillingDeviceRepository;
 use App\Services\ClientManagement\BillingDeviceService;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -19,6 +20,7 @@ use Prologue\Alerts\Facades\Alert;
 class BillingDeviceCrudController extends CrudController
 {
     use \Backpack\CRUD\app\Http\Controllers\Operations\ListOperation;
+    use \Backpack\CRUD\app\Http\Controllers\Operations\UpdateOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\DeleteOperation;
     use \Backpack\CRUD\app\Http\Controllers\Operations\ShowOperation;
     use PermissionAccess;
@@ -161,6 +163,12 @@ class BillingDeviceCrudController extends CrudController
                 'name'   => 'expired_date',
                 'type'   => 'date',
                 'label'  => trans('backpack::crud.billing_device.column.expired_date') ?? 'Expired date',
+                'format' => 'DD/MM/YYYY',
+            ],
+            [
+                'name'   => 'reminder_date',
+                'type'   => 'date',
+                'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
                 'format' => 'DD/MM/YYYY',
             ],
             [
@@ -316,6 +324,13 @@ class BillingDeviceCrudController extends CrudController
             'type'   => 'date',
             'format' => 'DD/MM/YYYY',
         ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'name'   => 'reminder_date',
+            'type'   => 'date',
+            'format' => 'DD/MM/YYYY',
+        ]);
     }
 
     /**
@@ -467,6 +482,18 @@ class BillingDeviceCrudController extends CrudController
     {
         $this->setupCreateOperation();
 
+        CRUD::addField([
+            'name'  => 'reminder_date',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+        ]);
+
         // Ensure columns match the exact sequence as the setup fields
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::column([
@@ -553,6 +580,13 @@ class BillingDeviceCrudController extends CrudController
             'type'   => 'date',
             'format' => 'DD/MM/YYYY',
         ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'name'   => 'reminder_date',
+            'type'   => 'date',
+            'format' => 'DD/MM/YYYY',
+        ]);
     }
 
     /**
@@ -560,6 +594,8 @@ class BillingDeviceCrudController extends CrudController
      */
     protected function setupCreateOperation()
     {
+        CRUD::setValidation(\App\Http\Requests\BillingDeviceRequest::class);
+
         if (backpack_user()->hasRole('Super Admin')) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
@@ -774,5 +810,76 @@ class BillingDeviceCrudController extends CrudController
             'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
+    }
+
+    protected function setupUpdateOperation()
+    {
+        $this->setupCreateOperation();
+
+        CRUD::addField([
+            'name'  => 'reminder_date',
+            'type'  => 'date_picker',
+            'label' => trans('backpack::crud.billing_device.column.reminder_date') ?? 'Tanggal Reminder',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'date_picker_options' => [
+                'language' => App::getLocale(),
+            ],
+        ]);
+    }
+
+    public function edit($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+        $this->crud->registerFieldEvents();
+
+        $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
+        $this->data['crud'] = $this->crud;
+        $this->data['saveAction'] = $this->crud->getSaveAction();
+        $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.edit') . ' ' . $this->crud->entity_name;
+        $this->data['id'] = $id;
+
+        return response()->json([
+            'html' => view($this->crud->getEditView(), $this->data)->render()
+        ]);
+    }
+
+    public function update()
+    {
+        $this->crud->hasAccessOrFail('update');
+        $request = $this->crud->validateRequest();
+        $this->crud->registerFieldEvents();
+
+        DB::beginTransaction();
+        try {
+            $data = BillingDeviceData::fromRequest($request);
+            $item = $this->service->updateBillingDevice((int) $request->id, $data);
+
+            DB::commit();
+
+            Alert::success(trans('backpack::crud.update_success'))->flash();
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $item,
+                    'events' => [
+                        'crudTable-billing_device_updated_success' => $item,
+                    ]
+                ]);
+            }
+
+            return $this->crud->performSaveAction($item->getKey());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'success' => false,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
