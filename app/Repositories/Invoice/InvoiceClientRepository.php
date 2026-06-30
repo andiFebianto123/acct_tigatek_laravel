@@ -124,4 +124,17 @@ class InvoiceClientRepository
 
         return $query->first()?->toArray() ?? [];
     }
+
+    /**
+     * Check if an invoice exists for a specific device on a given date.
+     */
+    public function hasInvoiceForDevice(string $typeDevice, string $identifier, string $date): bool
+    {
+        return InvoiceClient::where('invoice_date', $date)
+            ->where('type_device', $typeDevice)
+            ->whereHas('invoice_client_details', function ($query) use ($identifier) {
+                $query->where('name', $identifier);
+            })
+            ->exists();
+    }
 }

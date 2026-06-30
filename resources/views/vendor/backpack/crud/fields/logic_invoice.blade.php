@@ -53,12 +53,83 @@
                     var diskon_pph = (pph == 0) ? 0 : nominal_exclude_ppn * (pph / 100);
                     setInputNumber2(form+' input[name="discount_pph"]', diskon_pph);
                 },
+                loadNotificationPrefill: function(entry, form){
+                    var instance = this;
+                    if(entry != null){
+                        setTimeout(() => {
+                            instance.total_price = entry.nominal_exclude_ppn;
+                            setInputNumber(form + ' #nominal_exclude_ppn_masked', entry.nominal_exclude_ppn || 0);
+                            setInputNumber(form+' #dpp_other_masked', entry.price_dpp || entry.dpp_other || 0);
+                            $(form+' input[name="tax_ppn"]').val(entry.tax_ppn || 0);
+                            setInputNumber(form+' #nominal_include_ppn_masked', entry.price_total_include_ppn || entry.nominal_include_ppn || 0);
+                            
+                            $(form+' input[name="pph"]').val(entry.pph || 0);
+                            setInputNumber2(form+' input[name="discount_pph"]', entry.discount_pph || 0);
+                            
+                            if (entry.company_id) {
+                                $(form+' select[name="company_id"]').val(entry.company_id).trigger('change');
+                            }
+                            if (entry.client_id) {
+                                $(form+' select[name="client_id"]').val(entry.client_id).trigger('change');
+                            }
+                            if (entry.client_po_id && entry.client_po_number) {
+                                var poOption = new Option(entry.client_po_number, entry.client_po_id, true, true);
+                                $(form+' select[name="client_po_id"]').append(poOption).trigger('change');
+                            }
+                            if (entry.address_po) {
+                                $(form+' input[name="address_po"]').val(entry.address_po);
+                            }
+                            if (entry.description) {
+                                $(form+' textarea[name="description"], '+form+' input[name="description"]').val(entry.description);
+                            }
+                            if (entry.withholding_agent) {
+                                $(form+' select[name="withholding_agent"]').val(entry.withholding_agent).trigger('change');
+                            }
+                            if (entry.account_source_id) {
+                                $(form+' select[name="account_source_id"]').val(entry.account_source_id).trigger('change');
+                            }
+                            if (entry.type_device) {
+                                $(form+' select[name="type_device"]').val(entry.type_device).trigger('change');
+                            }
+                            if (entry.client_name) {
+                                $(form+' input[name="client_name"]').val(entry.client_name);
+                            }
+                            if (entry.po_date) {
+                                $(form+' input[name="po_date"]').val(entry.po_date);
+                            }
+                            if (entry.kdp) {
+                                $(form+' input[name="kdp"]').val(entry.kdp);
+                            }
+                            
+                            // Set repeatable item prices
+                            if (entry.invoice_client_details) {
+                                $(form+' input[data-alt="price_masked"]').each(function(index) {
+                                    
+                                    if (entry.invoice_client_details[index]) {
+                                        var rawPrice = entry.invoice_client_details[index].price;
+                                        var hiddenInput = $(this).parent().next();
+                                        hiddenInput.val(rawPrice);
+                                        $(this).val(formatIdr(parseInt(rawPrice)));
+                                    }
+                                });
+                                // countTotalPrice();
+                            }
+                            
+                            instance.logicFormulaNoPO();
+                        }, 300);
+                    }
+                },
                 load: function(){
                     var instance = this;
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
 
                     var entry = {!! json_encode($set_value) !!};
-                    if(entry != null){
+                    var hasNotificationId = {!! request()->has('notification_id') ? 'true' : 'false' !!};
+
+                    if (hasNotificationId && entry != null) {
+                        console.log("logic dari notifikasi");
+                        this.loadNotificationPrefill(entry, form);
+                    } else if(entry != null){
                         setTimeout(() => {
                             instance.total_price = entry.nominal_exclude_ppn;
                             setInputNumber(form + ' #nominal_exclude_ppn_masked', entry.nominal_exclude_ppn || 0);
@@ -150,7 +221,7 @@
                         }
                     }
 
-                    if(form == '#form-edit'){
+                    if(form == '#form-edit' || (form == '#form-create' && hasNotificationId && entry != null)){
                         countTotalPrice();
                         setTimeout(() => {
                             $(form+' input[data-alt="price_masked"], ' + form + ' input[data-repeatable-input-name="qty"]').each(function(){

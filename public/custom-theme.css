@@ -480,3 +480,37 @@ div.dataTables_wrapper div.dataTables_paginate ul.pagination li.next a{
     margin-left: 160px !important;
     max-width: none !important;
 }
+
+.menu_hover_custom .sidebar .nav-link {
+    position: relative;
+}
+.menu_hover_custom .sidebar .nav-link .badge {
+    display: block !important;
+    position: absolute !important;
+    top: 8px !important;
+    left: 50% !important;
+    margin-left: 4px !important;
+    width: 8px !important;
+    height: 8px !important;
+    padding: 0 !important;
+    font-size: 0 !important;
+    border-radius: 50% !important;
+    background-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px #fff !important;
+}
+
+.group-badge-dot {
+    display: none;
+}
+.menu_hover_custom .sidebar .dash-micon .group-badge-dot {
+    display: block !important;
+    position: absolute !important;
+    top: 0px !important;
+    right: 12px !important;
+    width: 8px !important;
+    height: 8px !important;
+    background-color: #dc3545 !important;
+    border-radius: 50% !important;
+    box-shadow: 0 0 0 2px #fff !important;
+    z-index: 10;
+}

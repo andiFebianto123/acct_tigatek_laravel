@@ -12,7 +12,28 @@ class BillingNotificationRepository
      */
     public function getFilteredData(BillingNotificationFilterData $filters)
     {
-        $query = BillingNotification::query()->with(['company', 'billable']);
+        $query = BillingNotification::query()
+            ->select('billing_notifications.*')
+            ->selectSub(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('invoice_clients')
+                    ->join('invoice_client_details', 'invoice_clients.id', '=', 'invoice_client_details.invoice_client_id')
+                    ->whereColumn('invoice_clients.type_device', 'billing_notifications.billable_type')
+                    ->whereRaw('YEAR(invoice_clients.invoice_date) = YEAR(billing_notifications.notification_date)')
+                    ->whereRaw('MONTH(invoice_clients.invoice_date) = MONTH(billing_notifications.notification_date)')
+                    ->whereColumn('invoice_client_details.name', \Illuminate\Support\Facades\DB::raw("
+                        (CASE 
+                            WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingDevice' THEN (
+                                SELECT device_id FROM billing_devices WHERE billing_devices.id = billing_notifications.billable_id LIMIT 1
+                            )
+                            WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingSimcard' THEN (
+                                SELECT device_profile_id FROM billing_simcards WHERE billing_simcards.id = billing_notifications.billable_id LIMIT 1
+                            )
+                        END)
+                    "))
+                    ->limit(1);
+            }, 'has_invoice_this_month')
+            ->with(['company', 'billable']);
 
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
@@ -58,7 +79,19 @@ class BillingNotificationRepository
 
             switch ($config['type']) {
                 case 'like':
-                    $query->where($config['field'], 'like', "%{$searchValue}%");
+                    if ($config['field'] === 'billable_id') {
+                        $query->where(function ($q) use ($searchValue) {
+                            $q->whereHasMorph('billable', [\App\Models\BillingDevice::class, \App\Models\BillingSimcard::class], function ($subQuery, $type) use ($searchValue) {
+                                if ($type === \App\Models\BillingDevice::class) {
+                                    $subQuery->where('device_id', 'like', "%{$searchValue}%");
+                                } elseif ($type === \App\Models\BillingSimcard::class) {
+                                    $subQuery->where('msisdn', 'like', "%{$searchValue}%");
+                                }
+                            });
+                        });
+                    } else {
+                        $query->where($config['field'], 'like', "%{$searchValue}%");
+                    }
                     break;
                 case 'relation':
                     $relation = $config['relation'];
@@ -71,5 +104,41 @@ class BillingNotificationRepository
         }
 
         return $query;
+    }
+
+    /**
+     * Get IDs of billing notifications that have been paid.
+     */
+    public function getPaidNotificationIds(?int $limit = null): array
+    {
+        $query = \Illuminate\Support\Facades\DB::table('billing_notifications')
+            ->join('invoice_clients', function ($join) {
+                $join->on('invoice_clients.type_device', '=', 'billing_notifications.billable_type')
+                    ->whereRaw('YEAR(invoice_clients.invoice_date) = YEAR(billing_notifications.notification_date)')
+                    ->whereRaw('MONTH(invoice_clients.invoice_date) = MONTH(billing_notifications.notification_date)');
+            })
+            ->join('invoice_client_details', 'invoice_clients.id', '=', 'invoice_client_details.invoice_client_id')
+            ->join('account_transactions', function ($join) {
+                $join->on('account_transactions.reference_id', '=', 'invoice_clients.id')
+                    ->where('account_transactions.reference_type', '=', 'App\\Models\\InvoiceClient');
+            })
+            ->where('invoice_clients.status', '=', 'Paid')
+            ->whereNull('billing_notifications.deleted_at')
+            ->whereColumn('invoice_client_details.name', \Illuminate\Support\Facades\DB::raw("
+                (CASE 
+                    WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingDevice' THEN (
+                        SELECT device_id FROM billing_devices WHERE billing_devices.id = billing_notifications.billable_id LIMIT 1
+                    )
+                    WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingSimcard' THEN (
+                        SELECT device_profile_id FROM billing_simcards WHERE billing_simcards.id = billing_notifications.billable_id LIMIT 1
+                    )
+                END)
+            "));
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->pluck('billing_notifications.id')->toArray();
     }
 }

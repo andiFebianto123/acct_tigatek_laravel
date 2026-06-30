@@ -151,11 +151,19 @@
     } else {
         $route_billing = backpack_url('billing-empty');
     }
+
+    $notifCount = 0;
+    if (backpack_user() && $permissions->contains('name', 'MENU INDEX CLIENT NOTIFIKASI TAGIHAN')) {
+        $notifCount = backpack_user()->hasRole('Super Admin')
+            ? \App\Models\BillingNotification::count()
+            : \App\Models\BillingNotification::where('company_id', backpack_user()->company_id)->count();
+    }
 @endphp
 <x-menu-group-custom
     title="Management Billing"
     :logo_url="asset('storage/logos/menu/logo-billing.png')"
-    :link="$route_billing" >
+    :link="$route_billing"
+    :badge="$notifCount" >
     @if($permissions->contains('name', 'MENU INDEX CLIENT BILLING DEVICE'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_device')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-device')" />
     @endif
@@ -166,7 +174,7 @@
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.transaction_history')}}" icon="la la-circle-notch" :link="backpack_url('billing/transaction-history')" />
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT NOTIFIKASI TAGIHAN'))
-        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_notification')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-notification')" />
+        <x-menu-group-item-custom title="{{trans('backpack::crud.menu.billing_notification')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-notification')" :badge="$notifCount" />
     @endif
 </x-menu-group-custom>
 @endif

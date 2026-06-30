@@ -66,6 +66,10 @@ class InvoiceClientRequest extends FormRequest
                     'min:1',
                     function ($attribute, $value, $fail) use ($client_po, $items) {
                         $client = ClientPo::find($client_po);
+                        if (!$client) {
+                            $fail('PO Client tidak ditemukan.');
+                            return;
+                        }
                         $price_total = $client->job_value;
                         $items_total_price = 0;
                         foreach ($items as $item) {
@@ -105,8 +109,11 @@ class InvoiceClientRequest extends FormRequest
                     'min:1',
                     function ($attribute, $value, $fail) use ($client_po, $items) {
                         $client = ClientPo::find($client_po);
+                        if (!$client) {
+                            $fail('PO Client tidak ditemukan.');
+                            return;
+                        }
                         $price_total = $client->job_value;
-
                         $items_total_price = 0;
                         foreach ($items as $item) {
                             $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));

@@ -751,6 +751,79 @@ class InvoiceClientCrudController extends CrudController
         }
 
         CRUD::setValidation(InvoiceClientRequest::class);
+        $detailsValue = null;
+          if (request()->has('notification_id')) {
+            $notificationId = request('notification_id');
+            $notification = \App\Models\BillingNotification::find($notificationId);
+            if ($notification) {
+                $searchKey = '';
+                $companyId = $notification->company_id;
+                $typeDevice = $notification->billable_type;
+
+                if ($typeDevice === \App\Models\BillingSimcard::class) {
+                    $simcard = \App\Models\BillingSimcard::find($notification->billable_id);
+                    $searchKey = $simcard ? $simcard->device_profile_id : '';
+                } else if ($typeDevice === \App\Models\BillingDevice::class) {
+                    $device = \App\Models\BillingDevice::find($notification->billable_id);
+                    $searchKey = $device ? $device->device_id : '';
+                }
+
+                $previousDetail = \App\Models\InvoiceClientDetail::where('name', $searchKey)
+                    ->latest()
+                    ->first();
+
+                $invoice = new \App\Models\InvoiceClient();
+
+                if ($previousDetail && $previousDetail->invoice_client) {
+                    $prevInvoice = $previousDetail->invoice_client;
+                    
+                    $invoice->company_id = $prevInvoice->company_id;
+                    $invoice->client_id = $prevInvoice->client_id;
+                    $invoice->client_po_id = $prevInvoice->client_po_id;
+                    $invoice->type_device = $prevInvoice->type_device;
+                    $invoice->address_po = $prevInvoice->address_po;
+                    $invoice->setAttribute('nominal_exclude_ppn', $prevInvoice->price_total_exclude_ppn);
+                    $invoice->setAttribute('nominal_include_ppn', $prevInvoice->price_total_include_ppn);
+                    $invoice->tax_ppn = $prevInvoice->tax_ppn;
+                    $invoice->pph = $prevInvoice->pph;
+                    $invoice->setAttribute('dpp_other', $prevInvoice->price_dpp);
+                    $invoice->withholding_agenbt = $prevInvoice->withholding_agent;
+                    $invoice->account_source_id = $prevInvoice->account_source_id;
+                    $invoice->description = $prevInvoice->description;
+
+                    if ($prevInvoice->client_po) {
+                        $invoice->setAttribute('client_po_number', $prevInvoice->client_po->po_number ?? '');
+                        $invoice->setAttribute('client_name', $prevInvoice->client_po->client->name ?? '');
+                        $invoice->setAttribute('po_date', \Carbon\Carbon::parse($prevInvoice->client_po->date_po)->format('d/m/Y'));
+                        $invoice->setAttribute('kdp', $prevInvoice->client_po->work_code ?? '');
+                    }
+
+                    foreach ($prevInvoice->invoice_client_details as $detail) {
+                        $detailsValue[] = [
+                            'name' => $detail->name,
+                            'qty' => $detail->qty,
+                            'price' => (int) $detail->price,
+                        ];
+                    }
+                } else {
+                    $invoice->company_id = $companyId;
+                    $invoice->type_device = $typeDevice;
+                    $invoice->status = 'Unpaid';
+
+                    $detailsValue[] = [
+                        'name' => $searchKey,
+                        'qty' => 1,
+                        'price' => '0',
+                    ];
+                }
+
+                $invoice->setAttribute('invoice_client_details', $detailsValue);
+
+                $this->crud->entry = $invoice;
+                $this->data['entry'] = $invoice;
+            }
+        }
+
         $settings = Setting::first();
         $inv_prefix_value = [];
         if (!$this->crud->getCurrentEntryId()) {
@@ -1170,6 +1243,7 @@ class InvoiceClientCrudController extends CrudController
                 'label' => trans('backpack::crud.invoice_client.field.item.label'),
                 'type' => 'repeatable',
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
+                'value' => $detailsValue,
                 'fields' => [
                     [
                         'name' => 'name',
@@ -1263,7 +1337,8 @@ class InvoiceClientCrudController extends CrudController
                     'data' => $invoice,
                     'events' => [
                         'crudTable-filter_invoice_plugin_load' => true,
-                        'crudTable-invoice_create_success' => true
+                        'crudTable-invoice_create_success' => true,
+                        'crudTable-billing_notification_updated_success' => true,
                     ],
                 ]);
             }
