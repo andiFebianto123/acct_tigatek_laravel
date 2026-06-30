@@ -3,7 +3,8 @@
     'activeClass' => 'active',
     'title' => '',
     'logo_url' => '',
-    'badge' => null
+    'badge' => null,
+    'id' => null
 ])
 
 @php
@@ -15,13 +16,11 @@
         $active = true;
     }
 @endphp
-<li class="nav-group nav-root {{ $active ? 'active show':'' }}">
+<li class="nav-group nav-root {{ $active ? 'active show':'' }}" @if($id) id="{{$id}}" @endif>
     <a class="nav-link nav-group-toggle" href="{{$link}}">
         <span class="dash-micon" style="position: relative;">
             <img src="{{$logo_url}}" alt="{{$title}}" width="18px" height="18px">
-            @if($badge !== null && $badge > 0)
-                <span class="group-badge-dot"></span>
-            @endif
+            <span class="group-badge-dot"></span>
         </span>
         <span>{{$title}}</span>
     </a>

@@ -161,6 +161,7 @@ Route::group([
         Route::post('transaction-history/export-pdf', [TransactionHistoryCrudController::class, 'exportPdf']);
         Route::post('transaction-history/export-excel', [TransactionHistoryCrudController::class, 'exportExcel']);
 
+        Route::get('billing-notification/count', 'BillingNotificationCrudController@getNotificationCount');
         Route::crud('billing-notification', 'BillingNotificationCrudController');
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);

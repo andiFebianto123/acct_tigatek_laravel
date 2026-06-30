@@ -397,4 +397,18 @@ class BillingNotificationCrudController extends CrudController
             ],
         ]);
     }
+
+    public function getNotificationCount()
+    {
+        $count = 0;
+        if (backpack_user()) {
+            $permissions = backpack_user()->getPermissionsViaRoles()->pluck('name');
+            if ($permissions->contains('MENU INDEX CLIENT NOTIFIKASI TAGIHAN')) {
+                $count = backpack_user()->hasRole('Super Admin')
+                    ? \App\Models\BillingNotification::count()
+                    : \App\Models\BillingNotification::where('company_id', backpack_user()->company_id)->count();
+            }
+        }
+        return response()->json(['count' => $count]);
+    }
 }

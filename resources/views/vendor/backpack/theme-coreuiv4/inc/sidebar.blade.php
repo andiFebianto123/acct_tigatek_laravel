@@ -43,5 +43,44 @@
         sessionStorage.setItem('sidebar-collapsed', Number(sidebar.classList.contains('hide')));
         crud?.table?.fixedHeader.adjust();
       });
+
+      $(document).ready(function() {
+          function fetchBillingNotificationCount() {
+              $.ajax({
+                  url: "{{ backpack_url('billing/billing-notification/count') }}",
+                  type: 'GET',
+                  dataType: 'json',
+                  success: function(response) {
+                      let count = response.count || 0;
+                      
+                      // 1. Update the submenu badge
+                      let submenuBadge = $('#menu-item-billing-notification .badge');
+                      if (submenuBadge.length) {
+                          if (count > 0) {
+                              submenuBadge.text(count).show();
+                          } else {
+                              submenuBadge.hide();
+                          }
+                      }
+
+                      // 2. Update the parent menu group badge dot
+                      let groupBadgeDot = $('#menu-group-billing .group-badge-dot');
+                      if (groupBadgeDot.length) {
+                          if (count > 0) {
+                              groupBadgeDot.addClass('show-dot');
+                          } else {
+                              groupBadgeDot.removeClass('show-dot');
+                          }
+                      }
+                  }
+              });
+          }
+
+          // Initial load
+          fetchBillingNotificationCount();
+
+          // Poll every 30 seconds for realtime count update
+          setInterval(fetchBillingNotificationCount, 30000);
+      });
   </script>
 @endpush
