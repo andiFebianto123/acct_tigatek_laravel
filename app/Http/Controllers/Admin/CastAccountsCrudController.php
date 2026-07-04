@@ -642,6 +642,9 @@ class CastAccountsCrudController extends CrudController
             'name' => 'required|max:100|unique:cast_accounts,name,' . $id,
             'bank_name' => 'required|max:50',
             'no_account' => 'required|max:100,unique:cast_accounts,no_account,' . $id,
+            'bank_branch' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:255',
+            'swift_code' => 'nullable|string|max:20',
             'total_saldo' => 'required|numeric|min:0',
             'account_id' => [
                 'required',
@@ -1358,6 +1361,43 @@ class CastAccountsCrudController extends CrudController
                 ],
                 'attributes' => [
                     'placeholder' => trans('backpack::crud.cash_account.field.no_account.placeholder'),
+                ]
+            ]);
+
+            CRUD::addField([
+                'name' => 'bank_branch',
+                'label' => trans('backpack::crud.cash_account.field.bank_branch.label'),
+                'type' => 'text',
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+                'attributes' => [
+                    'placeholder' => trans('backpack::crud.cash_account.field.bank_branch.placeholder'),
+                ]
+            ]);
+
+            CRUD::addField([
+                'name' => 'swift_code',
+                'label' => trans('backpack::crud.cash_account.field.swift_code.label'),
+                'type' => 'text',
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+                'attributes' => [
+                    'placeholder' => trans('backpack::crud.cash_account.field.swift_code.placeholder'),
+                ]
+            ]);
+
+            CRUD::addField([
+                'name' => 'address',
+                'label' => trans('backpack::crud.cash_account.field.address.label'),
+                'type' => 'textarea',
+                'wrapper'   => [
+                    'class' => 'form-group col-md-12',
+                ],
+                'attributes' => [
+                    'placeholder' => trans('backpack::crud.cash_account.field.address.placeholder'),
+                    'rows' => 3,
                 ]
             ]);
 

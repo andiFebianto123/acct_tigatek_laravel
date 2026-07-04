@@ -871,4 +871,50 @@ class BillingSimcardCrudController extends CrudController
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
     }
+    public function downloadTemplate()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $columns = [
+            ['label' => 'product'],
+            ['label' => 'device_name'],
+            ['label' => 'technology'],
+            ['label' => 'device_profile_id'],
+            ['label' => 'iccid'],
+            ['label' => 'msisdn'],
+            ['label' => 'status'],
+            ['label' => 'rate_plan'],
+            ['label' => 'subscription_expiry_date'],
+            ['label' => 'installation_date'],
+            ['label' => 'expired_date'],
+        ];
+
+        $data = [
+            [
+                'Telkomsel IoT',
+                'Device Tracker A',
+                '4G / LTE',
+                'ID-PROFILE-001',
+                '8962100000000000001',
+                '6281234567890',
+                'Active',
+                'Plan 50MB',
+                '31/12/2026',
+                '01/01/2026',
+                '31/12/2026'
+            ]
+        ];
+
+        $name = 'template_billing_simcard.xlsx';
+
+        return response()->streamDownload(function () use ($columns, $data) {
+            echo \Maatwebsite\Excel\Facades\Excel::raw(new \App\Http\Exports\ExportExcel(
+                $columns,
+                $data
+            ), \Maatwebsite\Excel\Excel::XLSX);
+        }, $name, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $name . '"',
+        ]);
+    }
 }

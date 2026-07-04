@@ -341,6 +341,18 @@ return [
                 'save_confirm' => 'Are you sure you want to save this new bank?',
                 'error_empty' => 'Bank name cannot be empty!',
                 'error_ajax' => 'Error occurred while saving bank.',
+            ],
+            'bank_branch' => [
+                'label' => 'Bank Branch',
+                'placeholder' => 'Enter bank branch',
+            ],
+            'address' => [
+                'label' => 'Bank Address',
+                'placeholder' => 'Enter bank address',
+            ],
+            'swift_code' => [
+                'label' => 'Swift Code',
+                'placeholder' => 'Enter swift code',
             ]
         ],
         'field_transaction' => [

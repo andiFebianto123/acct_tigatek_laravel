@@ -882,4 +882,56 @@ class BillingDeviceCrudController extends CrudController
             ]);
         }
     }
+
+    /**
+     * Download Excel template for import.
+     */
+    public function downloadTemplate()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $columns = [
+            ['label' => 'device_id'],
+            ['label' => 'phone'],
+            ['label' => 'vehicle_uid'],
+            ['label' => 'vehicle_name'],
+            ['label' => 'imei'],
+            ['label' => 'speed_limit'],
+            ['label' => 'sim_network'],
+            ['label' => 'category'],
+            ['label' => 'model'],
+            ['label' => 'subscription_expiry_date'],
+            ['label' => 'installation_date'],
+            ['label' => 'expired_date'],
+        ];
+
+        $data = [
+            [
+                'DEV-1001',
+                '6281234567890',
+                'VEH-9921',
+                'Truck Hino A',
+                '351234567890123',
+                '80',
+                'Telkomsel',
+                'Heavy Duty',
+                'GT06N',
+                '31/12/2026',
+                '01/01/2026',
+                '31/12/2026'
+            ]
+        ];
+
+        $name = 'template_billing_device.xlsx';
+
+        return response()->streamDownload(function () use ($columns, $data) {
+            echo \Maatwebsite\Excel\Facades\Excel::raw(new \App\Http\Exports\ExportExcel(
+                $columns,
+                $data
+            ), \Maatwebsite\Excel\Excel::XLSX);
+        }, $name, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $name . '"',
+        ]);
+    }
 }

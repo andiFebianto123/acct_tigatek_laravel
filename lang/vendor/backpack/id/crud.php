@@ -968,6 +968,18 @@ return [
                 'label' => 'No. Rekening',
                 'placeholder' => 'Masukan nomor rekening',
             ],
+            'bank_branch' => [
+                'label' => 'Cabang Bank',
+                'placeholder' => 'Masukkan cabang bank',
+            ],
+            'address' => [
+                'label' => 'Alamat Bank',
+                'placeholder' => 'Masukkan alamat bank',
+            ],
+            'swift_code' => [
+                'label' => 'Swift Code',
+                'placeholder' => 'Masukkan swift code',
+            ],
             'total_saldo' => [
                 'label' => 'Saldo Rekening',
                 'placeholder' => '000.000'

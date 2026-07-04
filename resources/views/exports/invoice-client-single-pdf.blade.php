@@ -387,31 +387,39 @@
                 </li>
             </ol>
             
-            <div class="payment-title">Payment to be made to</div>
+            @php
+                $bankAccount = $header->account_source ?? null;
+            @endphp
             <table class="payment-table">
                 <tr>
                     <td class="label">Account Number</td>
-                    <td>: &nbsp; 2192222002</td>
+                    <td>: &nbsp; {{ $bankAccount ? $bankAccount->no_account : '2192222002' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Bank</td>
-                    <td>: &nbsp; BCA</td>
+                    <td>: &nbsp; {{ $bankAccount ? $bankAccount->bank_name : 'BCA' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Branch</td>
-                    <td>: &nbsp; Radio Dalam</td>
+                    <td>: &nbsp; {{ $bankAccount ? ($bankAccount->bank_branch ?? '-') : 'Radio Dalam' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Address</td>
-                    <td>: &nbsp; Jl. Radio Dalam Raya No.5, RT.3/RW.8<br>&nbsp;&nbsp; Daerah Khusus Ibukota Jakarta, 12140</td>
+                    <td>: &nbsp; 
+                        @if($bankAccount && $bankAccount->address)
+                            {!! nl2br(e($bankAccount->address)) !!}
+                        @else
+                            Jl. Radio Dalam Raya No.5, RT.3/RW.8<br>&nbsp;&nbsp; Daerah Khusus Ibukota Jakarta, 12140
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <td class="label">Name</td>
-                    <td>: &nbsp; PT. Tiga Teknologi Persada</td>
+                    <td>: &nbsp; {{ 'PT. Tiga Teknologi Persada' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Swift Code</td>
-                    <td>: &nbsp; CENAIDJA</td>
+                    <td>: &nbsp; {{ $bankAccount ? ($bankAccount->swift_code ?? '-') : 'CENAIDJA' }}</td>
                 </tr>
             </table>
         </div>

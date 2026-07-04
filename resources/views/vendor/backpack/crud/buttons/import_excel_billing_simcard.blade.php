@@ -34,6 +34,11 @@
                             Kolom yang diharapkan dalam file Excel: <br/>
                             <code>product</code>, <code>device_name</code>, <code>technology</code>, <code>device_profile_id</code>, <code>iccid</code>, <code>msisdn</code>, <code>status</code>, <code>rate_plan</code>, <code>subscription_expiry_date</code>, <code>installation_date</code>, <code>expired_date</code>.
                         </div>
+                        <div class="mt-2">
+                            <a href="{{ url($crud->route . '/download-template') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="la la-download"></i> {{ __('Unduh Template Excel') }}
+                            </a>
+                        </div>
                     </div>
                     
                     <div id="import-error-alert-simcard" class="alert alert-danger d-none"></div>

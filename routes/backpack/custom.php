@@ -145,11 +145,13 @@ Route::group([
     });
 
     Route::prefix('billing')->group(function () {
+        Route::get('billing-device/download-template', [BillingDeviceCrudController::class, 'downloadTemplate']);
         Route::crud('billing-device', 'BillingDeviceCrudController');
         Route::post('billing-device/import', [BillingDeviceCrudController::class, 'import']);
         Route::post('billing-device/export-pdf', [BillingDeviceCrudController::class, 'exportPdf']);
         Route::post('billing-device/export-excel', [BillingDeviceCrudController::class, 'exportExcel']);
 
+        Route::get('billing-simcard/download-template', [BillingSimcardCrudController::class, 'downloadTemplate']);
         Route::crud('billing-simcard', 'BillingSimcardCrudController');
         Route::post('billing-simcard/import', [BillingSimcardCrudController::class, 'import']);
         Route::post('billing-simcard/export-pdf', [BillingSimcardCrudController::class, 'exportPdf']);
