@@ -137,99 +137,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-12 mb-4">
-            <div class="card2">
-                <div class="card2-parent-header">
-                    <div class="card2-header fs-6">Monitoring Proyek</div>
-                </div>
-                <div class="card2-body">
-                    <div class="label mb-2 fw-bold fs-6">Status Proyek</div>
-                    <div class="row mb-2">
-                        <div class="col-md-4">
-                            <div class="status-box red">
-                                <div class="status-title fs-6">UNPAID</div>
-                                <div class="status-value" id="Unpaid_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box yellow">
-                                <div class="status-title fs-6">TERTUNDA</div>
-                                <div class="status-value" id="Tertunda_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box blue">
-                                <div class="status-title fs-6">BELUM SELESAI</div>
-                                <div class="status-value" id="Belum_Selesai_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box blue">
-                                <div class="status-title fs-6">RETENSI</div>
-                                <div class="status-value" id="Retensi_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box yellow">
-                                <div class="status-title fs-6">BELUM ADA PO</div>
-                                <div class="status-value" id="Belum_ada_PO_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box green">
-                                <div class="status-title fs-6">CLOSE</div>
-                                <div class="status-value" id="Close">Rp0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="label mb-2 fw-bold fs-6">Status Penawaran</div>
-                    <div class="row mb-2">
-                        <div class="col-md-4">
-                            <div class="status-box yellow">
-                                <div class="status-title fs-6">HPS</div>
-                                <div class="status-value" id="HPS_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box blue">
-                                <div class="status-title fs-6">QUOTATION</div>
-                                <div class="status-value" id="Quotation_total">Rp0</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="status-box green">
-                                <div class="status-title fs-6">CLOSE</div>
-                                <div class="status-value" id="Close_total">Rp0</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="label fw-bold mb-1">Rutin</div>
-                            <div class="item">
-                                <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Unpaid<br><strong id="Unpaid_rutin_total">Rp0</strong></div>
-                            </div>
-                            <div class="item">
-                                <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Tertunda<br><strong id="Tertunda_rutin_total">Rp0</strong></div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="label fw-bold mb-1">Non Rutin</div>
-                            <div class="item">
-                                <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Unpaid<br><strong id="Unpaid_non_rutin_total">Rp0</strong></div>
-                            </div>
-                            <div class="item">
-                                <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Tertunda<br><strong id="Tertunda_non_rutin_total">Rp0</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
     </div>
 </div>
 
@@ -384,24 +292,6 @@
 
                             // $('#omzet_all_total').html('Rp'+result.total_omzet_all.total_omzet);
                             $('#omzet_all_total').html('Rp'+result.total_job_realisasion.total_all_omzet);
-
-                            var total_project = result.total_projects.list_projects;
-                            $('#Unpaid_total').html('Rp'+total_project.UNPAID);
-                            $('#Tertunda_total').html('Rp'+total_project.TERTUNDA);
-                            $('#Belum_Selesai_total').html('Rp'+total_project.BELUM_SELESAI);
-                            $('#Retensi_total').html('Rp'+total_project.RETENSI);
-                            $('#Belum_ada_PO_total').html('Rp'+total_project.BELUM_ADA_PO);
-                            $('#Close').html('Rp'+total_project.CLOSE);
-
-                            $('#Unpaid_rutin_total').html('Rp'+result.total_projects.total_unpaid_rutin);
-                            $('#Unpaid_non_rutin_total').html('Rp'+result.total_projects.total_unpaid_non_rutin);
-                            $('#Tertunda_rutin_total').html('Rp'+result.total_projects.total_tertunda_rutin);
-                            $('#Tertunda_non_rutin_total').html('Rp'+result.total_projects.total_tertunda_non_rutin);
-
-                            var quotation = result.total_quotations.list_quotations;
-                            $('#HPS_total').html('Rp'+quotation.HPS);
-                            $('#Quotation_total').html('Rp'+quotation.QUOTATION);
-                            $('#Close_total').html('Rp'+quotation.CLOSE);
 
                             // Update Monitoring Table
                             if(result.data_monitoring) {
