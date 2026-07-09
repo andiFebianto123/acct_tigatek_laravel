@@ -35,6 +35,7 @@ use App\Http\Controllers\Admin\ProjectListReportCrudController;
 use App\Http\Controllers\Admin\ProjectSystemSetupCrudController;
 use App\Http\Controllers\Admin\MonitoringTrackerCrudController;
 use App\Http\Controllers\Admin\VoucherPaymentPlanCrudController;
+use App\Http\Controllers\Admin\ProformaInvoiceClientCrudController;
 
 
 // --------------------------
@@ -142,6 +143,14 @@ Route::group([
         Route::get('quotation/total', [ClientQuotationCrudController::class, 'countAllPPn']);
         Route::get('quotation/total-without-po', 'ClientQuotationCrudController@totalWithoutPo');
         Route::get('quotation/{id}/print', [ClientQuotationCrudController::class, 'printQuotation']);
+
+        Route::get('proforma-invoice/{id}/print', [ProformaInvoiceClientCrudController::class, 'printInvoice']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-po', [ProformaInvoiceClientCrudController::class, 'select2ClientPo']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/get-client-po', [ProformaInvoiceClientCrudController::class, 'selectedClientPo']);
+        Route::get('proforma-invoice/total', [ProformaInvoiceClientCrudController::class, 'total_price']);
+        Route::post('proforma-invoice/export-pdf', [ProformaInvoiceClientCrudController::class, 'exportPdf']);
+        Route::post('proforma-invoice/export-excel', [ProformaInvoiceClientCrudController::class, 'exportExcel']);
+        Route::crud('proforma-invoice', 'ProformaInvoiceClientCrudController');
     });
 
     Route::prefix('billing')->group(function () {

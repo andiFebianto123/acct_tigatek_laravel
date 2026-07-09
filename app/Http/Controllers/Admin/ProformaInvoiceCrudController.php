@@ -705,7 +705,6 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
 
-
         CRUD::addField([
             'name' => 'tax_ppn',
             'label' => trans('backpack::crud.invoice_client.field.tax_ppn.label'),
@@ -792,6 +791,19 @@ class ProformaInvoiceCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.proforma_invoice.field.note.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'tinymce_8',
+            'default' => '<ol><li>Include PPN 12%</li><li>Include shipping costs</li><li>Terms Of Payment :<ul><li>100% before device delivered</li></ul></li></ol>',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.term.placeholder'),
             ],
         ]);
 
@@ -1087,6 +1099,16 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'custom_html',
+            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->term : '',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'price_total',
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'type' => 'text',
@@ -1167,6 +1189,13 @@ class ProformaInvoiceCrudController extends CrudController
             'label'  => trans('backpack::crud.proforma_invoice.column.note'),
             'name' => 'note',
             'type'  => 'wrap_text',
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
         ]);
 
 

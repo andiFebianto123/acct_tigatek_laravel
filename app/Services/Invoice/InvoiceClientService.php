@@ -129,6 +129,7 @@ class InvoiceClientService
         $invoice->company_id = $dto->company_id;
         $invoice->account_source_id = $dto->account_source_id;
         $invoice->type_device = $dto->type_device;
+        $invoice->term = $dto->term;
     }
 
     private function saveDetails(InvoiceClient $invoice, array $details): void

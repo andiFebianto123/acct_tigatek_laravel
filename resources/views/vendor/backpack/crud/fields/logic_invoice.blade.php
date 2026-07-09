@@ -161,6 +161,9 @@
                                 $(form+' input[name="client_name"]').val(respon.client.name);
                                 $(form+" input[name='po_date']").val(respon.date_po_str);
                                 countTotalPrice();
+                                if (respon && respon.client.address) {
+                                    $(form+' input[name="address_po"]').val(respon.client.address);
+                                }
                             }
                         });
                     });

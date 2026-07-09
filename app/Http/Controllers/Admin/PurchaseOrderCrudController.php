@@ -994,6 +994,19 @@ class PurchaseOrderCrudController extends CrudController
             ]
         ]);
 
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'tinymce_8',
+            'default' => '<ol><li>Include PPN 12%</li><li>Include shipping costs</li><li>Terms Of Payment :<ul><li>100% before device delivered</li></ul></li></ol>',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.term.placeholder'),
+            ],
+        ]);
+
         /**
          * Fields can be defined using the fluent syntax:
          * - CRUD::field('price')->type('number');
@@ -1103,6 +1116,17 @@ class PurchaseOrderCrudController extends CrudController
                 'class' => 'form-group col-md-12',
             ]
         ])->after('document_path');
+
+        CRUD::field('term')->remove();
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'custom_html',
+            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->term : '',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         // load entry data
         // $this->setupListOperation();
@@ -1254,6 +1278,13 @@ class PurchaseOrderCrudController extends CrudController
                 'type'  => 'textarea'
             ],
         );
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
+        ]);
     }
 
     /**

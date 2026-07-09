@@ -91,6 +91,7 @@ class ProformaInvoiceService
         $invoice->company_id = $dto->company_id;
         $invoice->account_source_id = $dto->account_source_id;
         $invoice->note = $dto->note;
+        $invoice->term = $dto->term;
         $invoice->subkon_id = $dto->subkon_id;
     }
 

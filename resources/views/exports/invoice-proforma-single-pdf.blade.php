@@ -173,6 +173,14 @@
             padding-left: 15px;
             margin-bottom: 15px;
         }
+        .terms-content ul, .terms-content ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+        .terms-content p {
+            margin: 0 0 5px 0;
+        }
         .payment-title {
             font-weight: bold;
             margin-bottom: 5px;
@@ -376,13 +384,19 @@
     <div class="bottom-section">
         <div class="terms-section">
             <div class="terms-title">Terms :</div>
-            <ol class="terms-list">
-                <li>Include PPN {{ $ppn_percent }}%</li>
-                <li>Include shipping costs</li>
-                <li>Terms Of Payment :
-                    <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% before device delivered
-                </li>
-            </ol>
+            @if(!empty($header->term))
+                <div class="terms-content">
+                    {!! $header->term !!}
+                </div>
+            @else
+                <ol class="terms-list">
+                    <li>Include PPN {{ $ppn_percent }}%</li>
+                    <li>Include shipping costs</li>
+                    <li>Terms Of Payment :
+                        <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% before device delivered
+                    </li>
+                </ol>
+            @endif
             
             <div class="payment-title">Payment to be made to</div>
             <table class="payment-table">

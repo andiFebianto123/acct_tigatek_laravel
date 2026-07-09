@@ -35,6 +35,7 @@ class ProformaInvoiceRequest extends FormRequest
             'withholding_agent' => 'nullable|in:WAPU,NON WAPU',
             'account_source_id' => 'nullable|exists:cast_accounts,id',
             'note' => 'nullable|string|max:500',
+            'term' => 'nullable|string',
             'subkon_id' => 'required|exists:subkons,id',
         ];
 

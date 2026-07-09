@@ -20,6 +20,7 @@ class PurchaseOrderData
         public mixed $document_path,
         public ?string $additional_info,
         public ?int $company_id = null,
+        public ?string $term = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -38,6 +39,7 @@ class PurchaseOrderData
             document_path: $request->hasFile('document_path') ? $request->file('document_path') : $request->input('document_path'),
             additional_info: $request->input('additional_info'),
             company_id: $request->input('company_id'),
+            term: $request->input('term'),
         );
     }
 
@@ -57,6 +59,7 @@ class PurchaseOrderData
             'document_path' => $this->document_path,
             'additional_info' => $this->additional_info,
             'company_id' => $this->company_id,
+            'term' => $this->term,
         ];
     }
 }

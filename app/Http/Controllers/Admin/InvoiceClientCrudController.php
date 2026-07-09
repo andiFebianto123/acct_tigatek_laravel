@@ -1193,6 +1193,19 @@ class InvoiceClientCrudController extends CrudController
             ],
         ]);
 
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'tinymce_8',
+            'default' => '<ol><li>Include PPN 12%</li><li>Include shipping costs</li><li>Terms Of Payment :<ul><li>100% before device delivered</li></ul></li></ol>',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.proforma_invoice.field.term.placeholder'),
+            ],
+        ]);
+
         $id = request()->segment(3);
 
         if ($id != 'create') {
@@ -1632,6 +1645,16 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'type' => 'custom_html',
+            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->term : '',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'item_details_label',
             'label' => trans('backpack::crud.invoice_client.field.item.label'),
             'type' => 'text',
@@ -1849,6 +1872,13 @@ class InvoiceClientCrudController extends CrudController
                     return CustomHelper::formatRupiahWithCurrency($entry->price_total);
                 }
             }
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
         ]);
 
         CRUD::column([

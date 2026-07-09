@@ -108,6 +108,9 @@
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.bast')}}" icon="la la-circle-notch" :link="backpack_url('client/bast')" />
     @endif
     @if($permissions->contains('name', 'MENU INDEX INVOICE'))
+        <x-menu-group-item-custom title="Invoice Proforma" icon="la la-circle-notch" :link="backpack_url('client/proforma-invoice')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX INVOICE'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.invoice_client')}}" icon="la la-circle-notch" :link="backpack_url('invoice-client')" />
     @endif
 </x-menu-group-custom>

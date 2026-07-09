@@ -2297,6 +2297,10 @@ return [
             'note' => [
                 'label' => 'Keterangan',
                 'placeholder' => 'Masukan keterangan tambahan',
+            ],
+            'term' => [
+                'label' => 'Keterangan Term',
+                'placeholder' => 'Masukan keterangan term',
             ]
         ],
     ],

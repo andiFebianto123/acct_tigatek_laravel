@@ -26,6 +26,7 @@ class ProformaInvoiceSaveData
         public readonly ?int $account_source_id = null,
         public readonly ?string $note = null,
         public readonly ?int $subkon_id = null,
+        public readonly ?string $term = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -57,6 +58,7 @@ class ProformaInvoiceSaveData
             account_source_id: $request->account_source_id ? (int) $request->account_source_id : null,
             note: $request->note,
             subkon_id: $request->subkon_id ? (int) $request->subkon_id : null,
+            term: $request->term,
         );
     }
 }

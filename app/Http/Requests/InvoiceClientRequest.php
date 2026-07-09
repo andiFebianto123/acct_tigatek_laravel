@@ -40,6 +40,7 @@ class InvoiceClientRequest extends FormRequest
             'withholding_agent' => 'required|in:WAPU,NON WAPU',
             'account_source_id' => 'required|exists:cast_accounts,id',
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard',
+            'term' => 'nullable|string',
         ];
 
         if ($id) {

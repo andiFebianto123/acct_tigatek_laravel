@@ -139,6 +139,14 @@
             margin: 0;
             padding-left: 15px;
         }
+        .terms-content ul, .terms-content ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+        .terms-content p {
+            margin: 0 0 5px 0;
+        }
         .signature-section {
             margin-top: 40px;
             float: right;
@@ -263,13 +271,19 @@
 
     <div class="terms-section">
         <div class="terms-title">Terms :</div>
-        <ol class="terms-list">
-            <li>Exclude All taxes extra</li>
-            <li>Price for JABODETABEK</li>
-            <li>Terms of payment : 
-                <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;30 days after final invoice received
-            </li>
-        </ol>
+        @if(!empty($entry->term))
+            <div class="terms-content">
+                {!! $entry->term !!}
+            </div>
+        @else
+            <ol class="terms-list">
+                <li>Exclude All taxes extra</li>
+                <li>Price for JABODETABEK</li>
+                <li>Terms of payment : 
+                    <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;30 days after final invoice received
+                </li>
+            </ol>
+        @endif
     </div>
 
     <div class="signature-section">
