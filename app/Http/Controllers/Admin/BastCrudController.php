@@ -581,6 +581,27 @@ class BastCrudController extends CrudController
             ]);
         }
 
+        $entry = $this->crud->getCurrentEntry();
+        $defaultRefType = 'client_po';
+        if ($entry && $entry->referenceable_type === \App\Models\ProformaInvoiceClient::class) {
+            $defaultRefType = 'proforma_invoice';
+        }
+
+        CRUD::addField([
+            'name'        => 'reference_type',
+            'label'       => 'Jenis Referensi',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'client_po' => 'Client PO',
+                'proforma_invoice' => 'Proforma Invoice Client',
+            ],
+            'allows_null' => false,
+            'default'     => $defaultRefType,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
         CRUD::addField([
             'label'       => trans('backpack::crud.bast.field.client_po_id.label'),
             'type'        => 'select2_ajax_custom',
@@ -595,6 +616,23 @@ class BastCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.bast.field.client_po_id.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'label'       => 'Proforma Invoice Client',
+            'type'        => 'select2_ajax_custom',
+            'name'        => 'proforma_invoice_client_id',
+            'entity'      => 'proforma_invoice_client',
+            'attribute'   => 'invoice_number',
+            'data_source' => backpack_url('client/bast/select2-proforma'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => 'Pilih Proforma Invoice Client',
             ]
         ]);
 
@@ -776,8 +814,14 @@ class BastCrudController extends CrudController
     {
         $this->setupCreateOperation();
         CRUD::removeField('logic_bast');
+        CRUD::removeField('reference_type');
+        CRUD::removeField('client_po_id');
+        CRUD::removeField('proforma_invoice_client_id');
+
+        $is_superadmin = 0;
 
         if (backpack_user()->hasRole('Super Admin')) {
+            $is_superadmin = 1;
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -788,14 +832,90 @@ class BastCrudController extends CrudController
             ]);
         }
 
-        CRUD::column([
-            'label'     => trans('backpack::crud.bast.field.client_po_id.label'),
-            'type'      => 'select',
-            'name'      => 'client_po_id',
-            'entity'    => 'client_po',
-            'attribute' => 'po_number',
-            'model'     => "App\Models\ClientPo",
-        ]);
+        $entry = $this->crud->getCurrentEntry();
+        $isProforma = ($entry && $entry->referenceable_type === \App\Models\ProformaInvoiceClient::class);
+
+        if ($isProforma) {
+            CRUD::addField([
+                'name'  => 'reference_type',
+                'type'  => 'text',
+                'label' => "Jenis Referensi",
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+            ]);
+            CRUD::addField([
+                'name'  => 'client_po_id',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.bast.field.client_po_id.label'),
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+                'attributes' => [
+                    'placeholder' => trans('backpack::crud.bast.field.first_party.placeholder'),
+                ]
+            ]);
+            if($is_superadmin){
+                CRUD::field('reference_type')->after('company_id');
+            }
+            CRUD::field('client_po_id')->after('reference_type');
+            CRUD::column([
+                'label' => '',
+                'name'  => 'reference_type',
+                'type'  => 'closure',
+                'function' => function($entry){
+                    return "Proforma Invoice Client";
+                },
+            ]);
+            CRUD::column([
+                'label'     => 'Proforma Invoice Client',
+                'type'      => 'select',
+                'name'      => 'referenceable_id',
+                'entity'    => 'proforma_invoice_client',
+                'attribute' => 'invoice_number',
+                'model'     => "App\Models\ProformaInvoiceClient",
+            ]);
+        } else {
+            CRUD::addField([
+                'name'  => 'reference_type',
+                'type'  => 'text',
+                'label' => "Jenis Referensi",
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+            ]);
+            CRUD::addField([
+                'name'  => 'proforma_invoice_client_id',
+                'type'  => 'text',
+                'label' => "Proforma Invoice Client",
+                'wrapper'   => [
+                    'class' => 'form-group col-md-6',
+                ],
+                'attributes' => [
+                    'placeholder' => "Proforma Invoice Client",
+                ]
+            ]);
+            if($is_superadmin){
+                CRUD::field('reference_type')->after('company_id');
+            }
+            CRUD::field('proforma_invoice_client_id')->after('reference_type');
+            CRUD::column([
+                'label' => '',
+                'name'  => 'reference_type',
+                'type'  => 'closure',
+                'function' => function($entry){
+                    return "Client PO";
+                },
+            ]);
+            CRUD::column([
+                'label'     => trans('backpack::crud.bast.field.client_po_id.label'),
+                'type'      => 'select',
+                'name'      => 'client_po_id',
+                'entity'    => 'client_po',
+                'attribute' => 'po_number',
+                'model'     => "App\Models\ClientPo",
+            ]);
+        }
 
         CRUD::column([
             'label'  => trans('backpack::crud.bast.field.first_party.label'),
@@ -840,7 +960,7 @@ class BastCrudController extends CrudController
         CRUD::column([
             'label'  => trans('backpack::crud.bast.field.description.label'),
             'name'   => 'description',
-            'type'   => 'text',
+            'type'   => 'wrap_text',
         ]);
 
         CRUD::column([
@@ -882,6 +1002,49 @@ class BastCrudController extends CrudController
             'client_name' => $po?->client?->name ?? '',
             'address' => $po?->client?->address ?? '',
             'job_name' => $po?->job_name ?? ''
+        ]);
+    }
+
+    public function select2ProformaInvoiceClient()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $request = request();
+        $search = $request->input('q');
+        $company_id = $request->input('company_id');
+
+        $query = \App\Models\ProformaInvoiceClient::select(['id', 'invoice_number']);
+
+        if ($request->has('company_id') && $company_id !== '') {
+            $query->where('company_id', $company_id);
+        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+            $query->where('company_id', backpack_user()->company_id);
+        }
+
+        $dataset = $query->where('invoice_number', 'LIKE', "%$search%")
+            ->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->invoice_number,
+            ];
+        }
+        return response()->json(['results' => $results]);
+    }
+
+    public function getProformaDetails()
+    {
+        $this->crud->hasAccessOrFail('create');
+        $id = request()->input('proforma_id');
+        $proforma = \App\Models\ProformaInvoiceClient::with(['client', 'client_po'])->find((int) $id);
+
+        return response()->json([
+            'client_id' => $proforma?->client_id ?? '',
+            'client_name' => $proforma?->client?->name ?? '',
+            'address' => $proforma?->client?->address ?? '',
+            'job_name' => $proforma?->client_po?->job_name ?? ''
         ]);
     }
 }

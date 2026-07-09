@@ -39,8 +39,26 @@ class Bast extends Model
         return $this->belongsTo(ClientPo::class, 'client_po_id');
     }
 
+    public function referenceable()
+    {
+        return $this->morphTo();
+    }
+
+    public function proforma_invoice_client()
+    {
+        return $this->belongsTo(ProformaInvoiceClient::class, 'referenceable_id');
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class, 'client_id');
+    }
+
+    public function getProformaInvoiceClientIdAttribute()
+    {
+        if ($this->referenceable_type === ProformaInvoiceClient::class) {
+            return $this->referenceable_id;
+        }
+        return null;
     }
 }

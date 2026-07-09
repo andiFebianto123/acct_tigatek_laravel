@@ -12,7 +12,7 @@ class BastRepository
      */
     public function getFilteredData(BastFilterData $filters)
     {
-        $query = Bast::query()->with(['client', 'company', 'client_po']);
+        $query = Bast::query()->with(['client', 'company', 'client_po', 'referenceable']);
 
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
