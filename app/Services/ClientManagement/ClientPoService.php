@@ -23,6 +23,16 @@ class ClientPoService
                 // Standard single creation (Manual entry)
                 $attributes = $data->toArray();
 
+                // Auto generate work_code for Supplier PO
+                if (($attributes['po_type'] ?? null) === 'supplier') {
+                    if (empty($attributes['work_code']) || !str_starts_with($attributes['work_code'], 'WRK-')) {
+                        do {
+                            $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
+                        } while (ClientPo::where('work_code', $uniqueCode)->exists());
+                        $attributes['work_code'] = $uniqueCode;
+                    }
+                }
+
                 // Handle file upload manually
                 if ($data->document_path instanceof UploadedFile) {
                     $attributes['document_path'] = $this->handleFileUpload($data->document_path);
@@ -86,6 +96,16 @@ class ClientPoService
         return DB::transaction(function () use ($id, $data) {
             $clientPo = ClientPo::findOrFail($id);
             $attributes = $data->toArray();
+
+            // Auto generate work_code for Supplier PO
+            if (($attributes['po_type'] ?? null) === 'supplier') {
+                if (empty($attributes['work_code']) || !str_starts_with($attributes['work_code'], 'WRK-')) {
+                    do {
+                        $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
+                    } while (ClientPo::where('work_code', $uniqueCode)->exists());
+                    $attributes['work_code'] = $uniqueCode;
+                }
+            }
 
             // Re-calculate or ensure values are set correctly
             $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));

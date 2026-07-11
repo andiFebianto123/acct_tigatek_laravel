@@ -80,10 +80,17 @@ class ClientPoRequest extends FormRequest
             $rule = $rule_origin;
         }
 
-        if (request()->has('work_code')) {
-            $rule['work_code'] = 'required|max:30|unique:client_po,work_code,' . $id;
+        $rule['po_type'] = 'required|in:subkon,supplier';
+        $rule['purchase_order_id'] = 'required_if:po_type,supplier|nullable|exists:purchase_orders,id';
+
+        if (request()->input('po_type') === 'supplier') {
+            $rule['work_code'] = 'nullable|max:30';
         } else {
-            $rule['work_code'] = 'nullable|max:30|unique:client_po,work_code,' . $id;
+            if (request()->has('work_code')) {
+                $rule['work_code'] = 'required|max:30|unique:client_po,work_code,' . $id;
+            } else {
+                $rule['work_code'] = 'nullable|max:30|unique:client_po,work_code,' . $id;
+            }
         }
 
         $rule['date_po'] = 'nullable|date';

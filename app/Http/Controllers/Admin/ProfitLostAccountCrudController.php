@@ -378,6 +378,21 @@ class ProfitLostAccountCrudController extends CrudController
         return response()->json($result);
     }
 
+    public function select2SupplierPo()
+    {
+        $q = request()->q;
+        $results = $this->repository->getSelect2SupplierPo($q);
+        return response()->json(['results' => $results]);
+    }
+
+    public function get_source_selected_ajax()
+    {
+        $id = request()->id;
+        $type = request()->type;
+        $result = $this->repository->getSourceSelectedData((int) $id, $type);
+        return response()->json($result);
+    }
+
     protected function setupCreateOperation()
     {
         $request = request();
@@ -418,12 +433,39 @@ class ProfitLostAccountCrudController extends CrudController
             }
 
             CRUD::addField([
+                'name' => 'orderable_type',
+                'label' => 'Jenis Laba Rugi',
+                'type' => 'select2_array',
+                'options' => [
+                    'App\\Models\\ClientPo' => 'Subkon',
+                    'App\\Models\\PurchaseOrder' => 'Supplier',
+                ],
+                'allows_null' => false,
+                'default' => 'App\\Models\\ClientPo',
+                'wrapper' => ['class' => 'form-group col-md-6'],
+                'attributes' => $category_attribute,
+            ]);
+
+            CRUD::addField([
                 'name' => 'work_code',
                 'label' => trans('backpack::crud.profit_lost.fields.job_code.label'),
                 'type' => 'select2_ajax_custom',
                 'attribute' => 'work_code',
                 'entity' => 'clientPo',
                 'data_source' => backpack_url('finance-report/profit-lost/select2-po'),
+                'wrapper' => ['class' => 'form-group col-md-6'],
+                'attributes' => $job_code_prefix_value,
+                'dependencies' => ['company_id'],
+                'include_all_form_fields' => true,
+            ]);
+
+            CRUD::addField([
+                'name' => 'purchase_order_id',
+                'label' => 'Purchase Order (Supplier)',
+                'type' => 'select2_ajax_custom',
+                'attribute' => 'po_number',
+                'entity' => 'purchaseOrder',
+                'data_source' => backpack_url('finance-report/profit-lost/select2-supplier-po'),
                 'wrapper' => ['class' => 'form-group col-md-6'],
                 'attributes' => $job_code_prefix_value,
                 'dependencies' => ['company_id'],

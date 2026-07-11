@@ -8,6 +8,8 @@
 {{-- hidden input --}}
 @include('crud::fields.inc.wrapper_start')
   <input type="hidden" name="id_client_po" />
+  <input type="hidden" name="orderable_id" />
+  <input type="hidden" name="orderable_type" />
   <input type="hidden" name="voucher_id" />
   <input
   	type="hidden"
@@ -69,26 +71,43 @@
                     var instance = this;
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
 
+                    function toggleFields() {
+                        let type = $(form + ' select[name="orderable_type"]').val();
+                        let workCodeWrapper = $(form + ' select[name="work_code"]').closest('.form-group');
+                        let purchaseOrderWrapper = $(form + ' select[name="purchase_order_id"]').closest('.form-group');
+
+                        if (type === 'App\\Models\\ClientPo') {
+                            workCodeWrapper.show();
+                            purchaseOrderWrapper.hide();
+                            $(form + ' select[name="purchase_order_id"]').val(null).trigger('change');
+                            $(form + ' input[name="orderable_type"]').val('App\\Models\\ClientPo');
+                        } else if (type === 'App\\Models\\PurchaseOrder') {
+                            purchaseOrderWrapper.show();
+                            workCodeWrapper.hide();
+                            $(form + ' select[name="work_code"]').val(null).trigger('change');
+                            $(form + ' input[name="orderable_type"]').val('App\\Models\\PurchaseOrder');
+                        } else {
+                            workCodeWrapper.hide();
+                            purchaseOrderWrapper.hide();
+                        }
+                    }
+
+                    setTimeout(toggleFields, 100);
+
+                    $(form + ' select[name="orderable_type"]').on('change', function() {
+                        toggleFields();
+                    });
+
                     @if ($set_value != null)
                         var data_profit_lost = {!! json_encode($set_value) !!};
-                        // console.log(data_profit_lost);
-                        // var po_number_text = `${data_po_spk.po_number} (${data_po_spk.type})`;
-                        // var work_code_text = `${data_po_spk.work_code} (${data_po_spk.type})`;
+                        var sourceId = data_profit_lost.orderable_id ?? data_profit_lost.client_po_id;
+                        var sourceType = data_profit_lost.orderable_type ?? 'App\\Models\\ClientPo';
 
-                        // var selectedOption = new Option(po_number_text, data_po_spk.id, true, true);
-                        // // $(form+ ' select[name="client_po_id"]').val(null).trigger('change');
-                        // $(form+ ' select[name="client_po_id"]').append(selectedOption).trigger('change');
-
-                        // var selectedOptionw = new Option(work_code_text, data_po_spk.id, true, true);
-                        // // $(form+' select[name="reference_id"]').val(null).trigger('change');
-                        // $(form+' select[name="reference_id"]').append(selectedOptionw).trigger('change');
-
-                        // setTimeout(() => {
-                        //      $(form+ ' input[name="date_po_spk"]').val(data_po_spk.date_po_spk_str);
-                        // }, 500);
+                        $(form + ' input[name="orderable_id"]').val(sourceId);
+                        $(form + ' input[name="orderable_type"]').val(sourceType);
 
                         $.ajax({
-                            url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + data_profit_lost.client_po.id,
+                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + sourceId + "&type=" + sourceType,
                             type: 'GET',
                             dataType: 'json',
                             success: function (data) {
@@ -101,23 +120,43 @@
 
                     @endif
 
-        
-
                     $(form+ ' select[name="work_code"]').off('select2:select').on('select2:select', function (e) {
                         var result = e.params.data;
                         var id = result.id;
                         $(form+' input[name="po_number"]').val(result.po_number);
                         $(form+' input[name="id_client_po"]').val(id);
+                        $(form+' input[name="orderable_id"]').val(id);
+                        $(form+' input[name="orderable_type"]').val('App\\Models\\ClientPo');
                         $(form+' input[name="voucher_id"]').val(result.voucher_id);
                         // setInputNumber(form+ ' #total_project_masked', e.params.data.data.reference.price_total);
                         $.ajax({
-                            url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + id,
+                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + id + "&type=App\\Models\\ClientPo",
                             type: 'GET',
                             dataType: 'json',
                             success: function (data) {
                                 instance.data = data;
                                 setInputNumber(form+ ' #price_voucher_masked', data.price_voucher);
                                 // setInputNumber(form+ ' #price_small_cash_masked', data.price_small_cash);
+                                instance.logicFormula(data);
+                            }
+                        })
+                    });
+
+                    $(form+ ' select[name="purchase_order_id"]').off('select2:select').on('select2:select', function (e) {
+                        var result = e.params.data;
+                        var id = result.id;
+                        $(form+' input[name="po_number"]').val(result.po_number);
+                        $(form+' input[name="orderable_id"]').val(id);
+                        $(form+' input[name="orderable_type"]').val('App\\Models\\PurchaseOrder');
+                        $(form+' input[name="voucher_id"]').val(result.voucher_id);
+                        
+                        $.ajax({
+                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + id + "&type=App\\Models\\PurchaseOrder",
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function (data) {
+                                instance.data = data;
+                                setInputNumber(form+ ' #price_voucher_masked', data.price_voucher);
                                 instance.logicFormula(data);
                             }
                         })

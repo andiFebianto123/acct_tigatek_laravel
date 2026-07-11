@@ -9,7 +9,7 @@ class ProjectProfitLostSaveData
     public function __construct(
         public readonly ?int $id,
         public readonly ?int $voucher_id,
-        public readonly int $client_po_id,
+        public readonly ?int $client_po_id,
         public readonly float $price_after_year,
         public readonly float $price_voucher,
         public readonly float $price_small_cash,
@@ -19,6 +19,8 @@ class ProjectProfitLostSaveData
         public readonly float $price_prift_lost_final,
         public readonly string $category,
         public readonly ?int $company_id = null,
+        public readonly ?int $orderable_id = null,
+        public readonly ?string $orderable_type = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -32,10 +34,23 @@ class ProjectProfitLostSaveData
             return (float) $cleaned;
         };
 
+        $orderableType = $request->input('orderable_type');
+        $orderableId = $request->input('orderable_id');
+
+        if (empty($orderableId)) {
+            if ($request->input('source_type') === 'App\\Models\\PurchaseOrder') {
+                $orderableId = $request->input('purchase_order_id');
+                $orderableType = 'App\\Models\\PurchaseOrder';
+            } else {
+                $orderableId = $request->input('work_code') ?? $request->input('id_client_po') ?? $request->input('client_po_id');
+                $orderableType = 'App\\Models\\ClientPo';
+            }
+        }
+
         return new self(
             id: $request->id ? (int) $request->id : null,
             voucher_id: $request->voucher_id ? (int) $request->voucher_id : null,
-            client_po_id: (int) ($request->work_code ?? $request->id_client_po ?? $request->client_po_id),
+            client_po_id: $orderableType === 'App\\Models\\ClientPo' ? (int) $orderableId : null,
             price_after_year: $cleanPrice($request->price_after_year),
             price_voucher: $cleanPrice($request->price_voucher),
             price_small_cash: $cleanPrice($request->price_small_cash),
@@ -45,6 +60,8 @@ class ProjectProfitLostSaveData
             price_prift_lost_final: $cleanPrice($request->price_prift_lost_final),
             category: $request->category ?? '',
             company_id: $request->company_id ? (int) $request->company_id : null,
+            orderable_id: $orderableId ? (int) $orderableId : null,
+            orderable_type: $orderableType,
         );
     }
 
@@ -62,6 +79,8 @@ class ProjectProfitLostSaveData
             'price_prift_lost_final' => $this->price_prift_lost_final,
             'category' => $this->category,
             'company_id' => $this->company_id,
+            'orderable_id' => $this->orderable_id,
+            'orderable_type' => $this->orderable_type,
         ];
     }
 }

@@ -29,6 +29,7 @@ class PurchaseOrderRequest extends FormRequest
         $id = request('id');
 
         $rule = [
+            'po_type' => 'required|in:subkon,supplier',
             'subkon_id' => 'required|exists:subkons,id',
             'po_number' => 'required|string|max:255',
             'date_po' => 'required|string',
@@ -41,10 +42,14 @@ class PurchaseOrderRequest extends FormRequest
             'term' => 'nullable|string',
         ];
 
-        if (request()->has('work_code')) {
-            $rule['work_code'] = 'required|max:30';
-        } else {
+        if (request()->input('po_type') === 'supplier') {
             $rule['work_code'] = 'nullable|max:30';
+        } else {
+            if (request()->has('work_code')) {
+                $rule['work_code'] = 'required|max:30';
+            } else {
+                $rule['work_code'] = 'nullable|max:30';
+            }
         }
 
         return $rule;

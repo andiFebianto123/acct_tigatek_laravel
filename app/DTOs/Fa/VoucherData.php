@@ -36,6 +36,7 @@ class VoucherData
         public readonly float $pph_23,
         public readonly float $pph_4,
         public readonly float $pph_21,
+        public readonly ?string $po_type = 'subkon',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -70,6 +71,7 @@ class VoucherData
             pph_23: (float) ($request->pph_23 ?? 0),
             pph_4: (float) ($request->pph_4 ?? 0),
             pph_21: (float) ($request->pph_21 ?? 0),
+            po_type: $request->input('po_type', 'subkon'),
         );
     }
 }

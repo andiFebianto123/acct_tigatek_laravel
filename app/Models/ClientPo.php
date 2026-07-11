@@ -58,6 +58,16 @@ class ClientPo extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
+    }
+
+    public function projectProfitLost()
+    {
+        return $this->morphOne(ProjectProfitLost::class, 'orderable');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

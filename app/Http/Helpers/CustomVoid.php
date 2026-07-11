@@ -26,34 +26,42 @@ class CustomVoid
         $client_po = $voucher->client_po;
         $bill_value = $voucher->bill_value; // Menggunakan Exclude PPN
 
-        if ($client_po->status == 'TANPA PO') {
-            // ada po
-            $account = Account::where('code', CustomHelper::getAccountMapping('WITHOUT_PO'))->first();
-
-            $trans_1 = CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $account->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-                'description' => "Transaksi tanpa PO " . $client_po->work_code,
-                'date' => Carbon::now(),
-                'debit' => $bill_value,
-                // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
-            ], [
-                'account_id' => $account->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-            ]);
-            $log_payment[] = [
-                'id' => $trans_1->id,
-                'account_id' => $account->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-                'description' => "Transaksi tanpa PO " . $client_po->work_code,
-                'date' => Carbon::now(),
-                'debit' => $bill_value,
-                'type' => JournalEntry::class,
-            ];
+        if($voucher->client_po_id == null){
+            $invoice = true;
         }
+
+        if($client_po != null){
+             if ($client_po->status == 'TANPA PO') {
+                // ada po
+                $account = Account::where('code', CustomHelper::getAccountMapping('WITHOUT_PO'))->first();
+
+                $trans_1 = CustomHelper::updateOrCreateJournalEntry([
+                    'account_id' => $account->id,
+                    'reference_id' => $voucher->id,
+                    'reference_type' => Voucher::class,
+                    'description' => "Transaksi tanpa PO " . $client_po->work_code,
+                    'date' => Carbon::now(),
+                    'debit' => $bill_value,
+                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                ], [
+                    'account_id' => $account->id,
+                    'reference_id' => $voucher->id,
+                    'reference_type' => Voucher::class,
+                ]);
+                $log_payment[] = [
+                    'id' => $trans_1->id,
+                    'account_id' => $account->id,
+                    'reference_id' => $voucher->id,
+                    'reference_type' => Voucher::class,
+                    'description' => "Transaksi tanpa PO " . $client_po->work_code,
+                    'date' => Carbon::now(),
+                    'debit' => $bill_value,
+                    'type' => JournalEntry::class,
+                ];
+            }
+        }
+
+       
 
         // periksa jenis voucher
         if ($voucher->reference_type == "App\Models\PurchaseOrder" || $voucher->reference_type == "App\Models\Spk") {

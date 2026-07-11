@@ -112,6 +112,48 @@
                         // $('.quotation-checkbox').prop('checked', false);
                     }
                 },
+                togglePoType: function(){
+                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var po_type = $(form+' select[name="po_type"]').val();
+                    
+                    var workCodeWrapper = $(form+' input[name="work_code"]').closest('.form-group');
+                    var workCodeInput = $(form+' input[name="work_code"]');
+                    
+                    var purchaseOrderIdWrapper = $(form+' select[name="purchase_order_id"]').closest('.form-group');
+                    var purchaseOrderIdInput = $(form+' select[name="purchase_order_id"]');
+                    
+                    var jobNameWrapper = $(form+' input[name="job_name"]').closest('.form-group');
+                    var jobNameLabel = jobNameWrapper.find('label');
+                    var jobNameInput = $(form+' input[name="job_name"]');
+                    
+                    if (po_type === 'supplier') {
+                        // Hide work code
+                        workCodeWrapper.hide();
+                        workCodeInput.attr('disabled', true);
+                        
+                        // Show supplier PO select
+                        purchaseOrderIdWrapper.show();
+                        purchaseOrderIdInput.removeAttr('disabled');
+                        
+                        // Change job_name label and placeholder
+                        jobNameLabel.text("{{ trans('backpack::crud.client_po.field.job_name.label_supplier') }}");
+                        jobNameInput.attr('placeholder', "{{ trans('backpack::crud.client_po.field.job_name.placeholder_supplier') }}");
+                    } else {
+                        // Show work code
+                        if (workCodeInput.attr('data-voucher-disabled') !== 'true') {
+                            workCodeInput.removeAttr('disabled');
+                        }
+                        workCodeWrapper.show();
+                        
+                        // Hide supplier PO select
+                        purchaseOrderIdWrapper.hide();
+                        purchaseOrderIdInput.attr('disabled', true);
+                        
+                        // Restore job_name label and placeholder
+                        jobNameLabel.text("{{ trans('backpack::crud.client_po.field.job_name.label') }}");
+                        jobNameInput.attr('placeholder', "{{ trans('backpack::crud.client_po.field.job_name.placeholder') }}");
+                    }
+                },
                 load: function(){
                     var instance = this;
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
@@ -120,8 +162,12 @@
 
                     // Initial Toggle State
                     instance.toggleQuotationPath();
+                    instance.togglePoType();
                     $(form+' input[name="is_from_quotation"]').on('change', function() {
                         instance.toggleQuotationPath();
+                    });
+                    $(form+' select[name="po_type"]').on('change select2:select', function() {
+                        instance.togglePoType();
                     });
 
                     if(entry){

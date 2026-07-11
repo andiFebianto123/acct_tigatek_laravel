@@ -829,6 +829,21 @@ class PurchaseOrderCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'po_type',
+            'label'       => trans('backpack::crud.po.field.po_type.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'subkon' => trans('backpack::crud.po.field.po_type.subkon'),
+                'supplier' => trans('backpack::crud.po.field.po_type.supplier'),
+            ],
+            'allows_null' => false,
+            'default'     => 'subkon',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'po_number',
             'label' => trans('backpack::crud.po.column.po_number'),
             'type' => 'text',
@@ -1007,6 +1022,11 @@ class PurchaseOrderCrudController extends CrudController
             ],
         ]);
 
+        CRUD::addField([
+            'name' => 'logic_purchase_order',
+            'type' => 'logic_purchase_order',
+        ]);
+
         /**
          * Fields can be defined using the fluent syntax:
          * - CRUD::field('price')->type('number');
@@ -1061,6 +1081,7 @@ class PurchaseOrderCrudController extends CrudController
         CRUD::field('space')->remove();
         CRUD::field('additional_info')->remove();
         CRUD::field('space_2')->remove();
+        CRUD::field('po_type')->remove();
 
         // update subkon id
         CRUD::field('company_id')->remove();

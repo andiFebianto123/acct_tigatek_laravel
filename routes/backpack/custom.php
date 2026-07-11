@@ -110,6 +110,7 @@ Route::group([
         Route::post('client-list/export-pdf', [ClientCrudController::class, 'exportPdf']);
         Route::post('client-list/export-excel', [ClientCrudController::class, 'exportExcel']);
         Route::match(['get', 'post', 'put'], 'select2-client', 'ClientPoCrudController@select2Client');
+        Route::match(['get', 'post', 'put'], 'select2-supplier-po-id', 'ClientPoCrudController@select2SupplierPoId');
         Route::crud('po', 'ClientPoCrudController');
         Route::get('po/total-without-po', [ClientPoCrudController::class, 'select_count_without_po']);
         Route::post('po/export-pdf', [ClientPoCrudController::class, 'exportPdf']);
@@ -238,8 +239,10 @@ Route::group([
         Route::post('list-asset/export-excel', [AssetCrudController::class, 'exportExcel']);
         Route::post('select2-account-id', [AssetCrudController::class, 'select2account']);
         Route::post('profit-lost/select2-po', [ProfitLostAccountCrudController::class, 'select2Po']);
+        Route::post('profit-lost/select2-supplier-po', [ProfitLostAccountCrudController::class, 'select2SupplierPo']);
         Route::post('profit-lost/select2-account', [ProfitLostAccountCrudController::class, 'select2Account']);
         Route::get('profit-lost/get_client_selected_ajax', [ProfitLostAccountCrudController::class, 'get_client_selected_ajax']);
+        Route::get('profit-lost/get_source_selected_ajax', [ProfitLostAccountCrudController::class, 'get_source_selected_ajax']);
         Route::get('profit-lost/total', [ProfitLostAccountCrudController::class, 'get_total_excl_ppn_final_profit']);
         Route::get('profit-lost/report-total', [ProfitLostAccountCrudController::class, 'total_report_account_profit_lost_ajax']);
         Route::post('profit-lost/export-pdf', [ProfitLostAccountCrudController::class, 'exportPdf']);

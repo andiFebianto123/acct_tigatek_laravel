@@ -74,8 +74,11 @@ class VoucherRequest extends FormRequest
                 }
             ],
             'client_po_id' => [
-                'required',
+                'nullable',
                 function ($attribute, $value, $fail) {
+                    if (empty($value)) {
+                        return;
+                    }
                     $companyId = $this->input('company_id');
                     if ($companyId && $companyId != '') {
                         $exists = \App\Models\ClientPo::where('id', $value)
@@ -89,6 +92,7 @@ class VoucherRequest extends FormRequest
             ],
             'job_name' => 'nullable',
             'company_id' => 'nullable|exists:companies,id',
+            'po_type' => 'required|in:subkon,supplier',
         ];
 
         if ($factur_status == 'ADA') {

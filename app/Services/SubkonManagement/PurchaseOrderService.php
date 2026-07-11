@@ -22,6 +22,16 @@ class PurchaseOrderService
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
 
+            // Auto generate work_code for Supplier PO
+            if (($payload['po_type'] ?? null) === 'supplier') {
+                if (empty($payload['work_code']) || !str_starts_with($payload['work_code'], 'WRK-')) {
+                    do {
+                        $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
+                    } while (PurchaseOrder::where('work_code', $uniqueCode)->exists());
+                    $payload['work_code'] = $uniqueCode;
+                }
+            }
+
             // File Handling
             if ($data->document_path instanceof UploadedFile) {
                 $filename = $this->generateCustomFilename($data->document_path);
@@ -44,6 +54,16 @@ class PurchaseOrderService
 
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
+
+            // Auto generate work_code for Supplier PO
+            if (($payload['po_type'] ?? null) === 'supplier') {
+                if (empty($payload['work_code']) || !str_starts_with($payload['work_code'], 'WRK-')) {
+                    do {
+                        $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
+                    } while (PurchaseOrder::where('work_code', $uniqueCode)->exists());
+                    $payload['work_code'] = $uniqueCode;
+                }
+            }
 
             // File Handling
             if ($data->document_path instanceof UploadedFile) {

@@ -21,6 +21,7 @@ class PurchaseOrderData
         public ?string $additional_info,
         public ?int $company_id = null,
         public ?string $term = null,
+        public ?string $po_type = 'subkon',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -40,6 +41,7 @@ class PurchaseOrderData
             additional_info: $request->input('additional_info'),
             company_id: $request->input('company_id'),
             term: $request->input('term'),
+            po_type: $request->input('po_type', 'subkon'),
         );
     }
 
@@ -60,6 +62,7 @@ class PurchaseOrderData
             'additional_info' => $this->additional_info,
             'company_id' => $this->company_id,
             'term' => $this->term,
+            'po_type' => $this->po_type,
         ];
     }
 }

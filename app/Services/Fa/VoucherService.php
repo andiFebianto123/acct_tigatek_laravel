@@ -74,6 +74,7 @@ class VoucherService
         }
         $item->subkon_id = $data->subkon_id;
         $item->client_po_id = $data->client_po_id;
+        $item->po_type = $data->po_type;
 
         $item->reference_id = $data->reference_id;
         $item->no_voucher = $data->no_voucher;
@@ -88,7 +89,7 @@ class VoucherService
         $item->bill_date = $data->bill_date;
         $item->date_receipt_bill = $data->date_receipt_bill;
         $item->payment_description = $data->payment_description;
-        $item->no_po_spk = $data->client_po_id;
+        $item->no_po_spk = $data->client_po_id ?? '';
         $item->date_po_spk = null;
         $item->bill_value = $data->bill_value;
         $item->dpp_value = $request->dpp_value ?? 0;
@@ -186,6 +187,7 @@ class VoucherService
         }
         $item->subkon_id = $data->subkon_id;
         $item->client_po_id = $data->client_po_id;
+        $item->po_type = $data->po_type;
 
         $item->reference_id = $data->reference_id;
         $item->no_voucher = $data->no_voucher;

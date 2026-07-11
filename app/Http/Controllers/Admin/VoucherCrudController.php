@@ -1270,10 +1270,16 @@ class VoucherCrudController extends CrudController
                 ->select(DB::raw("id, po_number, job_name,
                 IF(job_value > 0, job_value, 0) as price_total,
                 IF(tax_ppn > 0, tax_ppn, 0) as ppn,
-                IF(job_value_include_ppn > 0, job_value_include_ppn, 0) as price_total_include_ppn, work_code, 'Client' as type, status, client_id, '' as date_po"))
+                IF(job_value_include_ppn > 0, job_value_include_ppn, 0) as price_total_include_ppn, work_code, 'Client' as type, status, client_id, '' as date_po, purchase_order_id, po_type"))
                 ->first();
             $invoice_exists = InvoiceClient::where('client_po_id', $id)->first();
             $company = null;
+            if ($client && $client->po_type === 'supplier' && $client->purchase_order_id) {
+                $po_supplier = \App\Models\PurchaseOrder::with('subkon')->find($client->purchase_order_id);
+                if ($po_supplier) {
+                    $company = $po_supplier->subkon;
+                }
+            }
         } else if ($type == 'subkon') {
             $client = PurchaseOrder::where('id', $id)
                 ->select(DB::raw("id, po_number, job_name,
@@ -1321,6 +1327,28 @@ class VoucherCrudController extends CrudController
     public function select2_no_po_spk()
     {
         $q = request()->q;
+        $po_type = request()->input('po_type', 'subkon');
+
+        if ($po_type === 'supplier') {
+            $query = PurchaseOrder::select(DB::raw("id, po_number, 'subkon' as type"))
+                ->where('po_type', 'supplier');
+            if (request()->has('company_id') && request()->company_id != '') {
+                $query->where('company_id', request()->company_id);
+            }
+            if ($q) {
+                $query->where('po_number', 'like', "%$q%");
+            }
+            $dataset = $query->paginate(20);
+            $results = [];
+            foreach ($dataset as $item) {
+                $results[] = [
+                    'id' => $item->id,
+                    'text' => $item->po_number . ' (Supplier)',
+                    'type' => $item->type,
+                ];
+            }
+            return response()->json(['results' => $results]);
+        }
 
         $po_subkon = PurchaseOrder::select(DB::raw("id, po_number, 'subkon' as type"));
         if (request()->has('company_id')) {
@@ -1385,6 +1413,21 @@ class VoucherCrudController extends CrudController
                 ],
             ]);
         }
+
+        CRUD::addField([
+            'name'        => 'po_type',
+            'label'       => trans('backpack::crud.client_po.field.po_type.label') ?? 'Jenis PO',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'subkon' => trans('backpack::crud.client_po.field.po_type.subkon') ?? 'Subkon',
+                'supplier' => trans('backpack::crud.client_po.field.po_type.supplier') ?? 'Supplier',
+            ],
+            'allows_null' => false,
+            'default'     => 'subkon',
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         CRUD::addField([
             'name' => 'no_payment',
@@ -2072,10 +2115,25 @@ class VoucherCrudController extends CrudController
         // $this->crud->hasAccessOrFail('create');
 
         $search = request()->input('q');
-        $po_client = ClientPo::select(DB::raw("id, work_code, 'client' as type"))
-            ->where('work_code', 'LIKE', "%$search%");
+        $po_type = request()->input('po_type', 'subkon');
 
-        if (request()->has('company_id')) {
+        if ($po_type === 'supplier') {
+            $po_client = ClientPo::select(DB::raw("id, po_number as work_code, 'client' as type"))
+                ->where('po_type', 'supplier');
+            if ($search) {
+                $po_client->where('po_number', 'LIKE', "%$search%");
+            }
+        } else {
+            $po_client = ClientPo::select(DB::raw("id, work_code, 'client' as type"))
+                ->where(function($q) {
+                    $q->where('po_type', 'subkon')->orWhereNull('po_type');
+                });
+            if ($search) {
+                $po_client->where('work_code', 'LIKE', "%$search%");
+            }
+        }
+
+        if (request()->has('company_id') && request()->input('company_id') != '') {
             $po_client->where('company_id', request()->input('company_id'));
         }
 

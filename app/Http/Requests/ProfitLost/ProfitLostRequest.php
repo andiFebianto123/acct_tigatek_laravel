@@ -17,13 +17,35 @@ class ProfitLostRequest extends FormRequest
         $type = $this->input('type');
         
         if ($type === 'project') {
-            return [
-                'work_code' => 'required|unique:project_profit_lost,client_po_id,' . $this->id,
-                'category' => 'required',
-                'company_id' => backpack_user()->hasRole('Super Admin') ? 'required' : 'nullable',
-                'price_after_year' => 'nullable',
-                'price_general' => 'nullable',
-            ];
+            $orderableType = $this->input('orderable_type') ?? 'App\\Models\\ClientPo';
+
+            if ($orderableType === 'App\\Models\\ClientPo') {
+                return [
+                    'work_code' => [
+                        'required',
+                        Rule::unique('project_profit_lost', 'orderable_id')
+                            ->where('orderable_type', 'App\\Models\\ClientPo')
+                            ->ignore($this->id)
+                    ],
+                    'category' => 'required',
+                    'company_id' => backpack_user()->hasRole('Super Admin') ? 'required' : 'nullable',
+                    'price_after_year' => 'nullable',
+                    'price_general' => 'nullable',
+                ];
+            } else {
+                return [
+                    'purchase_order_id' => [
+                        'required',
+                        Rule::unique('project_profit_lost', 'orderable_id')
+                            ->where('orderable_type', 'App\\Models\\PurchaseOrder')
+                            ->ignore($this->id)
+                    ],
+                    'category' => 'required',
+                    'company_id' => backpack_user()->hasRole('Super Admin') ? 'required' : 'nullable',
+                    'price_after_year' => 'nullable',
+                    'price_general' => 'nullable',
+                ];
+            }
         }
 
         // Default for Consolidate Item

@@ -279,6 +279,19 @@ return [
             'tax_ppn' => 'Tax PPN',
             'total_value_with_tax' => 'Job Value Includes PPn',
             'document_path' => 'Document PO',
+        ],
+        'field' => [
+            'po_type' => [
+                'label' => 'PO Type',
+                'subkon' => 'Subkon',
+                'supplier' => 'Supplier',
+            ],
+            'job_name' => [
+                'label' => 'Job Name',
+                'placeholder' => 'Enter job name',
+                'label_supplier' => 'Item Name',
+                'placeholder_supplier' => 'Enter item name',
+            ]
         ]
     ],
     'spk' => [
@@ -372,6 +385,19 @@ return [
     ],
     'client_po' => [
         'field' => [
+            'po_type' => [
+                'label' => 'PO Type',
+                'subkon' => 'Subkon',
+                'supplier' => 'Supplier',
+            ],
+            'purchase_order_id' => [
+                'label' => 'Select Supplier PO',
+                'placeholder' => 'Select Supplier PO...',
+            ],
+            'job_name' => [
+                'label_supplier' => 'Order Description',
+                'placeholder_supplier' => 'Enter order description',
+            ],
             'is_from_quotation' => [
                 'label' => 'Select from Quotation (Client Quotation)',
             ],

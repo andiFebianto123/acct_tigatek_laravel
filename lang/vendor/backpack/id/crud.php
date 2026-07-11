@@ -350,6 +350,17 @@ return [
             'additional_info' => 'Keterangan',
         ],
         'field' => [
+            'po_type' => [
+                'label' => 'Jenis PO',
+                'subkon' => 'Subkon',
+                'supplier' => 'Supplier',
+            ],
+            'job_name' => [
+                'label' => 'Nama Pekerjaan',
+                'placeholder' => 'Tulis nama pekerjaan',
+                'label_supplier' => 'Nama Barang',
+                'placeholder_supplier' => 'Tulis nama barang',
+            ],
             'date_po' => [
                 'placeholder' => 'Pilih Tanggal',
             ],
@@ -470,6 +481,15 @@ return [
             'date_po' => 'Tanggal PO',
         ],
         'field' => [
+            'po_type' => [
+                'label' => 'Jenis PO',
+                'subkon' => 'Subkon',
+                'supplier' => 'Supplier',
+            ],
+            'purchase_order_id' => [
+                'label' => 'Pilih PO Supplier',
+                'placeholder' => 'Pilih PO Supplier...',
+            ],
             'client_id' => [
                 'label' => 'Nama Perusahaan',
                 'placeholder' => "- NAMA PERUSAHAAN",
@@ -489,6 +509,8 @@ return [
             'job_name' => [
                 'label' => 'Nama Pekerjaan',
                 'placeholder' => 'Masukan nama pekerjaan',
+                'label_supplier' => 'Deskripsi Pesanan',
+                'placeholder_supplier' => 'Masukan deskripsi pesanan',
             ],
             'job_value' => [
                 'label' => 'Nilai Pekerjaan',

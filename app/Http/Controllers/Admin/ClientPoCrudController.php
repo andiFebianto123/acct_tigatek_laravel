@@ -935,6 +935,38 @@ class ClientPoCrudController extends CrudController
 
 
         // CRUD::setFromDb(); // set fields from db columns.
+        CRUD::addField([
+            'name'        => 'po_type',
+            'label'       => trans('backpack::crud.client_po.field.po_type.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'subkon' => trans('backpack::crud.client_po.field.po_type.subkon'),
+                'supplier' => trans('backpack::crud.client_po.field.po_type.supplier'),
+            ],
+            'allows_null' => false,
+            'default'     => 'subkon',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'purchase_order_id',
+            'label'       => trans('backpack::crud.client_po.field.purchase_order_id.label'),
+            'type'        => 'select2_ajax_custom',
+            'entity'      => 'purchaseOrder',
+            'attribute'   => 'po_number',
+            'data_source' => backpack_url('client/select2-supplier-po-id'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6 manual-segment',
+            ],
+            'attributes'  => [
+                'placeholder' => trans('backpack::crud.client_po.field.purchase_order_id.placeholder'),
+            ],
+        ]);
+
         CRUD::field([   // 1-n relationship
             'label'       => trans('backpack::crud.client_po.field.client_id.label'), // Table column heading
             'type'        => "select2_ajax_custom",
@@ -1211,6 +1243,38 @@ class ClientPoCrudController extends CrudController
                 ],
             ]);
         }
+
+        CRUD::addField([
+            'name'        => 'po_type',
+            'label'       => trans('backpack::crud.client_po.field.po_type.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'subkon' => trans('backpack::crud.client_po.field.po_type.subkon'),
+                'supplier' => trans('backpack::crud.client_po.field.po_type.supplier'),
+            ],
+            'allows_null' => false,
+            'default'     => 'subkon',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'purchase_order_id',
+            'label'       => trans('backpack::crud.client_po.field.purchase_order_id.label'),
+            'type'        => 'select2_ajax_custom',
+            'entity'      => 'purchaseOrder',
+            'attribute'   => 'po_number',
+            'data_source' => backpack_url('client/select2-supplier-po-id'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes'  => [
+                'placeholder' => trans('backpack::crud.client_po.field.purchase_order_id.placeholder'),
+            ],
+        ]);
 
         CRUD::field([
             'label'       => trans('backpack::crud.client_po.field.client_id.label'),
@@ -2059,5 +2123,39 @@ class ClientPoCrudController extends CrudController
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
 
         return $pdf->stream($safeFileName);
+    }
+
+    public function select2SupplierPoId()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $request = request();
+        $search = $request->input('q');
+        $company_id = $request->input('company_id');
+
+        $query = \App\Models\PurchaseOrder::select(['id', 'po_number', 'job_name'])
+            ->where('po_type', 'supplier');
+
+        if ($company_id) {
+            $query->where('company_id', $company_id);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('po_number', 'LIKE', "%$search%")
+                  ->orWhere('job_name', 'LIKE', "%$search%");
+            });
+        }
+
+        $dataset = $query->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->po_number . ' - ' . $item->job_name,
+            ];
+        }
+        return response()->json(['results' => $results]);
     }
 }

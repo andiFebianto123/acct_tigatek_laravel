@@ -19,8 +19,17 @@ class ProjectProfitLost extends Model{
         return $this->belongsTo(ClientPo::class, 'client_po_id');
     }
 
+    public function orderable()
+    {
+        return $this->morphTo();
+    }
+
     public function voucher(){
         return $this->belongsTo(Voucher::class, 'voucher_id');
+    }
+
+    public function purchaseOrder(){
+        return $this->belongsTo(PurchaseOrder::class, 'orderable_id');
     }
 
     public function company(){

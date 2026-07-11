@@ -69,9 +69,40 @@
                     setInputNumber2(form+' input[name="payment_transfer"]', payment_transfer);
 
                 },
+                togglePoType: function(isInit = false){
+                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var po_type = $(form+' select[name="po_type"]').val();
+                    
+                    var clientPoWrapper = $(form+' select[name="client_po_id"]').closest('.form-group');
+                    var clientPoLabel = clientPoWrapper.find('label');
+                    
+                    var jobNameWrapper = $(form+' input[name="job_name_disabled"]').closest('.form-group');
+                    var jobNameLabel = jobNameWrapper.find('label');
+                    
+                    if (po_type === 'supplier') {
+                        clientPoLabel.text("No PO");
+                        jobNameLabel.text("Deskripsi Pesanan");
+                    } else {
+                        clientPoLabel.text("Kode Kerja");
+                        jobNameLabel.text("Nama Pekerjaan");
+                    }
+                    
+                    if (!isInit) {
+                        $(form+' select[name="client_po_id"]').val(null).trigger('change');
+                        $(form+' select[name="reference_id"]').val(null).trigger('change');
+                        $(form+' select[name="subkon_id"]').val(null).trigger('change');
+                        $(form+' input[name="job_name"]').val(null);
+                        $(form+' input[name="job_name_disabled"]').val(null);
+                    }
+                },
                 load: function(){
                     var instance = this;
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+
+                    instance.togglePoType(true);
+                    $(form+' select[name="po_type"]').on('change select2:select', function() {
+                        instance.togglePoType(false);
+                    });
 
                     @if (isset($entry))
                         var data_po_spk = {!! json_encode($set_value) !!};
@@ -92,7 +123,7 @@
                             $(form+' select[name="reference_id"]').append(selectedOptionw).trigger('change');
                         }
 
-                        var po_number_text = `${data_entry.client_po.work_code}`;
+                        var po_number_text = (data_entry.po_type === 'supplier') ? `${data_entry.client_po.po_number}` : `${data_entry.client_po.work_code}`;
 
                         var selectedOption = new Option(po_number_text, data_entry.client_po.id, true, true);
                         // $(form+ ' select[name="client_po_id"]').val(null).trigger('change');

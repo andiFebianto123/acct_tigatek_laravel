@@ -30,6 +30,8 @@ class ProfitLostService
             $item = new ProjectProfitLost();
             $item->voucher_id = $dto->voucher_id;
             $item->client_po_id = $dto->client_po_id;
+            $item->orderable_id = $dto->orderable_id;
+            $item->orderable_type = $dto->orderable_type;
             $item->price_after_year = $dto->price_after_year;
             $item->price_voucher = $dto->price_voucher;
             $item->price_small_cash = $dto->price_small_cash;
@@ -43,14 +45,16 @@ class ProfitLostService
             $item->total_project = 0;
             $item->save();
 
-            $po = ClientPo::findOrFail($dto->client_po_id);
-            $po->price_after_year = $item->price_after_year;
-            $po->price_total = $item->price_total;
-            $po->profit_and_loss = $item->price_profit_lost_po;
-            $po->load_general_value = $item->price_general;
-            $po->profit_and_lost_final = $item->price_prift_lost_final;
-            $po->category = $item->category;
-            $po->save();
+            if ($dto->orderable_type === 'App\Models\ClientPo') {
+                $po = ClientPo::findOrFail($dto->orderable_id);
+                $po->price_after_year = $item->price_after_year;
+                $po->price_total = $item->price_total;
+                $po->profit_and_loss = $item->price_profit_lost_po;
+                $po->load_general_value = $item->price_general;
+                $po->profit_and_lost_final = $item->price_prift_lost_final;
+                $po->category = $item->category;
+                $po->save();
+            }
 
             return $item;
         });
@@ -83,6 +87,13 @@ class ProfitLostService
                 $project_profit_lost->company_id = $dto->company_id;
             }
 
+            if ($project_profit_lost->orderable_id != $dto->orderable_id || $project_profit_lost->orderable_type != $dto->orderable_type) {
+                $flag_update++;
+                $project_profit_lost->orderable_id = $dto->orderable_id;
+                $project_profit_lost->orderable_type = $dto->orderable_type;
+                $project_profit_lost->client_po_id = $dto->orderable_type === 'App\Models\ClientPo' ? $dto->orderable_id : null;
+            }
+
             if ($flag_update > 0) {
                 $project_profit_lost->save();
 
@@ -92,6 +103,19 @@ class ProfitLostService
                 $new_profit_log->price_after_year = $dto->price_after_year;
                 $new_profit_log->price_general = $dto->price_general;
                 $new_profit_log->save();
+            }
+
+            if ($project_profit_lost->orderable_type === 'App\Models\ClientPo') {
+                $po = ClientPo::find($project_profit_lost->orderable_id);
+                if ($po) {
+                    $po->price_after_year = $project_profit_lost->price_after_year;
+                    $po->price_total = $project_profit_lost->price_total;
+                    $po->profit_and_loss = $project_profit_lost->price_profit_lost_po;
+                    $po->load_general_value = $project_profit_lost->price_general;
+                    $po->profit_and_lost_final = $project_profit_lost->price_prift_lost_final;
+                    $po->category = $project_profit_lost->category;
+                    $po->save();
+                }
             }
 
             return $project_profit_lost;
