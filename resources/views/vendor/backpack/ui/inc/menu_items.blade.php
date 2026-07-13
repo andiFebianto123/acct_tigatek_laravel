@@ -98,6 +98,9 @@
     @if($permissions->contains('name', 'MENU INDEX CLIENT QUOTATION'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.client_quotation.title_header')}}" icon="la la-circle-notch" :link="backpack_url('client/quotation')" />
     @endif
+    @if($permissions->contains('name', 'MENU INDEX INVOICE'))
+        <x-menu-group-item-custom title="Invoice Proforma" icon="la la-circle-notch" :link="backpack_url('client/proforma-invoice')" />
+    @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.client_po')}}" icon="la la-circle-notch" :link="backpack_url('client/po')" />
     @endif
@@ -106,9 +109,6 @@
     @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT BAST'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.bast')}}" icon="la la-circle-notch" :link="backpack_url('client/bast')" />
-    @endif
-    @if($permissions->contains('name', 'MENU INDEX INVOICE'))
-        <x-menu-group-item-custom title="Invoice Proforma" icon="la la-circle-notch" :link="backpack_url('client/proforma-invoice')" />
     @endif
     @if($permissions->contains('name', 'MENU INDEX INVOICE'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.invoice_client')}}" icon="la la-circle-notch" :link="backpack_url('invoice-client')" />
