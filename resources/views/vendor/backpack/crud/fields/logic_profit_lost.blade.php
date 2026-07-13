@@ -106,8 +106,10 @@
                         $(form + ' input[name="orderable_id"]').val(sourceId);
                         $(form + ' input[name="orderable_type"]').val(sourceType);
 
+                        var ajaxType = (sourceType === 'App\\Models\\PurchaseOrder' && data_profit_lost.client_po_id) ? 'App\\Models\\ClientPo' : sourceType;
+
                         $.ajax({
-                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + sourceId + "&type=" + sourceType,
+                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + sourceId + "&type=" + ajaxType,
                             type: 'GET',
                             dataType: 'json',
                             success: function (data) {
@@ -147,11 +149,11 @@
                         var id = result.id;
                         $(form+' input[name="po_number"]').val(result.po_number);
                         $(form+' input[name="orderable_id"]').val(id);
-                        $(form+' input[name="orderable_type"]').val('App\\Models\\PurchaseOrder');
+                        $(form+' input[name="orderable_type"]').val('App\\Models\\ClientPo');
                         $(form+' input[name="voucher_id"]').val(result.voucher_id);
                         
                         $.ajax({
-                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + id + "&type=App\\Models\\PurchaseOrder",
+                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + id + "&type=App\\Models\\ClientPo",
                             type: 'GET',
                             dataType: 'json',
                             success: function (data) {

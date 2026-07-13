@@ -457,10 +457,16 @@ class ProfitLostRepository
 
     public function getSelect2SupplierPo(?string $search): array
     {
-        $query = PurchaseOrder::where(function ($query) use ($search) {
-            $query->where('po_number', 'like', "%$search%")
-            ->orWhere('job_name', 'like', "%$search%");
-        });
+        $query = ClientPo::where('po_type', 'supplier');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('work_code', 'like', "%$search%")
+                  ->orWhere('po_number', 'like', "%$search%")
+                  ->orWhere('job_name', 'like', "%$search%");
+            });
+        }
+
         if (request()->has('company_id')) {
             $query->where('company_id', request()->input('company_id'));
         }
@@ -475,7 +481,7 @@ class ProfitLostRepository
                 'id' => $item->id,
                 'po_number' => $item->po_number,
                 'text' => $item->po_number . ' - ' . $item->job_name,
-                'work_code' => $item->po_number,
+                'work_code' => $item->work_code,
             ];
         }
         return $results;
@@ -483,22 +489,22 @@ class ProfitLostRepository
 
     public function getSourceSelectedData(int $id, string $type): array
     {
-        if ($type === 'App\\Models\\PurchaseOrder') {
-            $voucher = Voucher::select(
-                'reference_id',
-                DB::raw("SUM(payment_transfer) as payment_transfer"),
-                DB::raw("SUM(total) as biaya")
-            )->where('reference_type', 'App\\Models\\PurchaseOrder')
-                ->where('reference_id', $id)
-                ->groupBy('reference_id')->first();
+        // if ($type === 'App\\Models\\PurchaseOrder') {
+        //     $voucher = Voucher::select(
+        //         'reference_id',
+        //         DB::raw("SUM(payment_transfer) as payment_transfer"),
+        //         DB::raw("SUM(total) as biaya")
+        //     )->where('reference_type', 'App\\Models\\PurchaseOrder')
+        //         ->where('reference_id', $id)
+        //         ->groupBy('reference_id')->first();
 
-            $po = PurchaseOrder::findOrFail($id);
+        //     $po = PurchaseOrder::findOrFail($id);
 
-            return [
-                'price_voucher' => (int) ($voucher->biaya ?? 0),
-                'price_excl_ppn_po' => (int) ($po->job_value ?? 0),
-            ];
-        }
+        //     return [
+        //         'price_voucher' => (int) ($voucher->biaya ?? 0),
+        //         'price_excl_ppn_po' => (int) ($po->job_value ?? 0),
+        //     ];
+        // }
 
         // Default to ClientPo
         return $this->getClientPoSelectedData($id);

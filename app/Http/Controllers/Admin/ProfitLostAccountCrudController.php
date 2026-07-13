@@ -350,7 +350,13 @@ class ProfitLostAccountCrudController extends CrudController
         $this->crud->entry = $this->data['entry'];
         $client_po = $this->data['entry']->clientPo;
 
-        $this->crud->entry->po_number = $client_po->po_number;
+        if ($client_po) {
+            $this->crud->entry->po_number = $client_po->po_number;
+            if ($client_po->po_type === 'supplier') {
+                $this->crud->entry->orderable_type = 'App\\Models\\PurchaseOrder';
+                $this->crud->entry->purchase_order_id = $client_po->id;
+            }
+        }
 
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
 
@@ -461,10 +467,10 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::addField([
                 'name' => 'purchase_order_id',
-                'label' => 'Purchase Order (Supplier)',
+                'label' => 'PO Client Supplier',
                 'type' => 'select2_ajax_custom',
                 'attribute' => 'po_number',
-                'entity' => 'purchaseOrder',
+                'entity' => 'clientPo',
                 'data_source' => backpack_url('finance-report/profit-lost/select2-supplier-po'),
                 'wrapper' => ['class' => 'form-group col-md-6'],
                 'attributes' => $job_code_prefix_value,
@@ -745,6 +751,9 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'      => 'closure',
                 'name'      => 'client_po_id',
                 'function' => function ($entry) {
+                    if ($entry->clientPo && $entry->clientPo->po_type === 'supplier') {
+                        return 'PT. TIGA TEKNOLOGI PERSADA';
+                    }
                     return $entry->clientPo->client->name ?? '-';
                 },
                 'searchLogic' => function ($query, $column, $searchTerm) {
@@ -935,7 +944,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'label' => 'Client',
                 'type' => 'closure',
                 'name' => 'client_po_id',
-                'function' => function ($entry) { return $entry->clientPo->client->name ?? '-'; }
+                'function' => function ($entry) {
+                    if ($entry->clientPo && $entry->clientPo->po_type === 'supplier') {
+                        return 'PT. TIGA TEKNOLOGI PERSADA';
+                    }
+                    return $entry->clientPo->client->name ?? '-';
+                }
             ]);
 
             CRUD::column(['label' => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);

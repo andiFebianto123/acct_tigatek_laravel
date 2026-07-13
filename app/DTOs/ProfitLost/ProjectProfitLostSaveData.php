@@ -38,14 +38,14 @@ class ProjectProfitLostSaveData
         $orderableId = $request->input('orderable_id');
 
         if (empty($orderableId)) {
-            if ($request->input('source_type') === 'App\\Models\\PurchaseOrder') {
+            if ($orderableType === 'App\\Models\\PurchaseOrder' || $request->input('source_type') === 'App\\Models\\PurchaseOrder') {
                 $orderableId = $request->input('purchase_order_id');
-                $orderableType = 'App\\Models\\PurchaseOrder';
             } else {
                 $orderableId = $request->input('work_code') ?? $request->input('id_client_po') ?? $request->input('client_po_id');
-                $orderableType = 'App\\Models\\ClientPo';
             }
         }
+
+        $orderableType = 'App\\Models\\ClientPo';
 
         return new self(
             id: $request->id ? (int) $request->id : null,

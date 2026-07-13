@@ -17,9 +17,10 @@ class ProfitLostRequest extends FormRequest
         $type = $this->input('type');
         
         if ($type === 'project') {
-            $orderableType = $this->input('orderable_type') ?? 'App\\Models\\ClientPo';
+            // Determine if the type is supplier based on input fields
+            $isSupplier = $this->has('purchase_order_id') || $this->input('orderable_type') === 'App\\Models\\PurchaseOrder';
 
-            if ($orderableType === 'App\\Models\\ClientPo') {
+            if (!$isSupplier) {
                 return [
                     'work_code' => [
                         'required',
@@ -37,7 +38,7 @@ class ProfitLostRequest extends FormRequest
                     'purchase_order_id' => [
                         'required',
                         Rule::unique('project_profit_lost', 'orderable_id')
-                            ->where('orderable_type', 'App\\Models\\PurchaseOrder')
+                            ->where('orderable_type', 'App\\Models\\ClientPo')
                             ->ignore($this->id)
                     ],
                     'category' => 'required',
