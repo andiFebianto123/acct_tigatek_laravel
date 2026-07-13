@@ -467,7 +467,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::addField([
                 'name' => 'purchase_order_id',
-                'label' => 'PO Client Supplier',
+                'label' => trans('backpack::crud.profit_lost.fields.po_client_supplier.label'),
                 'type' => 'select2_ajax_custom',
                 'attribute' => 'po_number',
                 'entity' => 'clientPo',

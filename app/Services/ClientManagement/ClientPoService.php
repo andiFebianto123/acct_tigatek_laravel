@@ -39,6 +39,7 @@ class ClientPoService
                 }
 
                 $po = ClientPo::create($attributes);
+                $this->linkVoucherToClientPo($po);
                 return $po;
             }
 
@@ -80,6 +81,7 @@ class ClientPoService
 
                 $po = ClientPo::create($attributes);
                 $po->quotations()->attach($quotation->id);
+                $this->linkVoucherToClientPo($po);
 
                 $lastPo = $po;
             }
@@ -95,6 +97,9 @@ class ClientPoService
     {
         return DB::transaction(function () use ($id, $data) {
             $clientPo = ClientPo::findOrFail($id);
+            $oldPoType = $clientPo->po_type;
+            $oldPurchaseOrderId = $clientPo->purchase_order_id;
+
             $attributes = $data->toArray();
 
             // Auto generate work_code for Supplier PO
@@ -117,7 +122,23 @@ class ClientPoService
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
             }
 
+            // Rollback old voucher links if po_type changes or purchase_order_id changes
+            if ($oldPoType === 'supplier' && (($attributes['po_type'] ?? null) !== 'supplier' || $oldPurchaseOrderId != ($attributes['purchase_order_id'] ?? null))) {
+                \App\Models\Voucher::where('client_po_id', $clientPo->id)
+                    ->where('reference_type', 'App\\Models\\PurchaseOrder')
+                    ->update(['client_po_id' => null]);
+            }
+
+            // Check if switching to supplier when it was previously something else, and vouchers exist
+            if ($oldPoType !== 'supplier' && ($attributes['po_type'] ?? null) === 'supplier') {
+                $hasVoucher = \App\Models\Voucher::where('client_po_id', $clientPo->id)->exists();
+                if ($hasVoucher) {
+                    throw new \Exception(trans('backpack::crud.client_po.field.error_has_voucher'));
+                }
+            }
+
             $clientPo->update($attributes);
+            $this->linkVoucherToClientPo($clientPo);
             return $clientPo;
         });
     }
@@ -132,6 +153,12 @@ class ClientPoService
             if ($clientPo->document_path) {
                 Storage::disk('public')->delete($clientPo->document_path);
             }
+
+            // Rollback voucher links
+            \App\Models\Voucher::where('client_po_id', $clientPo->id)
+                ->where('reference_type', 'App\\Models\\PurchaseOrder')
+                ->update(['client_po_id' => null]);
+
             return (bool) $clientPo->delete();
         });
     }
@@ -161,6 +188,16 @@ class ClientPoService
         $uniqueKey = Str::random(5);
 
         return "{$safeName}-{$uniqueKey}.{$extension}";
+    }
+
+    private function linkVoucherToClientPo(ClientPo $clientPo): void
+    {
+        if ($clientPo->po_type === 'supplier' && !empty($clientPo->purchase_order_id)) {
+            \App\Models\Voucher::where('reference_type', 'App\\Models\\PurchaseOrder')
+                ->where('reference_id', $clientPo->purchase_order_id)
+                ->whereNull('client_po_id')
+                ->update(['client_po_id' => $clientPo->id]);
+        }
     }
 
     /**

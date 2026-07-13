@@ -385,6 +385,7 @@ return [
     ],
     'client_po' => [
         'field' => [
+            'error_has_voucher' => 'This client PO already has a client voucher created so it cannot be made into a supplier.',
             'po_type' => [
                 'label' => 'PO Type',
                 'subkon' => 'Subkon',
@@ -604,6 +605,13 @@ return [
     'voucher' => [
         'confirm' => [
             'account_loan' => 'Account cannot be a loan account',
+        ],
+    ],
+    'profit_lost' => [
+        'fields' => [
+            'po_client_supplier' => [
+                'label' => 'PO Client Supplier',
+            ],
         ],
     ],
 ];

@@ -481,6 +481,7 @@ return [
             'date_po' => 'Tanggal PO',
         ],
         'field' => [
+            'error_has_voucher' => 'Client PO ini sudah dibuatkan voucher client jadi tidak bisa dijadikan supplier.',
             'po_type' => [
                 'label' => 'Jenis PO',
                 'subkon' => 'Subkon',
@@ -1211,6 +1212,9 @@ return [
         ],
         'show_detail' => 'LIHAT DETAIL',
         'fields' => [
+            'po_client_supplier' => [
+                'label' => 'PO Client Supplier',
+            ],
             'no_po' => [
                 'label' => 'No PO',
                 'placeholder' => '-No. PO'
