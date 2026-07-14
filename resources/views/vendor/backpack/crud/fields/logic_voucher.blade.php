@@ -80,9 +80,13 @@
                     var jobNameLabel = jobNameWrapper.find('label');
                     
                     if (po_type === 'supplier') {
+                        clientPoWrapper.hide();
+                        $(form+' select[name="client_po_id"]').attr('disabled', true);
                         clientPoLabel.text("No PO");
                         jobNameLabel.text("Deskripsi Pesanan");
                     } else {
+                        clientPoWrapper.show();
+                        $(form+' select[name="client_po_id"]').removeAttr('disabled');
                         clientPoLabel.text("Kode Kerja");
                         jobNameLabel.text("Nama Pekerjaan");
                     }
@@ -123,11 +127,13 @@
                             $(form+' select[name="reference_id"]').append(selectedOptionw).trigger('change');
                         }
 
-                        var po_number_text = (data_entry.po_type === 'supplier') ? `${data_entry.client_po.po_number}` : `${data_entry.client_po.work_code}`;
+                        if (data_entry.client_po) {
+                            var po_number_text = (data_entry.po_type === 'supplier') ? `${data_entry.client_po.po_number}` : `${data_entry.client_po.work_code}`;
 
-                        var selectedOption = new Option(po_number_text, data_entry.client_po.id, true, true);
-                        // $(form+ ' select[name="client_po_id"]').val(null).trigger('change');
-                        $(form+ ' select[name="client_po_id"]').append(selectedOption).trigger('change');
+                            var selectedOption = new Option(po_number_text, data_entry.client_po.id, true, true);
+                            // $(form+ ' select[name="client_po_id"]').val(null).trigger('change');
+                            $(form+ ' select[name="client_po_id"]').append(selectedOption).trigger('change');
+                        }
 
                         $(form+' input[name="job_name_disabled"]').val(data_entry.job_name);
                         // $(form+ ' input[name="date_po_spk"]').val(data_po_spk.date_po_spk_str);

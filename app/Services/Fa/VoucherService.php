@@ -73,10 +73,17 @@ class VoucherService
             $item->reference_type = Spk::class;
         }
         $item->subkon_id = $data->subkon_id;
-        $item->client_po_id = $data->client_po_id;
         $item->po_type = $data->po_type;
-
         $item->reference_id = $data->reference_id;
+
+        if ($item->reference_type === PurchaseOrder::class && $item->po_type === 'supplier') {
+            $clientPo = ClientPo::where('po_type', 'supplier')
+                ->where('purchase_order_id', $item->reference_id)
+                ->first();
+            $item->client_po_id = $clientPo ? $clientPo->id : null;
+        } else {
+            $item->client_po_id = $data->client_po_id;
+        }
         $item->no_voucher = $data->no_voucher;
         $item->work_code = '';
         $item->job_name = $data->job_name;
@@ -186,10 +193,17 @@ class VoucherService
             $item->reference_type = Spk::class;
         }
         $item->subkon_id = $data->subkon_id;
-        $item->client_po_id = $data->client_po_id;
         $item->po_type = $data->po_type;
-
         $item->reference_id = $data->reference_id;
+
+        if ($item->reference_type === PurchaseOrder::class && $item->po_type === 'supplier') {
+            $clientPo = ClientPo::where('po_type', 'supplier')
+                ->where('purchase_order_id', $item->reference_id)
+                ->first();
+            $item->client_po_id = $clientPo ? $clientPo->id : null;
+        } else {
+            $item->client_po_id = $data->client_po_id;
+        }
         $item->no_voucher = $data->no_voucher;
         $item->work_code = '';
         $item->job_name = $data->job_name;
