@@ -74,7 +74,7 @@ class VoucherRequest extends FormRequest
                 }
             ],
             'client_po_id' => [
-                'nullable',
+                $this->input('po_type') === 'subkon' ? 'required' : 'nullable',
                 function ($attribute, $value, $fail) {
                     if (empty($value)) {
                         return;
