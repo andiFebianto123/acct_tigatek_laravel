@@ -80,7 +80,6 @@ class ProformaInvoiceClientService
         $invoice->address_po = $dto->address_po ?? '';
         $invoice->description = $dto->description;
         $invoice->invoice_date = $dto->invoice_date;
-        $invoice->client_po_id = $dto->client_po_id;
         $invoice->tax_ppn = $dto->tax_ppn;
         $invoice->price_dpp = $dto->dpp_other;
         $invoice->kdp = $dto->kdp;
@@ -95,7 +94,6 @@ class ProformaInvoiceClientService
         $invoice->company_id = $dto->company_id;
         $invoice->account_source_id = $dto->account_source_id;
         $invoice->note = $dto->note;
-        $invoice->client_id = $dto->client_id;
         $invoice->type_device = $dto->type_device;
         $invoice->term = $dto->term;
     }

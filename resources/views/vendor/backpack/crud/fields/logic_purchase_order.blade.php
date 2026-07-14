@@ -28,6 +28,9 @@
                     var jobNameWrapper = $(form+' input[name="job_name"]').closest('.form-group');
                     var jobNameLabel = jobNameWrapper.find('label');
                     var jobNameInput = $(form+' input[name="job_name"]');
+
+                    var jobDescWrapper = $(form+' [name="job_description"]').closest('.form-group');
+                    var jobDescInput = $(form+' [name="job_description"]');
                     
                     if (po_type === 'supplier') {
                         workCodeWrapper.hide();
@@ -35,12 +38,18 @@
                         
                         jobNameLabel.text("{{ trans('backpack::crud.po.field.job_name.label_supplier') }}");
                         jobNameInput.attr('placeholder', "{{ trans('backpack::crud.po.field.job_name.placeholder_supplier') }}");
+
+                        jobDescWrapper.hide();
+                        jobDescInput.attr('disabled', true);
                     } else {
                         workCodeWrapper.show();
                         workCodeInput.removeAttr('disabled');
                         
                         jobNameLabel.text("{{ trans('backpack::crud.po.field.job_name.label') }}");
                         jobNameInput.attr('placeholder', "{{ trans('backpack::crud.po.field.job_name.placeholder') }}");
+
+                        jobDescWrapper.show();
+                        jobDescInput.removeAttr('disabled');
                     }
                 },
                 load: function(){

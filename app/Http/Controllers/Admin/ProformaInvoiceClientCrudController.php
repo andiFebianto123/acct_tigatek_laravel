@@ -195,8 +195,6 @@ class ProformaInvoiceClientCrudController extends CrudController
         $this->crud->registerFieldEvents();
 
         $entry = $this->crud->getEntryWithLocale($id);
-        $entry->po_date = $entry->client_po ? Carbon::parse($entry->client_po->date_po)->format('d/m/Y') : null;
-        $entry->client_name = $entry->client?->name;
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->nominal_include_ppn = $entry->price_total_include_ppn;
         $entry->send_invoice_normal = $entry->send_invoice_normal_date;
@@ -273,9 +271,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ->label(trans('backpack::crud.proforma_invoice.field.invoice_date.label'))
             ->type('date');
 
-        $this->crud->filter('po_date11crudTable-invoice')
-            ->label(trans('backpack::crud.invoice_client.column.po_date'))
-            ->type('date');
+
 
         // $this->crud->filter('send_invoice_normal11crudTable-invoice')
         //     ->label(trans('backpack::crud.invoice_client.column.send_invoice_normal'))
@@ -314,12 +310,6 @@ class ProformaInvoiceClientCrudController extends CrudController
                 'label'  => trans('backpack::crud.proforma_invoice.column.invoice_date'),
                 'name' => 'invoice_date',
                 'type'  => 'text',
-                'orderable' => true,
-            ],
-            [
-                'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
-                'type' => 'text',
-                'name' => 'subkon_name',
                 'orderable' => true,
             ],
             [
@@ -410,7 +400,6 @@ class ProformaInvoiceClientCrudController extends CrudController
         CRUD::addClause('select', [
             DB::raw("
                 proforma_invoice_clients.*,
-                client_po.date_po as po_date_from_po,
                 companies.name as company_name
             ")
         ]);
@@ -455,15 +444,6 @@ class ProformaInvoiceClientCrudController extends CrudController
             'name' => 'invoice_date',
             'type'  => 'date',
             'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
-            'type'      => 'closure',
-            'name'      => 'subkon_name',
-            'function' => function ($entry) {
-                return $entry->subkon?->name;
-            }
         ]);
 
         CRUD::column([
@@ -556,20 +536,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ]
         ]);
 
-        CRUD::addField([
-            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'        => 'select2_ajax_custom',
-            'name'        => 'client_po_id',
-            'entity'      => 'client_po',
-            'attribute'   => 'po_number',
-            'data_source' => backpack_url('client/proforma-invoice/select2-client-po'),
-            'wrapper'     => [
-                'class' => 'form-group col-md-6',
-            ],
-            'dependencies'            => ['company_id'],
-            'include_all_form_fields' => true,
-            'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder'),
-        ]);
+
 
         CRUD::addField([
             'name' => 'address_po',
@@ -829,17 +796,7 @@ class ProformaInvoiceClientCrudController extends CrudController
 
             $dto = ProformaInvoiceClientSaveData::fromRequest($request);
             
-            // Auto fetch client_id from PO
-            if ($dto->client_po_id) {
-                $po = ClientPo::find($dto->client_po_id);
-                if ($po) {
-                    $request->merge([
-                        'client_id' => $po->client_id,
-                        'company_id' => $po->company_id,
-                    ]);
-                    $dto = ProformaInvoiceClientSaveData::fromRequest($request);
-                }
-            }
+
 
             $invoice = $this->service->createInvoice($dto);
 
@@ -896,17 +853,7 @@ class ProformaInvoiceClientCrudController extends CrudController
 
             $dto = ProformaInvoiceClientSaveData::fromRequest($request);
             
-            // Auto fetch client_id from PO
-            if ($dto->client_po_id) {
-                $po = ClientPo::find($dto->client_po_id);
-                if ($po) {
-                    $request->merge([
-                        'client_id' => $po->client_id,
-                        'company_id' => $po->company_id,
-                    ]);
-                    $dto = ProformaInvoiceClientSaveData::fromRequest($request);
-                }
-            }
+
 
             $id = $request->input('id');
             $invoice = $this->service->updateInvoice((int) $id, $dto);
@@ -952,14 +899,7 @@ class ProformaInvoiceClientCrudController extends CrudController
         $settings = Setting::first();
         $new_format_date = 'DD/MM/YYYY';
 
-        $this->crud->query = $this->crud->query
-            ->leftJoin('client_po', 'client_po.id', '=', 'proforma_invoice_clients.client_po_id');
-        CRUD::addClause('select', [
-            DB::raw("
-                proforma_invoice_clients.*,
-                client_po.date_po as po_date_from_po
-            ")
-        ]);
+
 
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::field([
@@ -1002,17 +942,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ],
         ]);
 
-        CRUD::addField([
-            'name' => 'client_id',
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
-            'type' => 'select',
-            'entity' => 'client',
-            'attribute' => 'name',
-            'model' => 'App\Models\Client',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
+
 
         CRUD::addField([
             'name' => 'description',
@@ -1100,14 +1030,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             'format' => $new_format_date,
         ]);
 
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
-            'type'      => 'closure',
-            'name'      => 'client_id',
-            'function' => function ($entry) {
-                return $entry->client?->name;
-            }
-        ]);
+
 
         CRUD::column([
             'label'  => trans('backpack::crud.invoice_client.field.description.label'),

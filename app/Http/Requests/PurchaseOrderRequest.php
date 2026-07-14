@@ -44,6 +44,7 @@ class PurchaseOrderRequest extends FormRequest
 
         if (request()->input('po_type') === 'supplier') {
             $rule['work_code'] = 'nullable|max:30';
+            $rule['job_description'] = 'nullable';
         } else {
             if (request()->has('work_code')) {
                 $rule['work_code'] = 'required|max:30';

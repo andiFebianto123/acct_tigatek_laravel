@@ -10,9 +10,8 @@ class ProformaInvoiceClientRepository
 {
     public function applyListQuery($query, ProformaInvoiceClientFilterData $dto): void
     {
-        $query->leftJoin('client_po', 'client_po.id', '=', 'proforma_invoice_clients.client_po_id')
-            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id')
-            ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
+        $query->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id');
+            // ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
 
         $this->applyFilters($query, $dto);
     }
@@ -25,9 +24,7 @@ class ProformaInvoiceClientRepository
             $query->where('proforma_invoice_clients.invoice_date', $dto->invoice_date);
         }
 
-        if ($dto->po_date) {
-            $query->where('client_po.date_po', $dto->po_date);
-        }
+
 
         if ($dto->send_invoice_normal) {
             $query->where('proforma_invoice_clients.send_invoice_normal_date', $dto->send_invoice_normal);
@@ -111,9 +108,8 @@ class ProformaInvoiceClientRepository
             DB::raw("SUM(price_total_exclude_ppn) as total_price_exclude_ppn"),
             DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
             DB::raw("SUM(discount_pph) as total_discount_pph")
-        )->leftJoin('client_po', 'client_po.id', '=', 'proforma_invoice_clients.client_po_id')
-            ->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id')
-            ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
+        )->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id');
+            //->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
 
         $this->applyFilters($query, $dto);
 

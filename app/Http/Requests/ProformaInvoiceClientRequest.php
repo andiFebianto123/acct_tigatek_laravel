@@ -25,12 +25,10 @@ class ProformaInvoiceClientRequest extends FormRequest
     public function rules()
     {
         $id = $this->get('id') ?? $this->route('id');
-        $client_po = request()->client_po_id;
 
         $rule = [
             'invoice_number' => 'required|min:3|max:50|unique:proforma_invoice_clients,invoice_number,' . $id,
             'invoice_date' => 'required',
-            'client_po_id' => 'required|exists:client_po,id',
             'status' => 'nullable|in:Paid,Unpaid',
             'withholding_agent' => 'nullable|in:WAPU,NON WAPU',
             'account_source_id' => 'nullable|exists:cast_accounts,id',
@@ -61,23 +59,6 @@ class ProformaInvoiceClientRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
-                        if ($client_po) {
-                            $client = ClientPo::find($client_po);
-                            if ($client) {
-                                $price_total = $client->job_value;
-                                $items_total_price = 0;
-                                foreach ($items as $item) {
-                                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
-                                    $qty = (int) ($item['qty'] ?? 1);
-                                    $items_total_price += ($price * $qty);
-                                }
-                                if ($price_total != $items_total_price) {
-                                    $fail(trans('backpack::crud.invoice_client.field.item.errors.total_price'));
-                                }
-                            }
-                        }
-                    }
                 ];
                 $rule['proforma_invoice_client_details_edit.*.name'] = 'required|max:120';
                 $rule['proforma_invoice_client_details_edit.*.price'] = 'required|numeric|min:1000';
@@ -104,25 +85,6 @@ class ProformaInvoiceClientRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
-                        if ($client_po) {
-                            $client = ClientPo::find($client_po);
-                            if ($client) {
-                                $price_total = $client->job_value;
-
-                                $items_total_price = 0;
-                                foreach ($items as $item) {
-                                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
-                                    $qty = (int) ($item['qty'] ?? 1);
-                                    $items_total_price += ($price * $qty);
-                                }
-
-                                if ($price_total != $items_total_price) {
-                                    $fail(trans('backpack::crud.invoice_client.field.item.errors.total_price'));
-                                }
-                            }
-                        }
-                    }
                 ];
                 $rule['proforma_invoice_client_details.*.name'] = 'required|max:120';
                 $rule['proforma_invoice_client_details.*.price'] = 'required|numeric|min:1000';
