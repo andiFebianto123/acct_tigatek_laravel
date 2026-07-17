@@ -258,6 +258,8 @@ return [
         'bast' => 'BAST',
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
+        'inventory' => 'Persediaan',
+        'device_stock' => 'Stok Barang',
         'transaction_history' => 'Riwayat Transaksi',
         'billing_notification' => 'Notifikasi Tagihan',
     ],
@@ -304,6 +306,19 @@ return [
                 'placeholder' => 'Masukan Nomor Order',
             ]
         ]
+    ],
+    'device_stock' => [
+        'title_header' => 'Stok Barang',
+        'export_title' => 'Laporan Stok Barang',
+        'placeholder_category' => 'Pilih/Tambah Kategori Baru',
+        'column' => [
+            'name' => 'Nama Barang',
+            'code' => 'Kode Barang',
+            'category' => 'Kategori',
+            'qty' => 'Qty',
+            'sell_price' => 'Harga Jual',
+            'buy_price' => 'Harga Beli',
+        ],
     ],
     'subkon' => [
         'title_header' => 'Daftar Subkon',
@@ -482,6 +497,7 @@ return [
         ],
         'field' => [
             'error_has_voucher' => 'Client PO ini sudah dibuatkan voucher client jadi tidak bisa dijadikan supplier.',
+            'purchase_order_id_unique' => 'Purchase Order ini sudah digunakan oleh Client PO lain.',
             'po_type' => [
                 'label' => 'Jenis PO',
                 'subkon' => 'Subkon',

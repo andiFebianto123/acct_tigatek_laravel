@@ -176,6 +176,15 @@
 </x-menu-group-custom>
 @endif
 
+@if($permissions->contains('name', 'MENU INDEX STOK BARANG'))
+<x-menu-group-custom
+    title="{{trans('backpack::crud.menu.inventory')}}"
+    :logo_url="asset('storage/logos/menu/logo-arusrek.png')"
+    :link="backpack_url('inventory/device-stock')" >
+    <x-menu-group-item-custom title="{{trans('backpack::crud.menu.device_stock')}}" icon="la la-circle-notch" :link="backpack_url('inventory/device-stock')" />
+</x-menu-group-custom>
+@endif
+
 @if($permissions->contains('name', 'MENU INDEX RENCANA PEMBAYARAN'))
     <x-menu-item-custom
         title="{{trans('backpack::crud.menu.voucher_payment_plan')}}"

@@ -216,6 +216,8 @@ return [
         'billing_simcard' => 'Billing SIMCARD',
         'transaction_history' => 'Transaction History',
         'billing_notification' => 'Billing Notification',
+        'inventory' => 'Inventory',
+        'device_stock' => 'Stok Barang',
     ],
     'setting' => [
         'pi_prefix' => 'PI Prefix',
@@ -252,6 +254,19 @@ return [
             'monitoring_tracker' => 'Monitoring Tracker',
         ],
         'history_update_text' => 'Edit monitoring tracker data',
+    ],
+    'device_stock' => [
+        'title_header' => 'Stock Items',
+        'export_title' => 'Stock Items Report',
+        'placeholder_category' => 'Select/Add New Category',
+        'column' => [
+            'name' => 'Item Name',
+            'code' => 'Item Code',
+            'category' => 'Category',
+            'qty' => 'Qty',
+            'sell_price' => 'Selling Price',
+            'buy_price' => 'Buying Price',
+        ],
     ],
     'subkon' => [
         'title_header' => 'List Subkon',
@@ -386,6 +401,7 @@ return [
     'client_po' => [
         'field' => [
             'error_has_voucher' => 'This client PO already has a client voucher created so it cannot be made into a supplier.',
+            'purchase_order_id_unique' => 'This Purchase Order has already been used by another Client PO.',
             'po_type' => [
                 'label' => 'PO Type',
                 'subkon' => 'Subkon',

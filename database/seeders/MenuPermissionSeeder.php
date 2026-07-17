@@ -52,6 +52,7 @@ class MenuPermissionSeeder extends Seeder
             'MENU INDEX VENDOR PROFORMA INVOICE',
             'MENU INDEX CLIENT PROFORMA INVOICE',
             'MENU INDEX CLIENT NOTIFIKASI TAGIHAN',
+            'MENU INDEX STOK BARANG',
         ];
 
         $permissionModels = [];

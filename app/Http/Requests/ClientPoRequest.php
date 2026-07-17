@@ -122,7 +122,7 @@ class ClientPoRequest extends FormRequest
     public function messages()
     {
         return [
-            'purchase_order_id.unique' => 'Purchase Order ini sudah digunakan oleh Client PO lain.',
+            'purchase_order_id.unique' => trans('backpack::crud.client_po.field.purchase_order_id_unique'),
         ];
     }
 }

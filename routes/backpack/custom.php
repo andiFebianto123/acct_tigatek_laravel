@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\ProjectSystemSetupCrudController;
 use App\Http\Controllers\Admin\MonitoringTrackerCrudController;
 use App\Http\Controllers\Admin\VoucherPaymentPlanCrudController;
 use App\Http\Controllers\Admin\ProformaInvoiceClientCrudController;
+use App\Http\Controllers\Admin\DeviceStockCrudController;
 
 
 // --------------------------
@@ -323,6 +324,13 @@ Route::group([
 
     Route::post('account/select2-account', [CastAccountsCrudController::class, 'account_select2']);
     Route::post('account/select2-account-child', [CastAccountsCrudController::class, 'account_child_select2']);
+
+    Route::prefix('inventory')->group(function () {
+        Route::crud('device-stock', 'DeviceStockCrudController');
+        Route::post('device-stock/export-pdf', [DeviceStockCrudController::class, 'exportPdf']);
+        Route::post('device-stock/export-excel', [DeviceStockCrudController::class, 'exportExcel']);
+        Route::post('device-stock/save-category', [DeviceStockCrudController::class, 'saveCategoryAjax']);
+    });
 }); // this should be the absolute last line of this file
 
 /**
