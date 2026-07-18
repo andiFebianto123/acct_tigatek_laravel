@@ -80,6 +80,9 @@
                     var jobNameWrapper = $(form+' input[name="job_name_disabled"]').closest('.form-group');
                     var jobNameLabel = jobNameWrapper.find('label');
                     
+                    referenceWrapper.show();
+                    $(form+' select[name="reference_id"]').removeAttr('disabled');
+                    
                     if (po_type === 'supplier') {
                         clientPoWrapper.hide();
                         $(form+' select[name="client_po_id"]').attr('disabled', true);
@@ -87,17 +90,11 @@
                         invoiceClientWrapper.hide();
                         $(form+' select[name="invoice_client_id"]').attr('disabled', true);
                         
-                        referenceWrapper.show();
-                        $(form+' select[name="reference_id"]').removeAttr('disabled');
-                        
                         jobNameLabel.text("Deskripsi Pesanan");
                     } else {
                         // subkon
                         clientPoWrapper.hide();
                         $(form+' select[name="client_po_id"]').attr('disabled', true);
-                        
-                        referenceWrapper.hide();
-                        $(form+' select[name="reference_id"]').attr('disabled', true);
                         
                         invoiceClientWrapper.show();
                         $(form+' select[name="invoice_client_id"]').removeAttr('disabled');

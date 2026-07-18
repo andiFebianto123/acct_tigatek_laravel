@@ -1320,7 +1320,7 @@ class VoucherCrudController extends CrudController
     public function invoiceSelectedAjax()
     {
         $id = request()->id;
-        $invoice = \App\Models\InvoiceClient::with('client_po.client')->find($id);
+        $invoice = \App\Models\InvoiceClient::with('client_po')->find($id);
 
         if (!$invoice) {
             return response()->json(['error' => 'Invoice not found'], 404);
@@ -1335,7 +1335,7 @@ class VoucherCrudController extends CrudController
             $po->price_total = $po->job_value;
         }
 
-        $company = $po->client ?? null;
+        $company = \App\Models\Subkon::where('company_id', $invoice->company_id)->first();
 
         $data = [
             'po' => $po,
@@ -1539,6 +1539,24 @@ class VoucherCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'label'       => trans('backpack::crud.voucher.field.no_po_spk.label'), // Table column heading
+            'type'        => "select2_ajax_custom",
+            'name'        => 'reference_id',
+            'entity'      => 'purchase_order',
+            'model'       => 'App\Models\PurchaseOrder',
+            'attribute'   => "po_number",
+            'data_source' => backpack_url('fa/voucher/select2-po-spk'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.voucher.field.no_po_spk.placeholder'),
+            ],
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+        ]);
+
+        CRUD::addField([
             'name' => 'job_name_disabled',
             'label' => trans('backpack::crud.voucher.field.job_name.label'),
             'type' => 'text',
@@ -1655,33 +1673,7 @@ class VoucherCrudController extends CrudController
             ],
         ]);
 
-        CRUD::addField([
-            'label'       => trans('backpack::crud.voucher.field.no_po_spk.label'), // Table column heading
-            'type'        => "select2_ajax_custom",
-            // 'name'        => 'client_po_id',
-            'name'        => 'reference_id',
-            'entity'      => 'purchase_order',
-            'model'       => 'App\Models\PurchaseOrder',
-            'attribute'   => "po_number",
-            'data_source' => backpack_url('fa/voucher/select2-po-spk'),
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.voucher.field.no_po_spk.placeholder'),
-            ],
-            'dependencies' => ['company_id'],
-            'include_all_form_fields' => true,
-        ]);
 
-        CRUD::addField([
-            'name' => 'space_1',
-            'type' => 'hidden',
-            'label' => '',
-            'wrapper' => [
-                'class' => 'form-group col-md-6'
-            ]
-        ]);
 
         CRUD::addField([
             'name' => 'bill_value',
@@ -1702,19 +1694,7 @@ class VoucherCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'dpp_value',
-            'label' =>  'Nilai DPP',
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => '000.000',
-            ]
+            'type' => 'hidden',
         ]);
 
         CRUD::addField([
