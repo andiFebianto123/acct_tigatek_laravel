@@ -17,8 +17,8 @@ use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Prologue\Alerts\Facades\Alert;
 use Maatwebsite\Excel\Facades\Excel;
+use Prologue\Alerts\Facades\Alert;
 
 class DeviceStockCrudController extends CrudController
 {

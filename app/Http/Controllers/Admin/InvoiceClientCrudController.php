@@ -122,6 +122,16 @@ class InvoiceClientCrudController extends CrudController
         ]);
     }
 
+    public function selectedClient()
+    {
+        $this->crud->hasAccessOrFail('create');
+        $id = request()->id;
+        $entry = \App\Models\Client::where('id', $id)->first();
+        return response()->json([
+            'result' => $entry,
+        ]);
+    }
+
     private function getComponent()
     {
         if (backpack_user()->hasRole('Super Admin')) {
@@ -752,6 +762,7 @@ class InvoiceClientCrudController extends CrudController
 
         CRUD::setValidation(InvoiceClientRequest::class);
         $detailsValue = null;
+        $client_po_id_default = null;
           if (request()->has('notification_id')) {
             $notificationId = request('notification_id');
             $notification = \App\Models\BillingNotification::find($notificationId);
@@ -780,6 +791,7 @@ class InvoiceClientCrudController extends CrudController
                     $invoice->company_id = $prevInvoice->company_id;
                     $invoice->client_id = $prevInvoice->client_id;
                     $invoice->client_po_id = $prevInvoice->client_po_id;
+                    $client_po_id_default = $prevInvoice->client_po_id;
                     $invoice->type_device = $prevInvoice->type_device;
                     $invoice->address_po = $prevInvoice->address_po;
                     $invoice->setAttribute('nominal_exclude_ppn', $prevInvoice->price_total_exclude_ppn);
@@ -877,16 +889,9 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'client_name',
-            'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.client_id.placeholder'),
-                'disabled' => true,
-            ]
+            'type' => 'hidden',
+            'name' => 'client_po_id',
+            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->client_po_id : $client_po_id_default,
         ]);
 
         CRUD::addField([
@@ -898,36 +903,6 @@ class InvoiceClientCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.invoice_client.field.address.placeholder'),
-            ]
-        ]);
-
-        CRUD::addField([   // 1-n relationship
-            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'), // Table column heading
-            'type'        => "select2_ajax_custom",
-            'name'        => 'client_po_id', // the column that contains the ID of that connected entity
-            'entity'      => 'client_po', // the method that defines the relationship in your Model
-            'attribute'   => 'po_number', // foreign key attribute that is shown to user
-            'data_source' => backpack_url('invoice-client/select2-client-po'), // url to controller search function (with /{id} should return a single entry)
-            'dependencies' => ['company_id'],
-            'include_all_form_fields' => true,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder'),
-        ]);
-
-        CRUD::addField([   // date_picker
-            'name'  => 'po_date',
-            'type'  => 'text',
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-
-            'suffix' => '<i class="la la-calendar"></i>',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.po_date.placeholder'),
-                'disabled' => true
             ]
         ]);
 
@@ -1324,13 +1299,13 @@ class InvoiceClientCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
 
         $request = request();
-        $po = ClientPo::find($request->client_po_id);
+        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $nominal_exclude = $cleanNominal($request->nominal_exclude_ppn);
+        $tax_ppn = (float) $request->tax_ppn;
 
-        if ($po != null) {
-            $request->merge([
-                'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
-            ]);
-        }
+        $request->merge([
+            'nominal_include_ppn' => $nominal_exclude + ($nominal_exclude * $tax_ppn / 100),
+        ]);
 
         $this->crud->validateRequest();
 
@@ -1370,13 +1345,13 @@ class InvoiceClientCrudController extends CrudController
         $this->crud->hasAccessOrFail('update');
 
         $request = request();
-        $po = ClientPo::find($request->client_po_id);
+        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $nominal_exclude = $cleanNominal($request->nominal_exclude_ppn);
+        $tax_ppn = (float) $request->tax_ppn;
 
-        if ($po != null) {
-            $request->merge([
-                'nominal_include_ppn' => (int) $request->nominal_exclude_ppn + ($request->nominal_exclude_ppn * $request->tax_ppn / 100),
-            ]);
-        }
+        $request->merge([
+            'nominal_include_ppn' => $nominal_exclude + ($nominal_exclude * $tax_ppn / 100),
+        ]);
 
         $this->crud->validateRequest();
 

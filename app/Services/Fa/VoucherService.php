@@ -76,13 +76,22 @@ class VoucherService
         $item->po_type = $data->po_type;
         $item->reference_id = $data->reference_id;
 
-        if ($item->reference_type === PurchaseOrder::class && $item->po_type === 'supplier') {
-            $clientPo = ClientPo::where('po_type', 'supplier')
-                ->where('purchase_order_id', $item->reference_id)
-                ->first();
-            $item->client_po_id = $clientPo ? $clientPo->id : null;
+        $no_po_spk = '';
+        if ($item->reference_type === PurchaseOrder::class) {
+            $po_model = PurchaseOrder::find($item->reference_id);
+            $no_po_spk = $po_model ? $po_model->po_number : '';
+        } else if ($item->reference_type === Spk::class) {
+            $spk_model = Spk::find($item->reference_id);
+            $no_po_spk = $spk_model ? $spk_model->no_spk : '';
+        }
+
+        if ($item->po_type === 'supplier') {
+            $item->client_po_id = null;
+            $item->no_po_spk = $no_po_spk;
         } else {
             $item->client_po_id = $data->client_po_id;
+            $clientPo = ClientPo::find($data->client_po_id);
+            $item->no_po_spk = null;
         }
         $item->no_voucher = $data->no_voucher;
         $item->work_code = '';
@@ -96,7 +105,6 @@ class VoucherService
         $item->bill_date = $data->bill_date;
         $item->date_receipt_bill = $data->date_receipt_bill;
         $item->payment_description = $data->payment_description;
-        $item->no_po_spk = $data->client_po_id ?? '';
         $item->date_po_spk = null;
         $item->bill_value = $data->bill_value;
         $item->dpp_value = $request->dpp_value ?? 0;
@@ -149,16 +157,16 @@ class VoucherService
             $approval->save();
         }
 
-        if ($item->reference_type == ClientPo::class) {
-            if ($item->reference && $item->reference->status == 'TANPA PO') {
-                $client = ClientPo::find($item->reference_id);
-                if ($client) {
-                    $client->job_name = $item->job_name;
-                    $client->load_general_value = $item->payment_transfer;
-                    $client->save();
-                }
-            }
-        }
+        // if ($item->reference_type == ClientPo::class) {
+        //     if ($item->reference && $item->reference->status == 'TANPA PO') {
+        //         $client = ClientPo::find($item->reference_id);
+        //         if ($client) {
+        //             $client->job_name = $item->job_name;
+        //             $client->load_general_value = $item->payment_transfer;
+        //             $client->save();
+        //         }
+        //     }
+        // }
 
         CustomVoid::voucherCreate($item);
         CustomVoid::voucherAllPph($item);
@@ -196,13 +204,22 @@ class VoucherService
         $item->po_type = $data->po_type;
         $item->reference_id = $data->reference_id;
 
-        if ($item->reference_type === PurchaseOrder::class && $item->po_type === 'supplier') {
-            $clientPo = ClientPo::where('po_type', 'supplier')
-                ->where('purchase_order_id', $item->reference_id)
-                ->first();
-            $item->client_po_id = $clientPo ? $clientPo->id : null;
+        $no_po_spk = '';
+        if ($item->reference_type === PurchaseOrder::class) {
+            $po_model = PurchaseOrder::find($item->reference_id);
+            $no_po_spk = $po_model ? $po_model->po_number : '';
+        } else if ($item->reference_type === Spk::class) {
+            $spk_model = Spk::find($item->reference_id);
+            $no_po_spk = $spk_model ? $spk_model->no_spk : '';
+        }
+
+        if ($item->po_type === 'supplier') {
+            $item->client_po_id = null;
+            $item->no_po_spk = $no_po_spk;
         } else {
             $item->client_po_id = $data->client_po_id;
+            $clientPo = ClientPo::find($data->client_po_id);
+            $item->no_po_spk = $clientPo ? $clientPo->po_number : '';
         }
         $item->no_voucher = $data->no_voucher;
         $item->work_code = '';
@@ -216,7 +233,6 @@ class VoucherService
         $item->bill_date = $data->bill_date;
         $item->date_receipt_bill = $data->date_receipt_bill;
         $item->payment_description = $data->payment_description;
-        $item->no_po_spk = '';
         $item->date_po_spk = null;
         $item->bill_value = $data->bill_value;
         $item->dpp_value = $request->dpp_value ?? 0;

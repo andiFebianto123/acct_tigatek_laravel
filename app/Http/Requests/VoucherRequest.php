@@ -34,7 +34,7 @@ class VoucherRequest extends FormRequest
         // }
 
         $rules = [
-            'no_payment' => 'required|max:150',
+            'no_payment' => 'nullable|max:150',
             'account_id' => 'required|exists:accounts,id',
             'no_voucher' => 'required|max:120|unique:vouchers,no_voucher,' . $id,
             'date_voucher' => 'required|date',
@@ -74,7 +74,7 @@ class VoucherRequest extends FormRequest
                 }
             ],
             'client_po_id' => [
-                $this->input('po_type') === 'subkon' ? 'required' : 'nullable',
+                'nullable',
                 function ($attribute, $value, $fail) {
                     if (empty($value)) {
                         return;
@@ -89,6 +89,10 @@ class VoucherRequest extends FormRequest
                         }
                     }
                 }
+            ],
+            'invoice_client_id' => [
+                $this->input('po_type') === 'subkon' ? 'required' : 'nullable',
+                'exists:invoice_clients,id',
             ],
             'job_name' => 'nullable',
             'company_id' => 'nullable|exists:companies,id',

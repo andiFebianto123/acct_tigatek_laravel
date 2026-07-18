@@ -74,7 +74,8 @@
                     var po_type = $(form+' select[name="po_type"]').val();
                     
                     var clientPoWrapper = $(form+' select[name="client_po_id"]').closest('.form-group');
-                    var clientPoLabel = clientPoWrapper.find('label');
+                    var invoiceClientWrapper = $(form+' select[name="invoice_client_id"]').closest('.form-group');
+                    var referenceWrapper = $(form+' select[name="reference_id"]').closest('.form-group');
                     
                     var jobNameWrapper = $(form+' input[name="job_name_disabled"]').closest('.form-group');
                     var jobNameLabel = jobNameWrapper.find('label');
@@ -82,17 +83,31 @@
                     if (po_type === 'supplier') {
                         clientPoWrapper.hide();
                         $(form+' select[name="client_po_id"]').attr('disabled', true);
-                        clientPoLabel.text("No PO");
+                        
+                        invoiceClientWrapper.hide();
+                        $(form+' select[name="invoice_client_id"]').attr('disabled', true);
+                        
+                        referenceWrapper.show();
+                        $(form+' select[name="reference_id"]').removeAttr('disabled');
+                        
                         jobNameLabel.text("Deskripsi Pesanan");
                     } else {
-                        clientPoWrapper.show();
-                        $(form+' select[name="client_po_id"]').removeAttr('disabled');
-                        clientPoLabel.text("Kode Kerja");
+                        // subkon
+                        clientPoWrapper.hide();
+                        $(form+' select[name="client_po_id"]').attr('disabled', true);
+                        
+                        referenceWrapper.hide();
+                        $(form+' select[name="reference_id"]').attr('disabled', true);
+                        
+                        invoiceClientWrapper.show();
+                        $(form+' select[name="invoice_client_id"]').removeAttr('disabled');
+                        
                         jobNameLabel.text("Nama Pekerjaan");
                     }
                     
                     if (!isInit) {
                         $(form+' select[name="client_po_id"]').val(null).trigger('change');
+                        $(form+' select[name="invoice_client_id"]').val(null).trigger('change');
                         $(form+' select[name="reference_id"]').val(null).trigger('change');
                         $(form+' select[name="subkon_id"]').val(null).trigger('change');
                         $(form+' input[name="job_name"]').val(null);
@@ -127,12 +142,9 @@
                             $(form+' select[name="reference_id"]').append(selectedOptionw).trigger('change');
                         }
 
-                        if (data_entry.client_po) {
-                            var po_number_text = (data_entry.po_type === 'supplier') ? `${data_entry.client_po.po_number}` : `${data_entry.client_po.work_code}`;
-
-                            var selectedOption = new Option(po_number_text, data_entry.client_po.id, true, true);
-                            // $(form+ ' select[name="client_po_id"]').val(null).trigger('change');
-                            $(form+ ' select[name="client_po_id"]').append(selectedOption).trigger('change');
+                        if (data_entry.invoice_client) {
+                            var selectedOptionInvoice = new Option(data_entry.invoice_client.invoice_number, data_entry.invoice_client.id, true, true);
+                            $(form+ ' select[name="invoice_client_id"]').append(selectedOptionInvoice).trigger('change');
                         }
 
                         $(form+' input[name="job_name_disabled"]').val(data_entry.job_name);
@@ -259,6 +271,30 @@
                                 // setInputNumber(form+' input[name="tax_ppn"]', po.ppn);
                                 // $(form+' input[name="type"]').val(po.type);
                                 // instance.logicFormula();
+                            }
+                        })
+                    });
+
+                    $(form+' select[name="invoice_client_id"]').off('select2:select').on('select2:select', function (e) {
+                        var id = e.params.data.id;
+                        $.ajax({
+                            url: "{{ url($crud->route) }}/get_invoice_selected_ajax?id=" + id,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function (data) {
+                                var po = data.po;
+                                if(data.company){
+                                    var subkon_option = new Option(data.company.name, data.company.id, true, true);
+                                    $(form+' select[name="subkon_id"]').append(subkon_option).trigger('change');
+                                    if(data.company.bank_name){
+                                        $(form+' input[name="bank_name"]').val(data.company.bank_name);
+                                    }
+                                    if(data.company.bank_account){
+                                        $(form+' input[name="no_account"]').val(data.company.bank_account);
+                                    }
+                                }
+                                $(form+' input[name="job_name"]').val(po.job_name);
+                                $(form+' input[name="job_name_disabled"]').val(po.job_name);
                             }
                         })
                     });

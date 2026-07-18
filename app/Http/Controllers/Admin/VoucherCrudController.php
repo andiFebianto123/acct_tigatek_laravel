@@ -1317,6 +1317,34 @@ class VoucherCrudController extends CrudController
         return response()->json($data);
     }
 
+    public function invoiceSelectedAjax()
+    {
+        $id = request()->id;
+        $invoice = \App\Models\InvoiceClient::with('client_po.client')->find($id);
+
+        if (!$invoice) {
+            return response()->json(['error' => 'Invoice not found'], 404);
+        }
+
+        $po = $invoice->client_po;
+        if (!$po) {
+            $po = new \stdClass();
+            $po->job_name = $invoice->description;
+            $po->price_total = $invoice->price_total_exclude_ppn;
+        } else {
+            $po->price_total = $po->job_value;
+        }
+
+        $company = $po->client ?? null;
+
+        $data = [
+            'po' => $po,
+            'company' => $company,
+        ];
+
+        return response()->json($data);
+    }
+
     public function castAccountSelectedAjax()
     {
         $id = request()->id;
@@ -1416,7 +1444,7 @@ class VoucherCrudController extends CrudController
 
         CRUD::addField([
             'name'        => 'po_type',
-            'label'       => trans('backpack::crud.client_po.field.po_type.label') ?? 'Jenis PO',
+            'label'       => 'Jenis Voucher',
             'type'        => 'select_from_array',
             'options'     => [
                 'subkon' => trans('backpack::crud.client_po.field.po_type.subkon') ?? 'Subkon',
@@ -1427,18 +1455,6 @@ class VoucherCrudController extends CrudController
             'wrapper'     => [
                 'class' => 'form-group col-md-12',
             ],
-        ]);
-
-        CRUD::addField([
-            'name' => 'no_payment',
-            'label' => trans('backpack::crud.voucher.field.no_payment.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.voucher.field.no_payment.placeholder'),
-            ]
         ]);
 
         CRUD::addField([
@@ -1474,6 +1490,29 @@ class VoucherCrudController extends CrudController
             ],
             'dependencies' => ['company_id'],
             'include_all_form_fields' => true,
+        ]);
+
+        $invoice_client_id_value = null;
+        if ($entry = $this->crud->getCurrentEntry()) {
+            $invoice_client_id_value = \App\Models\InvoiceClient::where('client_po_id', $entry->client_po_id)->value('id');
+        }
+
+        CRUD::addField([
+            'label'       => 'Kode Invoice',
+            'type'        => "select2_ajax_custom",
+            'name'        => 'invoice_client_id',
+            'model'       => 'App\Models\InvoiceClient',
+            'attribute'   => "invoice_number",
+            'data_source' => backpack_url('fa/voucher/select2-invoice'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => 'Pilih Kode Invoice',
+            ],
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'value' => $invoice_client_id_value,
         ]);
 
         $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
@@ -2088,6 +2127,7 @@ class VoucherCrudController extends CrudController
         }
 
         $voucher->client_po = ClientPo::find($voucher->client_po_id);
+        $voucher->invoice_client = \App\Models\InvoiceClient::where('client_po_id', $voucher->client_po_id)->first();
 
         $this->data['entry'] = $voucher;
 
@@ -2146,6 +2186,32 @@ class VoucherCrudController extends CrudController
                 'id' => $item->id,
                 'text' => $item->work_code . ' (' . $type . ')',
                 'type' => $item->type,
+            ];
+        }
+        return response()->json(['results' => $results]);
+    }
+
+    public function select2Invoice()
+    {
+        $search = request()->input('q');
+
+        $invoices = \App\Models\InvoiceClient::query();
+
+        if ($search) {
+            $invoices->where('invoice_number', 'LIKE', "%$search%");
+        }
+
+        if (request()->has('company_id') && request()->input('company_id') != '') {
+            $invoices->where('company_id', request()->input('company_id'));
+        }
+
+        $dataset = $invoices->paginate(20);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->invoice_number,
             ];
         }
         return response()->json(['results' => $results]);

@@ -41,13 +41,21 @@ class VoucherData
 
     public static function fromRequest(Request $request): self
     {
+        $client_po_id = $request->client_po_id;
+        if ($request->input('po_type') === 'subkon' && $request->filled('invoice_client_id')) {
+            $invoice = \App\Models\InvoiceClient::find($request->input('invoice_client_id'));
+            if ($invoice) {
+                $client_po_id = $invoice->client_po_id;
+            }
+        }
+
         return new self(
             no_payment: $request->no_payment,
             account_id: $request->account_id,
             account_source_id: $request->account_source_id,
             type: $request->type,
             subkon_id: $request->subkon_id,
-            client_po_id: $request->client_po_id,
+            client_po_id: $client_po_id,
             company_id: $request->company_id,
             reference_id: $request->reference_id,
             no_voucher: $request->no_voucher,

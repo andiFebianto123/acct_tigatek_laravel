@@ -59,6 +59,10 @@ class Voucher extends Model
         return $this->belongsTo(ClientPo::class, 'client_po_id', 'id');
     }
 
+    function invoice_client(){
+        return $this->hasOne(InvoiceClient::class, 'client_po_id', 'client_po_id');
+    }
+
     function account_source(){
         return $this->belongsTo(CastAccount::class, 'account_source_id', 'id');
     }

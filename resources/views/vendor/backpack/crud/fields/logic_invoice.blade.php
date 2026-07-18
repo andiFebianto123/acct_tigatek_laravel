@@ -69,12 +69,8 @@
                             if (entry.company_id) {
                                 $(form+' select[name="company_id"]').val(entry.company_id).trigger('change');
                             }
-                            if (entry.client_id) {
-                                $(form+' select[name="client_id"]').val(entry.client_id).trigger('change');
-                            }
-                            if (entry.client_po_id && entry.client_po_number) {
-                                var poOption = new Option(entry.client_po_number, entry.client_po_id, true, true);
-                                $(form+' select[name="client_po_id"]').append(poOption).trigger('change');
+                            if (entry.client_po_id) {
+                                $(form+' input[name="client_po_id"]').val(entry.client_po_id);
                             }
                             if (entry.address_po) {
                                 $(form+' input[name="address_po"]').val(entry.address_po);
@@ -90,12 +86,6 @@
                             }
                             if (entry.type_device) {
                                 $(form+' select[name="type_device"]').val(entry.type_device).trigger('change');
-                            }
-                            if (entry.client_name) {
-                                $(form+' input[name="client_name"]').val(entry.client_name);
-                            }
-                            if (entry.po_date) {
-                                $(form+' input[name="po_date"]').val(entry.po_date);
                             }
                             if (entry.kdp) {
                                 $(form+' input[name="kdp"]').val(entry.kdp);
@@ -142,31 +132,6 @@
                             instance.logicFormulaNoPO();
                         }, 300);
                     }
-
-                    $(form+ ' select[name="client_po_id"]').off('select2:select').on('select2:select', function (e) {
-                        var id = e.params.data.id;
-                        $.ajax({
-                            url: '{!! backpack_url("invoice-client/get-client-po") !!}',
-                            method: 'GET',
-                            data: {
-                                id: id,
-                            },
-                            success: function(response) {
-                                var respon = response.result;
-                                setInputNumber(form + ' #nominal_exclude_ppn_masked', respon.job_value || 0);
-                                instance.total_price = Number($(form + ' input[name="nominal_exclude_ppn"]').val());
-                                $(form+' input[name="tax_ppn"]').val(respon.tax_ppn);
-                                instance.logicFormulaNoPO();
-                                $(form+' input[name="kdp"]').val(respon.work_code);
-                                $(form+' input[name="client_name"]').val(respon.client.name);
-                                $(form+" input[name='po_date']").val(respon.date_po_str);
-                                countTotalPrice();
-                                if (respon && respon.client.address) {
-                                    $(form+' input[name="address_po"]').val(respon.client.address);
-                                }
-                            }
-                        });
-                    });
 
                     $(form+ ' select[name="subkon_id"]').off('select2:select').on('select2:select', function (e) {
                         var id = e.params.data.id;

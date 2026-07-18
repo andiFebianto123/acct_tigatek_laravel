@@ -184,6 +184,7 @@ Route::group([
     Route::get('invoice-client/{id}/print', [InvoiceClientCrudController::class, 'printInvoice']);
     Route::match(['get', 'post', 'put'], 'invoice-client/select2-client-po', [InvoiceClientCrudController::class, 'select2ClientPo']);
     Route::match(['get', 'post', 'put'], 'invoice-client/get-client-po', [InvoiceClientCrudController::class, 'selectedClientPo']);
+    Route::match(['get', 'post', 'put'], 'invoice-client/get-client', [InvoiceClientCrudController::class, 'selectedClient']);
     Route::get('invoice-client/total', [InvoiceClientCrudController::class, 'total_price']);
     Route::delete('invoice-client/void-payment/{id}', [InvoiceClientCrudController::class, 'voidPayment']);
     Route::post('invoice-client/payment', [InvoiceClientCrudController::class, 'storePayment']);
@@ -266,6 +267,7 @@ Route::group([
 
     Route::prefix('fa')->group(function () {
         Route::match(['post', 'put'], 'voucher/select2-work-code', [VoucherCrudController::class, 'select2WorkCode']);
+        Route::match(['post', 'put'], 'voucher/select2-invoice', [VoucherCrudController::class, 'select2Invoice']);
         Route::match(['post', 'put'], 'voucher/select2-subkon', [VoucherCrudController::class, 'select2Subkon']);
         Route::match(['post', 'put'], 'voucher/select2-po-spk', [VoucherCrudController::class, 'select2_no_po_spk']);
         Route::crud('voucher', 'VoucherCrudController');
@@ -285,6 +287,7 @@ Route::group([
         Route::post('voucher-payment/{id}/approve', [VoucherPaymentCrudController::class, 'approvedStore']);
         Route::post('voucher-payment/total', [VoucherPaymentCrudController::class, 'total_voucher']);
         Route::get('voucher/get_client_selected_ajax', [VoucherCrudController::class, 'clientSelectedAjax']);
+        Route::get('voucher/get_invoice_selected_ajax', [VoucherCrudController::class, 'invoiceSelectedAjax']);
         Route::get('voucher/get_account_source_selected_ajax', [VoucherCrudController::class, 'castAccountSelectedAjax']);
         Route::get('voucher/{id}/print', [VoucherCrudController::class, 'print']);
     });

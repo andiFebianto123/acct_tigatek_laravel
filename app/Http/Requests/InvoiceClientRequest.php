@@ -27,14 +27,15 @@ class InvoiceClientRequest extends FormRequest
     {
         $id = $this->get('id') ?? $this->route('id');
 
-        $client_po = request()->client_po_id;
+        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $nominal_exclude_ppn = $cleanNominal(request()->nominal_exclude_ppn);
 
         $rule = [
             // 'name' => 'required|min:5|max:255'
             // 'job_value' => 'required|numeric|min:1000',
             'invoice_number' => 'required|min:3|max:50|unique:invoice_clients,invoice_number,' . $id,
             'invoice_date' => 'required',
-            'client_po_id' => 'required|exists:client_po,id',
+            'client_po_id' => 'nullable|exists:client_po,id',
             'status' => 'nullable|in:Paid,Unpaid',
             'invoice_document' => 'nullable|file|mimes:pdf|max:30720', // 30MB = 30720 KB
             'withholding_agent' => 'required|in:WAPU,NON WAPU',
@@ -65,20 +66,14 @@ class InvoiceClientRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
-                        $client = ClientPo::find($client_po);
-                        if (!$client) {
-                            $fail('PO Client tidak ditemukan.');
-                            return;
-                        }
-                        $price_total = $client->job_value;
+                    function ($attribute, $value, $fail) use ($nominal_exclude_ppn, $items) {
                         $items_total_price = 0;
                         foreach ($items as $item) {
                             $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
                             $qty = (int) ($item['qty'] ?? 1);
                             $items_total_price += ($price * $qty);
                         }
-                        if ($price_total != $items_total_price) {
+                        if ($nominal_exclude_ppn != $items_total_price) {
                             $fail(trans('backpack::crud.invoice_client.field.item.errors.total_price'));
                         }
                     }
@@ -108,13 +103,7 @@ class InvoiceClientRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
-                        $client = ClientPo::find($client_po);
-                        if (!$client) {
-                            $fail('PO Client tidak ditemukan.');
-                            return;
-                        }
-                        $price_total = $client->job_value;
+                    function ($attribute, $value, $fail) use ($nominal_exclude_ppn, $items) {
                         $items_total_price = 0;
                         foreach ($items as $item) {
                             $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
@@ -122,7 +111,7 @@ class InvoiceClientRequest extends FormRequest
                             $items_total_price += ($price * $qty);
                         }
 
-                        if ($price_total != $items_total_price) {
+                        if ($nominal_exclude_ppn != $items_total_price) {
                             $fail(trans('backpack::crud.invoice_client.field.item.errors.total_price'));
                         }
                     }

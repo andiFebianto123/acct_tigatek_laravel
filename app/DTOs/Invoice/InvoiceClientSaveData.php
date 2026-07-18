@@ -27,6 +27,7 @@ class InvoiceClientSaveData
         public readonly ?int $account_source_id = null,
         public readonly ?string $type_device = null,
         public readonly ?string $term = null,
+        public readonly ?int $client_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -42,7 +43,7 @@ class InvoiceClientSaveData
             invoice_number: $request->invoice_number,
             description: $request->description,
             invoice_date: $request->invoice_date,
-            client_po_id: (int) $request->client_po_id,
+            client_po_id: $request->client_po_id ? (int) $request->client_po_id : null,
             nominal_exclude_ppn: $cleanNominal($request->nominal_exclude_ppn),
             nominal_include_ppn: $cleanNominal($request->nominal_include_ppn),
             tax_ppn: (float) $request->tax_ppn,
@@ -59,6 +60,7 @@ class InvoiceClientSaveData
             account_source_id: (int) $request->account_source_id,
             type_device: $request->type_device,
             term: $request->term,
+            client_id: $request->client_id ? (int) $request->client_id : null,
         );
     }
 }
