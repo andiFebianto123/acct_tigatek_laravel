@@ -120,17 +120,17 @@ class ProfitLostAccountCrudController extends CrudController
                         'orderable' => true,
                     ],
                     [
-                        'label'  => trans('backpack::crud.client_po.column.work_code'),
+                        'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
                         'type'      => 'text',
-                        'name'      => 'work_code',
+                        'name'      => 'invoice_number',
                         'orderable' => true,
                     ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.po_number'),
-                        'type'      => 'text',
-                        'name'      => 'po_number',
-                        'orderable' => true,
-                    ],
+                    // [
+                    //     'label'  => trans('backpack::crud.client_po.column.po_number'),
+                    //     'type'      => 'text',
+                    //     'name'      => 'po_number',
+                    //     'orderable' => true,
+                    // ],
                     [
                         'label'  => trans('backpack::crud.client_po.column.job_name'),
                         'type'      => 'text',
@@ -454,10 +454,11 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::addField([
                 'name' => 'work_code',
-                'label' => trans('backpack::crud.profit_lost.fields.job_code.label'),
+                'label' => 'Invoice',
                 'type' => 'select2_ajax_custom',
-                'attribute' => 'work_code',
+                'attribute' => 'invoice_number_display',
                 'entity' => 'clientPo',
+                'model' => 'App\\Models\\ClientPo',
                 'data_source' => backpack_url('finance-report/profit-lost/select2-po'),
                 'wrapper' => ['class' => 'form-group col-md-6'],
                 'attributes' => $job_code_prefix_value,
@@ -476,17 +477,6 @@ class ProfitLostAccountCrudController extends CrudController
                 'attributes' => $job_code_prefix_value,
                 'dependencies' => ['company_id'],
                 'include_all_form_fields' => true,
-            ]);
-
-            CRUD::addField([
-                'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-                'type'        => "text",
-                'name'        => 'po_number',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => [
-                    'placeholder' => trans('backpack::crud.profit_lost.fields.no_po.placeholder'),
-                    'disabled' => true,
-                ],
             ]);
 
             CRUD::addField([
@@ -764,8 +754,8 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column(['label'  => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
-            CRUD::column(['label'  => trans('backpack::crud.client_po.column.work_code'), 'name' => 'work_code', 'type' => 'text']);
-            CRUD::column(['label'  => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
+            CRUD::column(['label'  => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
+            // CRUD::column(['label'  => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label'  => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
 
             CRUD::column([
@@ -953,8 +943,8 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column(['label' => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
-            CRUD::column(['label' => trans('backpack::crud.client_po.column.work_code'), 'name' => 'work_code', 'type' => 'text']);
-            CRUD::column(['label' => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
+            CRUD::column(['label' => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
+            // CRUD::column(['label' => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
 
             CRUD::column([

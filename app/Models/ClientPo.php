@@ -80,6 +80,11 @@ class ClientPo extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function getInvoiceNumberDisplayAttribute()
+    {
+        return $this->invoices->pluck('invoice_number')->implode(', ') ?: '-';
+    }
+
     /*
     |--------------------------------------------------------------------------
     | MUTATORS

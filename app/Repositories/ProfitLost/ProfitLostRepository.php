@@ -403,24 +403,32 @@ class ProfitLostRepository
 
     public function getSelect2Po(?string $search): array
     {
-        $query = ClientPo::where('work_code', 'like', "%$search%");
+        if (request()->has('company_id') && empty(request()->input('company_id'))) {
+            return [];
+        }
 
-        if (request()->has('company_id')) {
+        $query = \App\Models\InvoiceClient::with('client_po')
+            ->where('invoice_number', 'like', "%$search%");
+
+        if (request()->has('company_id') && !empty(request()->input('company_id'))) {
             $query->where('company_id', request()->input('company_id'));
         }
 
-        $union = $query->get();
+        $invoices = $query->get();
 
         $results = [];
-        foreach ($union as $item) {
-            $results[] = [
-                'data' => $item,
-                'voucher_id' => null,
-                'id' => $item->id,
-                'po_number' => $item->po_number,
-                'text' => $item->work_code,
-                'work_code' => $item->work_code,
-            ];
+        foreach ($invoices as $invoice) {
+            $item = $invoice->client_po;
+            if ($item) {
+                $results[] = [
+                    'data' => $item,
+                    'voucher_id' => null,
+                    'id' => $item->id,
+                    'po_number' => $item->po_number,
+                    'text' => $invoice->invoice_number . ' (' . $item->work_code . ')',
+                    'work_code' => $item->work_code,
+                ];
+            }
         }
         return $results;
     }
@@ -522,6 +530,7 @@ class ProfitLostRepository
         $invoice = DB::table('invoice_clients')
             ->select(
                 'invoice_clients.client_po_id',
+                DB::raw("MAX(invoice_clients.invoice_number) as invoice_number"),
                 DB::raw("GROUP_CONCAT(invoice_clients.invoice_date SEPARATOR ',') AS invoice_date"),
                 DB::raw("SUM(invoice_clients.price_total_exclude_ppn) as price_job_exlude_ppn"),
                 DB::raw("SUM(invoice_clients.price_total_include_ppn) as price_job_include_ppn")
@@ -544,6 +553,7 @@ class ProfitLostRepository
                 "client_po.category",
                 "client_po.job_value_include_ppn",
                 "invoice.invoice_date",
+                "invoice.invoice_number",
                 "invoice.price_job_exlude_ppn as invoice_price_job_exlude_ppn",
                 "invoice.price_job_include_ppn as invoice_price_job_include_ppn",
                 "client_po.date_po",
@@ -577,6 +587,7 @@ class ProfitLostRepository
                 project_profit_lost.*,
                 vouchers.payment_transfer as payment_voucher,
                 vouchers.biaya as voucher_biaya,
+                client_po.invoice_number,
                 client_po.invoice_date,
                 client_po.price_job_exlude_ppn_logic,
                 client_po.invoice_price_job_include_ppn,
