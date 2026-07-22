@@ -18,6 +18,7 @@ class Setting extends Model
     protected $fillable = [
         'currency',
         'currency_symbol',
+        'usd_rate',
         'position_currency_symbol',
         'format_decimal_number',
         'po_prefix',

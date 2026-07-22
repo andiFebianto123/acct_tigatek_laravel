@@ -7,7 +7,7 @@
     <table class="report-table">
         <tbody>
             <tr>
-                <td width="60%"><span class="bold">A. Pendapatan PO (exc PPn)</span></td>
+                <td width="60%"><span class="bold">A. Pendapatan Invoice (exc PPn)</span></td>
                 <td class="text-right">{{$report['price_po_excl_ppn']}}</td>
             </tr>
 
@@ -50,7 +50,7 @@
             </tr>
 
             <tr>
-                <td><span class="bold">C. Laba Rugi PO</span></td>
+                <td><span class="bold">C. Laba Rugi Invoice</span></td>
                 <td class="text-right">{{$report['price_profit_lost_po']}}</td>
             </tr>
 

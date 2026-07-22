@@ -22,6 +22,8 @@ class InvoiceClientRepository
 
     public function applyFilters($query, InvoiceClientFilterData $dto): void
     {
+        $query->where('invoice_clients.invoice_number', 'not like', 'INV-UMUM%');
+
         $this->applyColumnFilters($query, $dto->columns);
 
         if ($dto->invoice_date) {

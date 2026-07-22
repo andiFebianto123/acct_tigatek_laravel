@@ -4,6 +4,7 @@ namespace App\Services\ClientManagement;
 
 use App\DTOs\ClientManagement\ClientQuotationData;
 use App\Models\ClientQuotation;
+use App\Models\Setting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,9 @@ class ClientQuotationService
             $attributes['profit_and_loss'] = 0;
             $attributes['profit_and_loss_final'] = 0;
 
+            // Hitung nilai multi-currency Opsi A (Base Amount & Exchange Rate)
+            $this->calculateMultiCurrency($attributes, $data);
+
             if ($data->document_path instanceof UploadedFile) {
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
             }
@@ -45,6 +49,9 @@ class ClientQuotationService
 
             $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
 
+            // Hitung nilai multi-currency Opsi A (Base Amount & Exchange Rate)
+            $this->calculateMultiCurrency($attributes, $data);
+
             if ($data->document_path instanceof UploadedFile) {
                 if ($quotation->document_path) {
                     Storage::disk('public')->delete($quotation->document_path);
@@ -59,6 +66,27 @@ class ClientQuotationService
             $quotation->update($attributes);
             return $quotation;
         });
+    }
+
+    /**
+     * Kalkulasi otomatis multi-currency (Opsi A)
+     */
+    private function calculateMultiCurrency(array &$attributes, ClientQuotationData $data): void
+    {
+        $currencyCode = $data->currency_code ?? 'IDR';
+
+        if ($currencyCode === 'USD') {
+            $settings = Setting::first();
+            $exchangeRate = (float) ($settings?->usd_rate ?? 16000);
+        } else {
+            $exchangeRate = 1.000000;
+        }
+
+        $attributes['currency_code'] = $currencyCode;
+        $attributes['exchange_rate'] = $exchangeRate;
+        $attributes['rap_value_base'] = $data->rap_value * $exchangeRate;
+        $attributes['job_value_base'] = $data->job_value * $exchangeRate;
+        $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
     }
 
     /**

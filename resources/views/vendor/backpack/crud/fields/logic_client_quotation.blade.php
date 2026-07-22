@@ -19,19 +19,10 @@
 @push('crud_fields_scripts')
     <script>
         if(typeof setInputNumber2 == "undefined"){
-            function formatIdr(angka){
-                const formatter = new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR'
-                });
-
-                let hasilFormat = formatter.format(angka);
-                let tanpaRp = hasilFormat.replace('Rp', '').trim();
-
-                return tanpaRp;
-            }
-            function setInputNumber2(selected, value){
-                let nominal = formatIdr(value);
+            function setInputNumber2(selected, value, currency = 'IDR'){
+                let nominal = (typeof window.formatCurrency === 'function') 
+                    ? window.formatCurrency(value, currency)
+                    : value;
                 $(selected).val(nominal).trigger('input');
             }
         }
@@ -63,12 +54,35 @@
                 },
                 logicFormula: function(){
                     var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var curr = $(form+' select[name="currency_code"]').val() || 'IDR';
+
+                    // Update currency dropdown di rap_value dan job_value agar mengikutsertakan masking IDR/USD
+                    var $rapCurrencySelect = $(form+' select[name="rap_value_currency"]');
+                    var $jobCurrencySelect = $(form+' select[name="job_value_currency"]');
+
+                    if($rapCurrencySelect.length && $rapCurrencySelect.val() !== curr){
+                        $rapCurrencySelect.val(curr).trigger('change');
+                    }
+                    if($jobCurrencySelect.length && $jobCurrencySelect.val() !== curr){
+                        $jobCurrencySelect.val(curr).trigger('change');
+                    }
+
+                    // Update prefix icon/text pada input group Nilai Pekerjaan Include PPn
+                    var $ppnField = $(form+' input[name="job_value_include_ppn"]');
+                    var $ppnGroup = $ppnField.closest('.input-group');
+                    if($ppnGroup.length){
+                        var $prefixSpan = $ppnGroup.find('.input-group-text').first();
+                        if($prefixSpan.length){
+                            $prefixSpan.text(curr === 'USD' ? '$' : 'Rp');
+                        }
+                    }
+
                     var nilai_pekerjaan = getInputNumber(form+' #job_value');
                     var ppn = getInputNumber(form+' input[name="tax_ppn"]');
 
                     var nilai_ppn = (ppn == 0) ? 0 : (nilai_pekerjaan * (ppn / 100));
                     var total = nilai_pekerjaan + nilai_ppn;
-                    setInputNumber2(form+' input[name="job_value_include_ppn"]', total);
+                    setInputNumber2(form+' input[name="job_value_include_ppn"]', total, curr);
                 },
                 setupWithoutPoCount: function(form){
                     $.ajax({
@@ -121,12 +135,60 @@
                         });
                     }
 
-                    $(form+' #job_value_masked').on('keyup', function(){
+                    // Simpan mata uang sebelumnya untuk deteksi perubahan pengguna
+                    var previousCurrency = $(form+' select[name="currency_code"]').val() || 'IDR';
+
+                    // Helper untuk update nominal ter-mask dan hidden input
+                    function updateFieldValue(fieldName, rawVal, currency) {
+                        var $hiddenField = $(form+' #' + fieldName);
+                        var $maskedField = $(form+' #' + fieldName + '_masked');
+
+                        if (!$hiddenField.length) return;
+
+                        var formatted = (typeof window.formatCurrency === 'function')
+                            ? window.formatCurrency(rawVal, currency)
+                            : rawVal;
+
+                        $hiddenField.val(rawVal);
+                        $maskedField.val(formatted);
+                    }
+
+                    // Listener saat dropdown Mata Uang (currency_code) berubah
+                    $(form+' select[name="currency_code"]').on('change select2:select', function(){
+                        var newCurrency = $(this).val() || 'IDR';
+
+                        if (newCurrency !== previousCurrency) {
+                            var usdRate = window.usdRate || 16000;
+                            var rawRap = getInputNumber(form+' #rap_value');
+                            var rawJob = getInputNumber(form+' #job_value');
+
+                            if (rawRap > 0 && typeof window.convertCurrency === 'function') {
+                                var convertedRap = window.convertCurrency(rawRap, previousCurrency, newCurrency, usdRate);
+                                updateFieldValue('rap_value', convertedRap, newCurrency);
+                            }
+                            if (rawJob > 0 && typeof window.convertCurrency === 'function') {
+                                var convertedJob = window.convertCurrency(rawJob, previousCurrency, newCurrency, usdRate);
+                                updateFieldValue('job_value', convertedJob, newCurrency);
+                            }
+
+                            previousCurrency = newCurrency;
+                        }
+
                         instance.logicFormula();
                     });
-                    $(form+' input[name="tax_ppn"]').on('keyup', function(){
+
+                    $(form+' #job_value_masked').on('keyup input change', function(){
                         instance.logicFormula();
                     });
+                    $(form+' input[name="tax_ppn"]').on('keyup input change', function(){
+                        instance.logicFormula();
+                    });
+
+                    // Trigger awal
+                    setTimeout(() => {
+                        previousCurrency = $(form+' select[name="currency_code"]').val() || 'IDR';
+                        instance.logicFormula();
+                    }, 100);
                 }
             }
         });

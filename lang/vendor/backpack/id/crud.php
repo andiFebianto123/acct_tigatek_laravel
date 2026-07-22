@@ -768,8 +768,13 @@ return [
             'category' => 'Kategori',
             'list_invoice' => 'Status Invoice',
             'date_po' => 'Tanggal Penawaran',
+            'currency_code' => 'Mata Uang',
+            'job_value_base' => 'Nilai Pekerjaan (IDR)',
         ],
         'field' => [
+            'currency_code' => [
+                'label' => 'Mata Uang',
+            ],
             'client_id' => [
                 'label' => 'Nama Perusahaan',
                 'placeholder' => "- NAMA PERUSAHAAN",

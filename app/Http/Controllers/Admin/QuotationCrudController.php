@@ -329,12 +329,14 @@ class QuotationCrudController extends CrudController
         CRUD::addField([
             'name' => 'rab',
             'label' =>  trans('backpack::crud.quotation.field.rab.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'rab_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -345,12 +347,14 @@ class QuotationCrudController extends CrudController
         CRUD::addField([
             'name' => 'rap',
             'label' =>  trans('backpack::crud.quotation.field.rap.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'rap_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],

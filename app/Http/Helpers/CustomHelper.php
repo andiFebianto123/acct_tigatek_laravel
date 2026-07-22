@@ -235,6 +235,34 @@ class CustomHelper
         return (self::$settings?->currency_symbol) ? self::$settings->currency_symbol . ' ' . $nominal : 'Rp.' . $nominal;
     }
 
+    /**
+     * Format mata uang universal (IDR, USD, EUR, dsb.)
+     *
+     * @param float|int|null $amount
+     * @param string|null $currencyCode
+     * @param bool $isExport
+     * @return string|float
+     */
+    public static function formatCurrency($amount, ?string $currencyCode = 'IDR', bool $isExport = false)
+    {
+        $numericAmount = (float) ($amount ?? 0);
+
+        if ($isExport) {
+            return $numericAmount;
+        }
+
+        $currency = strtoupper($currencyCode ?? 'IDR');
+
+        if ($currency === 'USD') {
+            return '$ ' . number_format($numericAmount, 2, '.', ',');
+        } elseif ($currency === 'EUR') {
+            return '€ ' . number_format($numericAmount, 2, ',', '.');
+        }
+
+        // Default IDR
+        return 'Rp ' . number_format($numericAmount, 0, ',', '.');
+    }
+
     // update or create journal_entry
     public static function updateOrCreateJournalEntry($payload, $reference)
     {

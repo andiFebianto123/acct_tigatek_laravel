@@ -124,24 +124,14 @@ class ClientQuotationCrudController extends CrudController
                         'type'      => 'text',
                         'name'      => 'company.name',
                     ]] : []),
-                    [
-                        'name'      => 'work_code',
-                        'type'      => 'text',
-                        'label'     => trans('backpack::crud.client_quotation.column.work_code'),
-                        'orderable' => true,
-                    ],
+
                     [
                         'label' => trans('backpack::crud.client_quotation.column.client_id'),
                         'type'      => 'text',
                         'name'      => 'client_id',
                         'orderable' => true,
                     ],
-                    [
-                        'name'      => 'reimburse_type',
-                        'type'      => 'text',
-                        'label'     => trans('backpack::crud.client_quotation.column.reimburse_type'),
-                        'orderable' => true,
-                    ],
+
                     [
                         'name'      => 'po_number',
                         'type'      => 'text',
@@ -153,6 +143,12 @@ class ClientQuotationCrudController extends CrudController
                         'name'      => 'job_name',
                         'type'      => 'text',
                         'label'     => trans('backpack::crud.client_quotation.column.job_name'),
+                        'orderable' => true,
+                    ],
+                    [
+                        'name'      => 'currency_code',
+                        'type'      => 'text',
+                        'label'     => trans('backpack::crud.client_quotation.column.currency_code'),
                         'orderable' => true,
                     ],
                     [
@@ -171,6 +167,12 @@ class ClientQuotationCrudController extends CrudController
                         'name'      => 'job_value_include_ppn',
                         'type'      => 'text',
                         'label'     => trans('backpack::crud.client_quotation.column.job_value_include_ppn'),
+                        'orderable' => true,
+                    ],
+                    [
+                        'name'      => 'job_value_base',
+                        'type'      => 'text',
+                        'label'     => trans('backpack::crud.client_quotation.column.job_value_base'),
                         'orderable' => true,
                     ],
                     [
@@ -422,11 +424,7 @@ class ClientQuotationCrudController extends CrudController
             ]);
         }
 
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_quotation.column.work_code'),
-            'name' => 'work_code',
-            'type'  => 'text'
-        ]);
+
 
         CRUD::column([
             'label' => trans('backpack::crud.client_quotation.column.client_id'),
@@ -437,11 +435,7 @@ class ClientQuotationCrudController extends CrudController
             'model'     => "App\Models\Client",
         ]);
 
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_quotation.column.reimburse_type'),
-            'name' => 'reimburse_type',
-            'type'  => 'text'
-        ]);
+
 
         CRUD::column([
             'label'  => trans('backpack::crud.client_quotation.column.po_number'),
@@ -457,39 +451,50 @@ class ClientQuotationCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.client_quotation.column.rap_value'),
-            'name' => 'rap_value',
-            'type'  => 'closure',
+            'name'   => 'rap_value',
+            'type'   => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->rap_value);
+                return CustomHelper::formatCurrency($entry->rap_value, $entry->currency_code, $status_file === 'excel');
             },
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
         ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.client_quotation.column.job_value_exclude_ppn'),
-            'name' => 'job_value',
-            'type'  => 'closure',
+            'name'   => 'job_value',
+            'type'   => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->job_value);
+                return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code, $status_file === 'excel');
             },
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
         ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.client_quotation.column.job_value_include_ppn'),
-            'name' => 'job_value_include_ppn',
-            'type'  => 'closure',
+            'name'   => 'job_value_include_ppn',
+            'type'   => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->job_value_include_ppn);
+                return CustomHelper::formatCurrency($entry->job_value_include_ppn, $entry->currency_code, $status_file === 'excel');
             },
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
+            'name'   => 'job_value_base',
+            'type'   => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR', $status_file === 'excel');
+            },
         ]);
 
         CRUD::column([
@@ -631,16 +636,7 @@ class ClientQuotationCrudController extends CrudController
             ]);
         }
 
-        CRUD::field([
-            'label' => trans('backpack::crud.client_quotation.field.status.label'),
-            'type' => 'select2_array',
-            'name' => 'status',
-            'options' => [
-                'ADA PO' => 'ADA PO',
-                'TANPA PO' => 'TANPA PO',
-            ],
-            'wrapper' => ['class' => 'form-group col-md-6'],
-        ]);
+
 
         CRUD::field([
             'label'       => trans('backpack::crud.client_quotation.field.client_id.label'),
@@ -657,17 +653,7 @@ class ClientQuotationCrudController extends CrudController
             ]
         ]);
 
-        CRUD::field([
-            'label' => trans('backpack::crud.client_quotation.field.work_code.label'),
-            'name'  => 'work_code',
-            'type'  => 'text',
-            'wrapper' => ['class' => 'form-group col-md-6'],
-            'attributes' => [
-                ...$work_code_disabled,
-                'placeholder' => trans('backpack::crud.client_quotation.field.work_code.placeholder'),
-            ],
-            ...$work_code_prefix,
-        ]);
+
 
         CRUD::field([
             'label' => trans('backpack::crud.client_quotation.field.po_number.label'),
@@ -699,14 +685,31 @@ class ClientQuotationCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'rap_value',
             'label' => trans('backpack::crud.client_po.column.rap_value'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'rap_value_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -718,12 +721,14 @@ class ClientQuotationCrudController extends CrudController
         CRUD::addField([
             'name' => 'job_value',
             'label' => trans('backpack::crud.client_po.field.job_value.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'job_value_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -752,14 +757,9 @@ class ClientQuotationCrudController extends CrudController
             'name' => 'job_value_include_ppn',
             'label' => trans('backpack::crud.client_po.column.job_value_include_ppn_2'),
             'type' => 'text',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            // optionals
             'attributes' => [
-                'disabled' => true,
-            ], // allow decimals
+                'readonly' => true,
+            ],
             'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
@@ -790,17 +790,7 @@ class ClientQuotationCrudController extends CrudController
             'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
-        CRUD::field([
-            'label' => trans('backpack::crud.client_quotation.field.reimburse_type.label'),
-            'name'  => 'reimburse_type',
-            'type'  => 'select2_array',
-            'options' => [
-                '' => trans('backpack::crud.client_po.field.reimburse_type.placeholder'),
-                'REIMBURSE' => 'REIMBURSE',
-                'NON REIMBURSE' => 'NON REIMBURSE',
-            ],
-            'wrapper' => ['class' => 'form-group col-md-6'],
-        ]);
+
 
         CRUD::field([
             'label' => trans('backpack::crud.client_quotation.field.document_path.label'),
@@ -934,25 +924,77 @@ class ClientQuotationCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes'  => [
+                'disabled' => true,
+            ]
+        ]);
+
+        CRUD::addField([
             'name' => 'rap_value',
             'label' => trans('backpack::crud.client_po.column.rap_value'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'rap_value_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => 'Rp',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
             'attributes' => [
-                'placeholder' => '000.000',
+                'disabled' => true,
             ]
         ]);
 
         CRUD::addField([
             'name' => 'job_value',
             'label' => trans('backpack::crud.client_po.field.job_value.label'),
+            'type' => 'mask_currency',
+            'currency_name' => 'job_value_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
+            ],
+            'default_currency' => 'IDR',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'disabled' => true,
+            ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'job_value_include_ppn',
+            'label' => trans('backpack::crud.client_po.column.job_value_include_ppn_2'),
+            'type' => 'text',
+            'attributes' => [
+                'disabled' => true,
+            ],
+            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'job_value_base',
+            'label' => trans('backpack::crud.client_quotation.column.job_value_base'),
             'type' => 'mask',
             'mask' => '000.000.000.000.000.000',
             'mask_options' => [
@@ -963,26 +1005,8 @@ class ClientQuotationCrudController extends CrudController
                 'class' => 'form-group col-md-6',
             ],
             'attributes' => [
-                'placeholder' => '000.000',
-            ]
-        ]);
-
-        CRUD::addField([
-            'name' => 'job_value_include_ppn',
-            'label' => trans('backpack::crud.client_po.column.job_value_include_ppn_2'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            // optionals
-            'attributes' => [
                 'disabled' => true,
-            ], // allow decimals
-            'prefix'     => "Rp.",
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
+            ]
         ]);
 
         CRUD::field([   // date_range
@@ -1145,39 +1169,48 @@ class ClientQuotationCrudController extends CrudController
                 'type'  => 'wrap_text'
             ],
         );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.rap_value'),
-                'name' => 'rap_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.rap_value'),
-                'name' => 'job_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.job_value_include_ppn'),
-                'name' => 'job_value_include_ppn',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_po.column.rap_value'),
+            'name'   => 'rap_value',
+            'type'   => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->rap_value, $entry->currency_code);
+            },
+        ]);
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
+            'name'   => 'job_value',
+            'type'   => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code);
+            },
+        ]);
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_po.column.job_value_include_ppn'),
+            'name'   => 'job_value_include_ppn',
+            'type'   => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->job_value_include_ppn, $entry->currency_code);
+            },
+        ]);
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
+            'name'   => 'job_value_base',
+            'type'   => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
+            },
+        ]);
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.client_po.column.startdate_and_enddate'),
