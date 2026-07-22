@@ -936,22 +936,7 @@ class InvoiceClientCrudController extends CrudController
             ]
         ]);
 
-        CRUD::addField([
-            'name' => 'dpp_other',
-            'label' => trans('backpack::crud.invoice_client.field.dpp_other.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-            'attributes' => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.dpp_other.placeholder'),
-            ]
-        ]);
+
 
         CRUD::addField([
             'name' => 'tax_ppn',
@@ -2155,17 +2140,9 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name'        => 'status',
-            'label'       => trans('backpack::crud.cash_account.field_transaction.status.label'),
-            'type'        => 'select_from_array',
-            'options'     => [
-                'enter' => trans('backpack::crud.cash_account.field_transaction.status.enter'),
-                'out' => trans('backpack::crud.cash_account.field_transaction.status.out')
-            ],
-            'default'     => 'enter',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
+            'name'  => 'status',
+            'type'  => 'hidden',
+            'value' => 'enter',
         ]);
 
         CRUD::addField([
@@ -2207,16 +2184,9 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'label'       => trans('backpack::crud.cash_account.field_transaction.account_id.label'),
-            'type'        => "select2_ajax_custom",
-            'name'        => 'account_id',
-            'entity'      => 'account',
-            'model'       => 'App\Models\Account',
-            'attribute'   => "name",
-            'data_source' => backpack_url('account/select2-account'),
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
+            'name' => 'account_id',
+            'type' => 'hidden',
+            'value' => null,
         ]);
 
         CRUD::addField([
