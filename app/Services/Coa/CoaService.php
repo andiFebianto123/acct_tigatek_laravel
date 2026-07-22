@@ -3,8 +3,12 @@
 namespace App\Services\Coa;
 
 use App\Models\Account;
+use App\Models\CastAccount;
+use App\Models\AccountTransaction;
 use App\Models\JournalEntry;
 use App\DTOs\Coa\CoaSaveData;
+use App\DTOs\CastAccount\TransactionSaveData;
+use App\Services\CastAccount\CastAccountService;
 use App\Http\Helpers\CustomHelper;
 use App\Repositories\Coa\CoaRepository;
 use Carbon\Carbon;
@@ -13,7 +17,8 @@ use Illuminate\Support\Facades\DB;
 class CoaService
 {
     public function __construct(
-        protected CoaRepository $repository
+        protected CoaRepository $repository,
+        protected CastAccountService $castAccountService
     ) {}
 
     public function store(CoaSaveData $dto): Account
@@ -90,18 +95,38 @@ class CoaService
         return DB::transaction(function () use ($dto) {
             $item = Account::findOrFail($dto->id);
 
-            CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $item->id,
-                'reference_id' => $item->id,
-                'reference_type' => Account::class,
-                'description' => 'FIRST BALANCE',
-                'date' => Carbon::now(),
-                'debit' => $dto->balance,
-            ], [
-                'reference_id' => $item->id,
-                'reference_type' => Account::class,
-            ]);
+            // Cek apakah akun COA ini terhubung ke CastAccount (kas/bank)
+            $castAccount = CastAccount::where('account_id', $item->id)->first();
 
+            if ($castAccount) {
+                // Buat DTO transaksi masuk di CastAccount
+                $transDto = new TransactionSaveData(
+                    id: null,
+                    cast_account_id: $castAccount->id,
+                    date_transaction: Carbon::now()->format('Y-m-d'),
+                    status: AccountTransaction::ENTER,
+                    nominal_transaction: $dto->balance,
+                    kdp: null,
+                    job_name: null,
+                    no_invoice: null,
+                    account_id: $item->id,
+                    description: 'FIRST BALANCE'
+                );
+
+                $this->castAccountService->storeTransaction($transDto);
+            } else {
+                CustomHelper::updateOrCreateJournalEntry([
+                    'account_id' => $item->id,
+                    'reference_id' => $item->id,
+                    'reference_type' => Account::class,
+                    'description' => 'FIRST BALANCE',
+                    'date' => Carbon::now(),
+                    'debit' => $dto->balance,
+                ], [
+                    'reference_id' => $item->id,
+                    'reference_type' => Account::class,
+                ]);
+            }
 
             $rootParent = $this->repository->findRootParent($item->code);
             $events = [];
