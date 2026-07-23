@@ -93,9 +93,130 @@ class SpkCrudController extends CrudController
         return $this->spkRepository->getTotalPrices(request()->filter_year);
     }
 
+    private function getSpkColumns(): array
+    {
+        return [
+            [
+                'name'      => 'row_number',
+                'type'      => 'row_number',
+                'label'     => 'No',
+                'orderable' => false,
+            ],
+            ...(backpack_user()->hasRole('Super Admin') ? [[
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]] : []),
+            [
+                'label' => trans('backpack::crud.spk.column.no_spk'),
+                'name'  => 'no_spk',
+                'type'  => 'text'
+            ],
+            [
+                'label' => trans('backpack::crud.spk.column.date_spk'),
+                'name'  => 'date_spk',
+                'type'  => 'date'
+            ],
+            [
+                'label'     => trans('backpack::crud.subkon.column.name'),
+                'type'      => 'select',
+                'name'      => 'subkon_id',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.client_po.field.work_code.label'),
+                'name'  => 'work_code',
+                'type'  => 'text'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_name'),
+                'name'  => 'job_name',
+                'type'  => 'text'
+            ],
+            [
+                'name'  => 'currency_code',
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    $code = $entry->currency_code ?? 'IDR';
+                    $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                    return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+                },
+                'escaped' => false,
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_description'),
+                'name'  => 'job_description',
+                'type'  => 'textarea'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_value'),
+                'name'  => 'job_value',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.client_quotation.column.job_value_base'),
+                'name'  => 'job_value_base',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.tax_ppn'),
+                'name'  => 'tax_ppn',
+                'type'  => 'number',
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.total_value_with_tax'),
+                'name'  => 'total_value_with_tax',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.due_date'),
+                'name'  => 'due_date',
+                'type'  => 'date'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.status'),
+                'name'  => 'status',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return strtoupper($entry->status ?? '');
+                }
+            ],
+            [
+                'name'  => 'document_path',
+                'type'  => 'upload',
+                'label' => trans('backpack::crud.po.column.document_path'),
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.additional_info'),
+                'name'  => 'additional_info',
+                'type'  => 'textarea'
+            ],
+            [
+                'name'  => 'action',
+                'type'  => 'action',
+                'label' => trans('backpack::crud.actions'),
+            ],
+        ];
+    }
+
     public function index()
     {
         $this->crud->hasAccessOrFail('list');
+
+        $spkColumns = $this->getSpkColumns();
 
         $this->card->addCard([
             'name' => 'spk_tab',
@@ -112,93 +233,7 @@ class SpkCrudController extends CrudController
                         'params' => [
                             // 'filter' => false,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.no_spk'),
-                                    'name' => 'no_spk',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.date_spk'),
-                                    'name' => 'date_spk',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'due_date',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'name' => 'action',
-                                    'type' => 'action',
-                                    'label' =>  trans('backpack::crud.actions'),
-                                ],
-                            ],
+                            'columns' => $spkColumns,
                             'route' => backpack_url('/vendor/spk-trans/search?tab=list_all_po'),
                             'route_export_pdf' => backpack_url('/vendor/spk-trans/export-pdf?tab=list_all_spk'),
                             'title_export_pdf' => 'Spk.pdf',
@@ -215,88 +250,7 @@ class SpkCrudController extends CrudController
                         'params' => [
                             // 'filter' => false,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.no_spk'),
-                                    'name' => 'no_spk',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.date_spk'),
-                                    'name' => 'date_spk',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'due_date',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                            ],
+                            'columns' => $spkColumns,
                             'total_include_ppn' => CustomHelper::formatRupiah(Spk::where('status', Spk::OPEN)->sum('total_value_with_tax')),
                             'route' => backpack_url('/vendor/spk-trans/search?tab=open'),
                             'route_export_pdf' => backpack_url('/vendor/spk-trans/export-pdf?tab=open'),
@@ -314,88 +268,7 @@ class SpkCrudController extends CrudController
                         'params' => [
                             // 'filter' => false,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.no_spk'),
-                                    'name' => 'no_spk',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.spk.column.date_spk'),
-                                    'name' => 'date_spk',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'due_date',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                            ],
+                            'columns' => $spkColumns,
                             'total_include_ppn' => CustomHelper::formatRupiah(Spk::where('status', Spk::CLOSE)->sum('total_value_with_tax')),
                             'route' => backpack_url('/vendor/spk-trans/search?tab=close'),
                             'route_export_pdf' => backpack_url('/vendor/spk-trans/export-pdf?tab=close'),
@@ -621,6 +494,20 @@ class SpkCrudController extends CrudController
             ],
         );
 
+        $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
+
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                $code = $entry->currency_code ?? 'IDR';
+                $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+            },
+            'escaped' => false,
+        ])->after('job_name');
+
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.spk.column.job_description'),
@@ -633,13 +520,21 @@ class SpkCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.spk.column.job_value'),
                 'name' => 'job_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) {
+                    return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR', $status_file === 'excel');
+                },
             ],
         );
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
+            'name'   => 'job_value_base',
+            'type'   => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR', $status_file === 'excel');
+            },
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.spk.column.tax_ppn'),
@@ -652,13 +547,9 @@ class SpkCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.spk.column.total_value_with_tax'),
                 'name' => 'total_value_with_tax',
-                'type'  => 'number-custom',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-                'function' => function ($entry) {
-                    return $entry->job_value + ($entry->job_value * $entry->tax_ppn / 100);
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) {
+                    return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR', $status_file === 'excel');
                 }
             ],
         );
@@ -1046,9 +937,21 @@ class SpkCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.spk.field.job_name.placeholder'),
             ],
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([
@@ -1058,38 +961,21 @@ class SpkCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.spk.field.job_description.placeholder'),
             ],
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
         ]);
-
-        // CRUD::addField([
-        //     'name' => 'job_value',
-        //     'label' => trans('backpack::crud.spk.column.job_value'),
-        //     'type' => 'number',
-        //       // optionals
-        //     'attributes' => [
-        //         "step" => "any",
-        //         'placeholder' => trans('backpack::crud.spk.field.job_value.placeholder'),
-        //     ], // allow decimals
-        //     'prefix'     => "Rp.",
-        //     'wrapper'   => [
-        //         'class' => 'form-group col-md-6'
-        //     ],
-        // ]);
 
         CRUD::addField([
             'name' => 'job_value',
             'label' => trans('backpack::crud.spk.column.job_value'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'currency_code',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
+            'default_currency' => 'IDR',
             'attributes' => [
                 'placeholder' => trans('backpack::crud.spk.field.job_value.placeholder'),
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp",
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
@@ -1099,13 +985,11 @@ class SpkCrudController extends CrudController
             'name' => 'tax_ppn',
             'label' => trans('backpack::crud.spk.column.tax_ppn'),
             'type' => 'number',
-            // optionals
             'attributes' => [
                 "step" => "any",
                 "placeholder" => trans('backpack::crud.spk.field.tax_ppn.placeholder'),
-            ], // allow decimals
+            ],
             'prefix'     => "%",
-            // 'suffix'     => ".00",
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
@@ -1115,15 +999,11 @@ class SpkCrudController extends CrudController
         CRUD::addField([
             'name' => 'total_value_with_tax',
             'label' => trans('backpack::crud.po.column.total_value_with_tax'),
-            'type' => 'number-disable-po',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            // optionals
+            'type' => 'text',
             'attributes' => [
+                'readonly' => true,
                 'placeholder' => trans('backpack::crud.spk.field.total_value_with_tax.placeholder'),
-            ], // allow decimals
+            ],
             'prefix'     => "Rp.",
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
@@ -1157,20 +1037,6 @@ class SpkCrudController extends CrudController
             ],
         ]);
 
-        // CRUD::addField([
-        //     'name' => 'document_path',
-        //     'label' => trans('backpack::crud.spk.field.document_path.label'),
-        //     'type' => 'upload',
-        //     'wrapper'   => [
-        //         'class' => 'form-group col-md-6'
-        //     ],
-        //     'withFiles' => [
-        //         'disk' => 'public',
-        //         'path' => 'document_spk',
-        //         'deleteWhenEntryIsDeleted' => true,
-        //     ],
-        // ]);
-
         CRUD::addField([
             'name' => 'document_path',
             'label' => trans('backpack::crud.spk.field.document_path.label'),
@@ -1180,11 +1046,6 @@ class SpkCrudController extends CrudController
             ],
             'disk' => 'public',
             'custom_upload' => true,
-            // 'withFiles' => [
-            //     'disk' => 'public',
-            //     'path' => 'document_po',
-            //     'deleteWhenEntryIsDeleted' => true,
-            // ],
         ]);
 
         CRUD::addField([
@@ -1194,9 +1055,11 @@ class SpkCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.po.field.additional_info.placeholder')
             ]
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'logic_spk',
+            'type' => 'logic_spk',
         ]);
 
         /**
@@ -1243,6 +1106,7 @@ class SpkCrudController extends CrudController
         CRUD::field('space_2')->remove();
         CRUD::field('space_0')->remove();
         CRUD::field('company_id')->remove();
+        CRUD::field('logic_spk')->remove();
 
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::field([

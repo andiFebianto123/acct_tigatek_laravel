@@ -3,6 +3,7 @@
 namespace App\Services\DeviceStock;
 
 use App\Models\DeviceStock;
+use App\Models\Setting;
 use App\DTOs\DeviceStock\DeviceStockData;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +15,18 @@ class DeviceStockService
     public function createStock(DeviceStockData $data): DeviceStock
     {
         return DB::transaction(function () use ($data) {
-            return DeviceStock::create($data->toArray());
+            $payload = $data->toArray();
+
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $payload['currency_code'] = $currencyCode;
+            $payload['exchange_rate'] = $exchangeRate;
+            $payload['sell_price_base'] = $data->sell_price * $exchangeRate;
+            $payload['buy_price_base'] = $data->buy_price * $exchangeRate;
+
+            return DeviceStock::create($payload);
         });
     }
 
@@ -25,7 +37,18 @@ class DeviceStockService
     {
         return DB::transaction(function () use ($id, $data) {
             $stock = DeviceStock::findOrFail($id);
-            $stock->update($data->toArray());
+            $payload = $data->toArray();
+
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $payload['currency_code'] = $currencyCode;
+            $payload['exchange_rate'] = $exchangeRate;
+            $payload['sell_price_base'] = $data->sell_price * $exchangeRate;
+            $payload['buy_price_base'] = $data->buy_price * $exchangeRate;
+
+            $stock->update($payload);
             return $stock;
         });
     }

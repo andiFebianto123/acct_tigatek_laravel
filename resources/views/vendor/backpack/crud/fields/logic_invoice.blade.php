@@ -17,6 +17,16 @@
 
 @push('crud_fields_scripts')
     <script>
+        if (typeof setInputNumberCurrency === "undefined") {
+            function setInputNumberCurrency(selected, value, curr = 'IDR') {
+                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
+                let nominal = (typeof window.formatCurrency === 'function')
+                    ? window.formatCurrency(cleanVal, curr)
+                    : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
+                $(selected).val(nominal).trigger('input');
+            }
+        }
+
         /* =========================================================================
          * MODUL 1: GLOBAL UTILITY HELPERS (Fallback Format IDR)
          * ========================================================================= */
@@ -158,12 +168,13 @@
                             $hidden = $masked.parent().next('input[type="hidden"]');
                         }
 
+                        var rawPrice = parseFloat($hidden.val() || 0);
+
                         var $dropdown = $row.find('select.currency-select-dropdown, select[name*="price_currency"]');
                         if ($dropdown.length) {
-                            $dropdown.val(newCurrency).trigger('change');
+                            $dropdown.val(newCurrency);
                         }
 
-                        var rawPrice = parseFloat($hidden.val() || 0);
                         if (rawPrice > 0 && typeof window.convertCurrency === 'function') {
                             var convertedPrice = window.convertCurrency(rawPrice, previousCurrency, newCurrency, usdRate);
                             $hidden.val(convertedPrice);
@@ -189,13 +200,30 @@
                 populateFormData(entry) {
                     if (!entry) return;
                     var form = this.form;
-                    setInputNumber(form + ' #nominal_exclude_ppn_masked', entry.nominal_exclude_ppn || 0);
-                    setInputNumber(form + ' #dpp_other_masked', entry.price_dpp || entry.dpp_other || 0);
-                    $(form + ' input[name="tax_ppn"]').val(entry.tax_ppn || 0);
-                    setInputNumber(form + ' #nominal_include_ppn_masked', entry.price_total_include_ppn || entry.nominal_include_ppn || 0);
-                    $(form + ' input[name="pph"]').val(entry.pph || 0);
-                    setInputNumber2(form + ' input[name="discount_pph"]', entry.discount_pph || 0);
+                    var curr = entry.currency_code || $(form + ' select[name="currency_code"]').val() || 'IDR';
 
+                    if (entry.currency_code) {
+                        $(form + ' select[name="currency_code"]').val(entry.currency_code);
+                    }
+
+                    var rawExc = entry.nominal_exclude_ppn || 0;
+                    var $excHidden = $(form + ' #nominal_exclude_ppn');
+                    var $excMasked = $(form + ' #nominal_exclude_ppn_masked');
+                    if ($excHidden.length) $excHidden.val(rawExc);
+                    if ($excMasked.length) {
+                        $excMasked.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(rawExc, curr) : rawExc);
+                    }
+
+                    var rawDpp = entry.price_dpp || entry.dpp_other || 0;
+                    var $dppHidden = $(form + ' #dpp_other');
+                    var $dppMasked = $(form + ' #dpp_other_masked');
+                    if ($dppHidden.length) $dppHidden.val(rawDpp);
+                    if ($dppMasked.length) {
+                        $dppMasked.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(rawDpp, curr) : rawDpp);
+                    }
+
+                    $(form + ' input[name="tax_ppn"]').val(entry.tax_ppn || 0);
+                    $(form + ' input[name="pph"]').val(entry.pph || 0);
 
                     if (entry.company_id) $(form + ' select[name="company_id"]').val(entry.company_id).trigger('change');
                     if (entry.client_po_id) $(form + ' input[name="client_po_id"]').val(entry.client_po_id);
@@ -213,20 +241,15 @@
                             var subkonName = (entry.subkon && entry.subkon.name) ? entry.subkon.name : (entry.subkon_name || entry.subkon_id);
                             var newOption = new Option(subkonName, entry.subkon_id, true, true);
                             $subkonSelect.append(newOption).trigger('change');
-                            // if (!$subkonSelect.find("option[value='" + entry.subkon_id + "']").length) {
-                            // } else {
-                            //     $subkonSelect.val(entry.subkon_id).trigger('change');
-                            // }
                         }
                     }
-
                 }
 
                 // Memperbarui UI status nominal_information (Hijau / Netral / Merah)
                 updateNominalInformationUI(priceBetween, curr) {
                     var formattedBetween = (typeof window.formatCurrency === 'function')
                         ? window.formatCurrency(priceBetween, curr)
-                        : priceBetween.toLocaleString('id-ID');
+                        : (curr === 'USD' ? Number(priceBetween).toFixed(2) : priceBetween.toLocaleString('id-ID'));
 
                     var $infoInput = $(this.form + ' input[name="nominal_information"]');
                     $infoInput.val(formattedBetween);
@@ -267,6 +290,16 @@
                         $incGroup.find('.input-group-text').first().text(symbol);
                     }
 
+                    var $pphGroup = $(form + ' input[name="discount_pph"]').closest('.input-group');
+                    if ($pphGroup.length && $pphGroup.find('.input-group-text').length) {
+                        $pphGroup.find('.input-group-text').first().text(symbol);
+                    }
+
+                    var $infoGroup = $(form + ' input[name="nominal_information"]').closest('.input-group');
+                    if ($infoGroup.length && $infoGroup.find('.input-group-text').length) {
+                        $infoGroup.find('.input-group-text').first().text(symbol);
+                    }
+
                     // Delegasikan sync prefix ke RepeatableManager
                     if (this.repeatableManager) {
                         this.repeatableManager.syncAllPrefixes(curr, symbol);
@@ -278,12 +311,49 @@
                     var nilai_ppn = (tax_ppn == 0) ? 0 : (nominal_exclude_ppn * (tax_ppn / 100));
                     var total = nominal_exclude_ppn + nilai_ppn;
 
-                    setInputNumber2(form + ' input[name="nominal_include_ppn"]', total, curr);
+                    if (curr === 'IDR') {
+                        total = Math.round(total);
+                    }
+
+                    setInputNumberCurrency(form + ' input[name="nominal_include_ppn"]', total, curr);
                     instance.total_price = Number($(form + ' input[name="nominal_exclude_ppn"]').val());
 
                     var pph = getInputNumber(form + ' input[name="pph"]');
                     var diskon_pph = (pph == 0) ? 0 : nominal_exclude_ppn * (pph / 100);
-                    setInputNumber2(form + ' input[name="discount_pph"]', diskon_pph, curr);
+
+                    if (curr === 'IDR') {
+                        diskon_pph = Math.round(diskon_pph);
+                    }
+
+                    setInputNumberCurrency(form + ' input[name="discount_pph"]', diskon_pph, curr);
+                },
+
+                convertInvoiceTotals: function(previousCurrency, newCurrency, usdRate) {
+                    var instance = this;
+                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var rate = usdRate || window.usdRate || 16000;
+
+                    // 1. Ambil nilai murni nominal_exclude_ppn
+                    var $hiddenExc = $(form + ' input[type="hidden"][name="nominal_exclude_ppn"], ' + form + ' #nominal_exclude_ppn');
+                    var rawExc = parseFloat($hiddenExc.val() || 0);
+
+                    // 2. Konversi nominal_exclude_ppn jika ada
+                    if (rawExc > 0 && typeof window.convertCurrency === 'function') {
+                        var convertedExc = window.convertCurrency(rawExc, previousCurrency, newCurrency, rate);
+                        $hiddenExc.val(convertedExc);
+                        var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+                        if ($maskedExc.length) {
+                            $maskedExc.val(window.formatCurrency(convertedExc, newCurrency));
+                        }
+                    }
+
+                    // 3. Konversi seluruh item repeatable
+                    if (this.repeatableManager) {
+                        this.repeatableManager.convertAllItems(previousCurrency, newCurrency, rate);
+                    }
+
+                    // 4. Hitung ulang & update Nominal Include PPn serta Nominal PPh secara otomatis
+                    this.logicFormulaNoPO();
                 },
 
                 loadNotificationPrefill: function(entry, form) {
@@ -294,12 +364,20 @@
                             if (instance.formManager) instance.formManager.populateFormData(entry);
 
                             if (entry.invoice_client_details) {
+                                var curr = entry.currency_code || 'IDR';
                                 $(form + ' input[data-alt="price_masked"]').each(function(index) {
                                     if (entry.invoice_client_details[index]) {
                                         var rawPrice = entry.invoice_client_details[index].price;
-                                        var hiddenInput = $(this).parent().next();
+                                        var hiddenInput = $(this).parent().next('input[type="hidden"]');
+                                        if (!hiddenInput.length) {
+                                            hiddenInput = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row')
+                                                                   .find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                                        }
                                         hiddenInput.val(rawPrice);
-                                        $(this).val(formatIdr(parseInt(rawPrice)));
+                                        var formattedPrice = (typeof window.formatCurrency === 'function')
+                                            ? window.formatCurrency(rawPrice, curr)
+                                            : rawPrice;
+                                        $(this).val(formattedPrice);
                                     }
                                 });
                             }
@@ -365,18 +443,10 @@
 
                         if (newCurrency !== previousCurrency) {
                             var usdRate = window.usdRate || 16000;
-                            var rawExc = getInputNumber(form + ' #nominal_exclude_ppn');
-
-                            if (rawExc > 0 && typeof window.convertCurrency === 'function') {
-                                var convertedExc = window.convertCurrency(rawExc, previousCurrency, newCurrency, usdRate);
-                                updateFieldValue('nominal_exclude_ppn', convertedExc, newCurrency);
-                            }
-
-                            instance.repeatableManager.convertAllItems(previousCurrency, newCurrency, usdRate);
+                            instance.convertInvoiceTotals(previousCurrency, newCurrency, usdRate);
                             previousCurrency = newCurrency;
                         }
 
-                        instance.logicFormulaNoPO();
                         countTotalPrice();
                     });
 

@@ -3,6 +3,7 @@
 namespace App\Services\SubkonManagement;
 
 use App\Models\Spk;
+use App\Models\Setting;
 use App\DTOs\SubkonManagement\SpkData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,9 +20,20 @@ class SpkService
         return DB::transaction(function () use ($data) {
             $attributes = $data->toArray();
 
+            // Multi-Currency & Exchange Rate Calculations
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $attributes['currency_code'] = $currencyCode;
+            $attributes['exchange_rate'] = $exchangeRate;
+            $attributes['job_value_base'] = $data->job_value * $exchangeRate;
+
             // Calculate total value with tax
             $taxValue = ($data->job_value * ($data->tax_ppn ?? 0) / 100);
-            $attributes['total_value_with_tax'] = $data->job_value + $taxValue;
+            $totalWithTax = $data->job_value + $taxValue;
+            $attributes['total_value_with_tax'] = $totalWithTax;
+            $attributes['total_value_with_tax_base'] = $totalWithTax * $exchangeRate;
 
             if ($data->document_path instanceof UploadedFile) {
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
@@ -40,9 +52,20 @@ class SpkService
             $spk = Spk::findOrFail($id);
             $attributes = $data->toArray();
 
+            // Multi-Currency & Exchange Rate Calculations
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $attributes['currency_code'] = $currencyCode;
+            $attributes['exchange_rate'] = $exchangeRate;
+            $attributes['job_value_base'] = $data->job_value * $exchangeRate;
+
             // Calculate total value with tax
             $taxValue = ($data->job_value * ($data->tax_ppn ?? 0) / 100);
-            $attributes['total_value_with_tax'] = $data->job_value + $taxValue;
+            $totalWithTax = $data->job_value + $taxValue;
+            $attributes['total_value_with_tax'] = $totalWithTax;
+            $attributes['total_value_with_tax_base'] = $totalWithTax * $exchangeRate;
 
             if ($data->document_path instanceof UploadedFile) {
                 // Delete old file if exists

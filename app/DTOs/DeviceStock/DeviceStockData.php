@@ -13,6 +13,7 @@ class DeviceStockData
         public ?int $qty,
         public float $sell_price,
         public float $buy_price,
+        public ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -24,6 +25,7 @@ class DeviceStockData
             qty: $request->input('qty') !== null ? (int) $request->input('qty') : 0,
             sell_price: (float) str_replace(',', '', $request->input('sell_price') ?? 0),
             buy_price: (float) str_replace(',', '', $request->input('buy_price') ?? 0),
+            currency_code: $request->input('currency_code', 'IDR'),
         );
     }
 
@@ -36,6 +38,7 @@ class DeviceStockData
             'qty' => $this->qty,
             'sell_price' => $this->sell_price,
             'buy_price' => $this->buy_price,
+            'currency_code' => $this->currency_code,
         ];
     }
 }

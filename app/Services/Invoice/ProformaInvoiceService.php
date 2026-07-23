@@ -80,6 +80,7 @@ class ProformaInvoiceService
         $invoice->exchange_rate = $exchangeRate;
         $invoice->nominal_exclude_ppn_base = $dto->nominal_exclude_ppn * $exchangeRate;
         $invoice->nominal_include_ppn_base = $dto->nominal_include_ppn * $exchangeRate;
+        $invoice->discount_pph_base = $diskon_pph * $exchangeRate;
 
         $invoice->invoice_number = $dto->invoice_number;
         $invoice->name = 'proforma';

@@ -105,9 +105,9 @@ class ProformaInvoiceClientRepository
     public function getTotals(ProformaInvoiceClientFilterData $dto): array
     {
         $query = ProformaInvoiceClient::select(
-            DB::raw("SUM(price_total_exclude_ppn) as total_price_exclude_ppn"),
-            DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
-            DB::raw("SUM(discount_pph) as total_discount_pph")
+            DB::raw("SUM(price_total_exclude_ppn_base) as total_price_exclude_ppn"),
+            DB::raw("SUM(price_total_include_ppn_base) as total_price_include_ppn"),
+            DB::raw("SUM(discount_pph_base) as total_discount_pph")
         )->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id');
             //->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
 

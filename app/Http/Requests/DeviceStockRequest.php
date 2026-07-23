@@ -32,6 +32,7 @@ class DeviceStockRequest extends FormRequest
             'qty' => 'required|integer|min:0',
             'sell_price' => 'required|string',
             'buy_price' => 'required|string',
+            'currency_code' => 'nullable|string|in:IDR,USD',
         ];
     }
 

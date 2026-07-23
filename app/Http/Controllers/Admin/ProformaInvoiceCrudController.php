@@ -1143,7 +1143,6 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
 
-
         CRUD::addField([
             'name' => 'item_details_label',
             'label' => trans('backpack::crud.invoice_client.field.item.label'),
@@ -1261,10 +1260,16 @@ class ProformaInvoiceCrudController extends CrudController
 
 
 
+        // CRUD::column([
+        //     'label' => trans('backpack::crud.invoice_client.field.item.label'),
+        //     'name' => 'item_details_label',
+        //     'type' => 'list-proforma',
+        // ]);
+
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.item.label'),
             'name' => 'item_details_label',
-            'type' => 'list-proforma',
+            'type' => 'list-proforma', // Custom table list for details
         ]);
     }
 

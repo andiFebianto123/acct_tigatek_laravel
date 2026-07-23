@@ -64,6 +64,8 @@ class DeviceStockCrudController extends CrudController
             ->type('select2')
             ->values(fn() => DeviceStockCategory::pluck('name', 'id')->toArray());
 
+        $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
+
         $columns = [
             [
                 'name'      => 'row_number',
@@ -90,6 +92,17 @@ class DeviceStockCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'name'  => 'currency_code',
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    $code = $entry->currency_code ?? 'IDR';
+                    $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                    return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+                },
+                'escaped' => false,
+            ],
+            [
                 'label'     => trans('backpack::crud.device_stock.column.qty'),
                 'name'      => 'qty',
                 'type'      => 'text',
@@ -98,13 +111,19 @@ class DeviceStockCrudController extends CrudController
             [
                 'label'     => trans('backpack::crud.device_stock.column.sell_price'),
                 'name'      => 'sell_price',
-                'type'      => 'text',
+                'type'      => 'closure',
+                'function'  => function ($entry) use ($status_file) {
+                    return CustomHelper::formatCurrency($entry->sell_price, $entry->currency_code ?? 'IDR', $status_file === 'excel');
+                },
                 'orderable' => true,
             ],
             [
                 'label'     => trans('backpack::crud.device_stock.column.buy_price'),
                 'name'      => 'buy_price',
-                'type'      => 'text',
+                'type'      => 'closure',
+                'function'  => function ($entry) use ($status_file) {
+                    return CustomHelper::formatCurrency($entry->buy_price, $entry->currency_code ?? 'IDR', $status_file === 'excel');
+                },
                 'orderable' => true,
             ],
             [
@@ -382,6 +401,18 @@ class DeviceStockCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                $code = $entry->currency_code ?? 'IDR';
+                $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+            },
+            'escaped' => false,
+        ])->after('category_name');
+
+        CRUD::column([
             'label' => trans('backpack::crud.device_stock.column.qty'),
             'name' => 'qty',
             'type' => 'number',
@@ -392,7 +423,7 @@ class DeviceStockCrudController extends CrudController
             'name' => 'sell_price',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->sell_price);
+                return CustomHelper::formatCurrency($entry->sell_price, $entry->currency_code ?? 'IDR', $status_file === 'excel');
             },
         ]);
 
@@ -401,7 +432,7 @@ class DeviceStockCrudController extends CrudController
             'name' => 'buy_price',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->buy_price);
+                return CustomHelper::formatCurrency($entry->buy_price, $entry->currency_code ?? 'IDR', $status_file === 'excel');
             },
         ]);
     }
@@ -518,24 +549,38 @@ class DeviceStockCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'qty',
             'label' => trans('backpack::crud.device_stock.column.qty'),
             'type' => 'number',
             'default' => 0,
-            'wrapper' => ['class' => 'form-group col-md-12'],
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
-
-        $settings = \App\Models\Setting::first();
 
         CRUD::addField([
             'name' => 'sell_price',
             'label' => trans('backpack::crud.device_stock.column.sell_price'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'currency_code',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -547,18 +592,24 @@ class DeviceStockCrudController extends CrudController
         CRUD::addField([
             'name' => 'buy_price',
             'label' => trans('backpack::crud.device_stock.column.buy_price'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'currency_code',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
             'attributes' => [
                 'placeholder' => '000.000',
             ]
+        ]);
+
+        CRUD::addField([
+            'name' => 'logic_device',
+            'type' => 'logic_device',
         ]);
     }
 
@@ -592,6 +643,7 @@ class DeviceStockCrudController extends CrudController
     protected function setupShowOperation()
     {
         $this->setupCreateOperation();
+        CRUD::field('logic_device')->remove();
 
         $this->crud->removeColumn('row_number');
         $this->crud->removeColumn('action');
@@ -618,6 +670,18 @@ class DeviceStockCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                $code = $entry->currency_code ?? 'IDR';
+                $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+            },
+            'escaped' => false,
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.device_stock.column.qty'),
             'name' => 'qty',
             'type' => 'number',
@@ -628,17 +692,35 @@ class DeviceStockCrudController extends CrudController
             'name' => 'sell_price',
             'type'  => 'closure',
             'function' => function ($entry) {
-                return $this->priceFormatExport('pdf', $entry->sell_price);
+                return CustomHelper::formatCurrency($entry->sell_price, $entry->currency_code ?? 'IDR');
             },
         ]);
+
+        // CRUD::column([
+        //     'label'  => trans('backpack::crud.device_stock.column.sell_price') . ' (Base IDR)',
+        //     'name'   => 'sell_price_base',
+        //     'type'   => 'closure',
+        //     'function' => function ($entry) {
+        //         return CustomHelper::formatCurrency($entry->sell_price_base ?? $entry->sell_price, 'IDR');
+        //     },
+        // ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.device_stock.column.buy_price'),
             'name' => 'buy_price',
             'type'  => 'closure',
             'function' => function ($entry) {
-                return $this->priceFormatExport('pdf', $entry->buy_price);
+                return CustomHelper::formatCurrency($entry->buy_price, $entry->currency_code ?? 'IDR');
             },
         ]);
+
+        // CRUD::column([
+        //     'label'  => trans('backpack::crud.device_stock.column.buy_price') . ' (Base IDR)',
+        //     'name'   => 'buy_price_base',
+        //     'type'   => 'closure',
+        //     'function' => function ($entry) {
+        //         return CustomHelper::formatCurrency($entry->buy_price_base ?? $entry->buy_price, 'IDR');
+        //     },
+        // ]);
     }
 }

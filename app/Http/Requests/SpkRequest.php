@@ -27,6 +27,9 @@ class SpkRequest extends FormRequest
     {
         $id = request('id');
 
+        $currencyCode = request('currency_code', 'IDR');
+        $minJobValue = ($currencyCode === 'USD') ? 0.01 : 1000;
+
         $rule = [
             'subkon_id' => 'required|exists:subkons,id',
             'no_spk' => 'required|string|max:255|unique:spk,no_spk,' . $id,
@@ -34,12 +37,13 @@ class SpkRequest extends FormRequest
             'work_code' => 'required|max:30',
             'job_name' => 'required|string|max:255',
             'job_description' => 'required|string',
-            'job_value' => 'required|numeric|min:1000',
+            'job_value' => 'required|numeric|min:' . $minJobValue,
             'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
             'tax_ppn' => 'nullable|numeric|min:0',
             'status' => 'required|in:open,close',
             'total_value_with_tax' => 'nullable|numeric',
             'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',
+            'currency_code' => 'nullable|string|in:IDR,USD',
         ];
 
         return $rule;

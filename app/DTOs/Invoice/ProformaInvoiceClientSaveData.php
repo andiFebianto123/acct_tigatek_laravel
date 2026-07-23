@@ -29,11 +29,20 @@ class ProformaInvoiceClientSaveData
         public readonly ?int $client_id = null,
         public readonly ?string $type_device = null,
         public readonly ?string $term = null,
+        public readonly ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
     {
-        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $currencyCode = $request->input('currency_code', 'IDR');
+        $cleanNominal = function ($val) use ($currencyCode) {
+            if (is_numeric($val)) return (float) $val;
+            $str = (string) ($val ?? '');
+            if ($currencyCode === 'USD') {
+                return (float) str_replace(',', '', $str);
+            }
+            return (float) str_replace('.', '', $str);
+        };
 
         $details = $request->proforma_invoice_client_details ?? $request->proforma_invoice_client_details_edit ?? [];
         if (is_string($details)) {
@@ -63,6 +72,7 @@ class ProformaInvoiceClientSaveData
             client_id: $request->client_id ? (int) $request->client_id : null,
             type_device: $request->type_device,
             term: $request->term,
+            currency_code: $request->input('currency_code', 'IDR'),
         );
     }
 }

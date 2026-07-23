@@ -35,18 +35,29 @@ class ProformaInvoiceClientRequest extends FormRequest
             'note' => 'nullable|string|max:500',
             'term' => 'nullable|string',
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard',
+            'currency_code' => 'nullable|string|in:IDR,USD',
         ];
+
+        $currencyCode = request()->input('currency_code', 'IDR');
+        $minPrice = ($currencyCode === 'USD') ? 0.01 : 1000;
 
         if ($id) {
             $items = json_decode(request()->proforma_invoice_client_details_edit, true);
             $status_empty = true;
             $items_total_price = 0;
             if ($items != null) {
-                foreach ($items as $item) {
-                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                foreach ($items as &$item) {
+                    $rawPrice = (string) ($item['price'] ?? 0);
+                    if ($currencyCode === 'USD') {
+                        $price = (float) str_replace(',', '', $rawPrice);
+                    } else {
+                        $price = (float) str_replace('.', '', $rawPrice);
+                    }
+                    $item['price'] = $price;
                     $qty = (int) ($item['qty'] ?? 1);
                     $items_total_price += ($price * $qty);
                 }
+                unset($item);
                 if ($items_total_price > 0) {
                     $status_empty = false;
                 }
@@ -61,18 +72,25 @@ class ProformaInvoiceClientRequest extends FormRequest
                     'min:1',
                 ];
                 $rule['proforma_invoice_client_details_edit.*.name'] = 'required|max:120';
-                $rule['proforma_invoice_client_details_edit.*.price'] = 'required|numeric|min:1000';
+                $rule['proforma_invoice_client_details_edit.*.price'] = 'required|numeric|min:' . $minPrice;
             }
         } else {
             $items = json_decode(request()->proforma_invoice_client_details, true);
             $status_empty = true;
             $items_total_price = 0;
             if ($items != null) {
-                foreach ($items as $item) {
-                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                foreach ($items as &$item) {
+                    $rawPrice = (string) ($item['price'] ?? 0);
+                    if ($currencyCode === 'USD') {
+                        $price = (float) str_replace(',', '', $rawPrice);
+                    } else {
+                        $price = (float) str_replace('.', '', $rawPrice);
+                    }
+                    $item['price'] = $price;
                     $qty = (int) ($item['qty'] ?? 1);
                     $items_total_price += ($price * $qty);
                 }
+                unset($item);
                 if ($items_total_price > 0) {
                     $status_empty = false;
                 }
@@ -87,7 +105,7 @@ class ProformaInvoiceClientRequest extends FormRequest
                     'min:1',
                 ];
                 $rule['proforma_invoice_client_details.*.name'] = 'required|max:120';
-                $rule['proforma_invoice_client_details.*.price'] = 'required|numeric|min:1000';
+                $rule['proforma_invoice_client_details.*.price'] = 'required|numeric|min:' . $minPrice;
             }
         }
 

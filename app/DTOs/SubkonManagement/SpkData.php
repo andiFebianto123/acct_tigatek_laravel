@@ -22,6 +22,7 @@ class SpkData
         public UploadedFile|string|null $document_path,
         public ?string $additional_info,
         public ?int $company_id = null,
+        public ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -41,6 +42,7 @@ class SpkData
             document_path: $request->file('document_path') ?? $request->input('document_path'),
             additional_info: $request->input('additional_info'),
             company_id: backpack_user()->hasRole('Super Admin') ? $request->input('company_id') : backpack_user()->company_id,
+            currency_code: $request->input('currency_code', 'IDR'),
         );
     }
 
@@ -60,6 +62,7 @@ class SpkData
             'status' => $this->status,
             'additional_info' => $this->additional_info,
             'company_id' => $this->company_id,
+            'currency_code' => $this->currency_code,
         ];
 
         if (is_string($this->document_path)) {
