@@ -98,7 +98,8 @@ class InvoiceClientService
                     account_source_id: $dto->account_source_id,
                     type_device: $dto->type_device,
                     term: $dto->term,
-                    client_id: $clientId
+                    client_id: $clientId,
+                    currency_code: $dto->currency_code,
                 );
             }
 
@@ -197,7 +198,8 @@ class InvoiceClientService
                         account_source_id: $dto->account_source_id,
                         type_device: $dto->type_device,
                         term: $dto->term,
-                        client_id: $client->id
+                        client_id: $client->id,
+                        currency_code: $dto->currency_code,
                     );
                 }
             }
@@ -273,6 +275,16 @@ class InvoiceClientService
 
     private function mapDtoToModel(InvoiceClient $invoice, InvoiceClientSaveData $dto, float $total_price, float $diskon_pph): void
     {
+        $currencyCode = $dto->currency_code ?? 'IDR';
+        $usdRate = \App\Models\Setting::first()?->usd_rate ?? 16000;
+        $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+        $invoice->currency_code = $currencyCode;
+        $invoice->exchange_rate = $exchangeRate;
+        $invoice->price_total_exclude_ppn_base = $dto->nominal_exclude_ppn * $exchangeRate;
+        $invoice->price_total_include_ppn_base = $dto->nominal_include_ppn * $exchangeRate;
+        $invoice->discount_pph_base = $diskon_pph * $exchangeRate;
+
         $invoice->invoice_number = $dto->invoice_number;
         $invoice->name = 'invoice';
         $invoice->address_po = $dto->address_po ?? '';
@@ -296,16 +308,32 @@ class InvoiceClientService
         $invoice->term = $dto->term;
     }
 
+    private function parseItemPrice(mixed $val, string $currencyCode): float
+    {
+        if (is_numeric($val)) {
+            return (float) $val;
+        }
+        $str = (string) ($val ?? 0);
+        if ($currencyCode === 'USD') {
+            return (float) str_replace(',', '', $str);
+        }
+        return (float) str_replace('.', '', $str);
+    }
+
     private function saveDetails(InvoiceClient $invoice, array $details): void
     {
+        $currencyCode = $invoice->currency_code ?? 'IDR';
+        $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
+
         foreach ($details as $item) {
-            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+            $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
             if ($price > 0 || !empty($item['name'])) {
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
                 $invoice_item->name = $item['name'] ?? '';
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
+                $invoice_item->price_base = $price * $exchangeRate;
                 $invoice_item->save();
             }
         }
@@ -313,9 +341,10 @@ class InvoiceClientService
 
     private function calculateTotalPrice(InvoiceClientSaveData $dto): float
     {
+        $currencyCode = $dto->currency_code ?? 'IDR';
         $total = $dto->nominal_include_ppn;
         foreach ($dto->invoice_client_details as $item) {
-            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+            $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
             $qty = (int) ($item['qty'] ?? 1);
             $total += ($price * $qty);
         }

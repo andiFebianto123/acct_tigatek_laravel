@@ -28,15 +28,54 @@ class InvoiceClientSaveData
         public readonly ?string $type_device = null,
         public readonly ?string $term = null,
         public readonly ?int $client_id = null,
+        public readonly ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
     {
-        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $currencyCode = $request->input('currency_code', 'IDR');
+
+        $cleanPercent = function ($val) {
+            if ($val === null || $val === '') return 0.0;
+            if (is_numeric($val)) return (float) $val;
+            $str = str_replace(',', '.', trim((string) $val));
+            return (float) $str;
+        };
+
+        $cleanNominal = function ($val) use ($currencyCode) {
+            if ($val === null || $val === '') return 0.0;
+            if (is_numeric($val)) return (float) $val;
+
+            $str = trim((string) $val);
+            if ($currencyCode === 'USD') {
+                if (strpos($str, ',') !== false && strpos($str, '.') === false) {
+                    $str = str_replace(',', '.', $str);
+                } else {
+                    $str = str_replace(',', '', $str);
+                }
+                return (float) $str;
+            }
+
+            // IDR
+            $str = str_replace('.', '', $str);
+            $str = str_replace(',', '.', $str);
+            return (float) $str;
+        };
 
         $details = $request->invoice_client_details ?? $request->invoice_client_details_edit ?? [];
         if (is_string($details)) {
             $details = json_decode($details, true) ?? [];
+        }
+
+        $nominalExclude = $cleanNominal($request->nominal_exclude_ppn);
+        $taxPpn = $cleanPercent($request->tax_ppn);
+        $nominalInclude = $cleanNominal($request->nominal_include_ppn);
+
+        if ($nominalInclude <= 0 && $nominalExclude > 0) {
+            $nominalInclude = $nominalExclude + ($nominalExclude * $taxPpn / 100);
+            if ($currencyCode === 'IDR') {
+                $nominalInclude = round($nominalInclude);
+            }
         }
 
         return new self(
@@ -44,10 +83,10 @@ class InvoiceClientSaveData
             description: $request->description,
             invoice_date: $request->invoice_date,
             client_po_id: $request->client_po_id ? (int) $request->client_po_id : null,
-            nominal_exclude_ppn: $cleanNominal($request->nominal_exclude_ppn),
-            nominal_include_ppn: $cleanNominal($request->nominal_include_ppn),
-            tax_ppn: (float) $request->tax_ppn,
-            pph: (float) ($request->pph ?? 0),
+            nominal_exclude_ppn: $nominalExclude,
+            nominal_include_ppn: $nominalInclude,
+            tax_ppn: $taxPpn,
+            pph: $cleanPercent($request->pph ?? 0),
             dpp_other: $cleanNominal($request->dpp_other),
             kdp: $request->kdp,
             withholding_agent: $request->withholding_agent,
@@ -61,6 +100,7 @@ class InvoiceClientSaveData
             type_device: $request->type_device,
             term: $request->term,
             client_id: $request->client_id ? (int) $request->client_id : null,
+            currency_code: $currencyCode,
         );
     }
 }

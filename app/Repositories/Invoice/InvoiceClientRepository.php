@@ -116,9 +116,9 @@ class InvoiceClientRepository
     public function getTotals(InvoiceClientFilterData $dto): array
     {
         $query = InvoiceClient::select(
-            DB::raw("SUM(price_total_exclude_ppn) as total_price_exclude_ppn"),
-            DB::raw("SUM(price_total_include_ppn) as total_price_include_ppn"),
-            DB::raw("SUM(discount_pph) as total_discount_pph")
+            DB::raw("SUM(price_total_exclude_ppn_base) as total_price_exclude_ppn"),
+            DB::raw("SUM(price_total_include_ppn_base) as total_price_include_ppn"),
+            DB::raw("SUM(discount_pph_base) as total_discount_pph")
         )->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
             ->leftJoin('companies', 'companies.id', '=', 'invoice_clients.company_id');
 
