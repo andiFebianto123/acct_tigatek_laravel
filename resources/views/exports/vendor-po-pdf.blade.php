@@ -36,6 +36,7 @@
                 @endif
                 <th>{{trans('backpack::crud.subkon.column.name')}}</th>
                 <th>{{trans('backpack::crud.po.column.job_name')}}</th>
+                <th>{{trans('backpack::crud.client_quotation.column.currency_code')}}</th>
                 <th>{{trans('backpack::crud.po.column.job_description')}}</th>
                 <th>{{trans('backpack::crud.po.column.job_value')}}</th>
                 <th>{{trans('backpack::crud.po.column.tax_ppn')}}</th>
@@ -46,6 +47,9 @@
         </thead>
         <tbody>
             @foreach($items as $i => $item)
+            @php
+                $curr = $item->currency_code ?? 'IDR';
+            @endphp
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $item->po_number ?? '-' }}</td>
@@ -55,10 +59,11 @@
                 @endif
                 <td>{{ $item->subkon->name ?? '-' }}</td>
                 <td>{{ $item->job_name ?? '-' }}</td>
+                <td><span class="badge {{ $curr === 'USD' ? 'bg-warning text-dark' : 'bg-secondary' }}">{{ $curr }}</span></td>
                 <td>{{ $item->job_description ?? '-' }}</td>
-                <td>{{($settings?->currency_symbol) ? $settings->currency_symbol : "Rp."}} {{ number_format($item->job_value ?? 0) }}</td>
+                <td>{{ \App\Http\Helpers\CustomHelper::formatCurrency($item->job_value, $curr) }}</td>
                 <td>{{ $item->tax_ppn ?? 0 }} %</td>
-                <td>{{($settings?->currency_symbol) ? $settings->currency_symbol : "Rp."}} {{ number_format($item->total_value_with_tax ?? 0) }}</td>
+                <td>{{ \App\Http\Helpers\CustomHelper::formatCurrency($item->total_value_with_tax, $curr) }}</td>
                 <td>{{ $item->due_date ? \Carbon\Carbon::parse($item->due_date)->translatedFormat("d/m/Y") : '-' }}</td>
                 <td>{{ strtoupper($item->status ?? '-') }}</td>
             </tr>

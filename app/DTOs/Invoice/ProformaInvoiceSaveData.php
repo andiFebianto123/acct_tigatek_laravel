@@ -27,11 +27,34 @@ class ProformaInvoiceSaveData
         public readonly ?string $note = null,
         public readonly ?int $subkon_id = null,
         public readonly ?string $term = null,
+        public readonly ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
     {
-        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '');
+        $currency_code = $request->currency_code ?? 'IDR';
+        $isUsd = strtoupper($currency_code) === 'USD';
+
+        $cleanNominal = function ($val) use ($isUsd) {
+            if ($val === null || $val === '') return 0.0;
+            if (is_numeric($val)) return (float) $val;
+            $str = (string) $val;
+            if ($isUsd) {
+                return (float) str_replace(',', '', $str);
+            }
+            return (float) str_replace('.', '', $str);
+        };
+
+        $nominal_exclude_ppn = $cleanNominal($request->nominal_exclude_ppn);
+        $tax_ppn = (float) ($request->tax_ppn ?? 0);
+
+        $rawInclude = $request->nominal_include_ppn;
+        if ($rawInclude === null || $rawInclude === '') {
+            $calcInclude = $nominal_exclude_ppn + ($nominal_exclude_ppn * $tax_ppn / 100);
+            $nominal_include_ppn = $isUsd ? round($calcInclude, 2) : round($calcInclude);
+        } else {
+            $nominal_include_ppn = $cleanNominal($rawInclude);
+        }
 
         $details = $request->proforma_invoice_details ?? $request->proforma_invoice_details_edit ?? [];
         if (is_string($details)) {
@@ -43,9 +66,9 @@ class ProformaInvoiceSaveData
             description: $request->description,
             invoice_date: $request->invoice_date,
             client_po_id: $request->client_po_id ? (int) $request->client_po_id : null,
-            nominal_exclude_ppn: $cleanNominal($request->nominal_exclude_ppn),
-            nominal_include_ppn: $cleanNominal($request->nominal_include_ppn),
-            tax_ppn: (float) $request->tax_ppn,
+            nominal_exclude_ppn: $nominal_exclude_ppn,
+            nominal_include_ppn: $nominal_include_ppn,
+            tax_ppn: $tax_ppn,
             pph: (float) ($request->pph ?? 0),
             kdp: $request->kdp,
             withholding_agent: $request->withholding_agent,
@@ -59,6 +82,7 @@ class ProformaInvoiceSaveData
             note: $request->note,
             subkon_id: $request->subkon_id ? (int) $request->subkon_id : null,
             term: $request->term,
+            currency_code: $request->currency_code ?? 'IDR',
         );
     }
 }

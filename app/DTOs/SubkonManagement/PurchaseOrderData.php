@@ -22,6 +22,7 @@ class PurchaseOrderData
         public ?int $company_id = null,
         public ?string $term = null,
         public ?string $po_type = 'subkon',
+        public ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -42,6 +43,7 @@ class PurchaseOrderData
             company_id: $request->input('company_id'),
             term: $request->input('term'),
             po_type: $request->input('po_type', 'subkon'),
+            currency_code: $request->input('currency_code', 'IDR'),
         );
     }
 
@@ -63,6 +65,7 @@ class PurchaseOrderData
             'company_id' => $this->company_id,
             'term' => $this->term,
             'po_type' => $this->po_type,
+            'currency_code' => $this->currency_code,
         ];
     }
 }

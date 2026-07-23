@@ -230,6 +230,13 @@
 </head>
 <body>
     @php
+        $currencyCode = $header->currency_code ?? 'IDR';
+        $isUsd = strtoupper($currencyCode) === 'USD';
+        $symbol = $isUsd ? '$' : 'Rp';
+        $decimals = $isUsd ? 2 : 0;
+        $decPoint = $isUsd ? '.' : ',';
+        $thousandsSep = $isUsd ? ',' : '.';
+
         $subtotal = $header->price_total_exclude_ppn ?? 0;
         $grand_total = $header->price_total_include_ppn ?? 0;
         $ppn_nominal = $grand_total - $subtotal;
@@ -303,6 +310,10 @@
                     <td class="label">Date</td>
                     <td>: &nbsp; {{ $header->invoice_date ? \Carbon\Carbon::parse($header->invoice_date)->format('d / m / Y') : \Carbon\Carbon::parse($header->created_at)->format('d / m / Y') }}</td>
                 </tr>
+                <tr>
+                    <td class="label">Currency</td>
+                    <td>: &nbsp; {{ $currencyCode }}</td>
+                </tr>
             </table>
         </div>
         <div class="clearfix"></div>
@@ -349,10 +360,10 @@
                         <td style="text-align: left;">{{ $item->name }}</td>
                         <td class="text-center">{{ $qty }}</td>
                         <td class="text-right">
-                            <span style="float: left;">Rp</span> {{ number_format($unit_price, 0, ',', '.') }}
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                         <td class="text-right">
-                            <span style="float: left;">Rp</span> {{ number_format($qty * $unit_price, 0, ',', '.') }}
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($qty * $unit_price, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                     </tr>
                 @endforeach
@@ -363,18 +374,18 @@
             <table class="totals-table">
                 <tr>
                     <td class="label">TOTAL</td>
-                    <td style="width: 15%;">Rp</td>
-                    <td class="text-right">{{ number_format($subtotal, 0, ',', '.') }}</td>
+                    <td style="width: 15%;">{{ $symbol }}</td>
+                    <td class="text-right">{{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}</td>
                 </tr>
                 <tr>
                     <td class="label">PPN {{ $ppn_percent }}%</td>
-                    <td>Rp</td>
-                    <td class="text-right">{{ number_format($ppn_nominal, 0, ',', '.') }}</td>
+                    <td>{{ $symbol }}</td>
+                    <td class="text-right">{{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}</td>
                 </tr>
                 <tr>
                     <td class="label-bold">GRAND TOTAL</td>
-                    <td class="val-bold">Rp</td>
-                    <td class="val-bold">{{ number_format($grand_total, 0, ',', '.') }}</td>
+                    <td class="val-bold">{{ $symbol }}</td>
+                    <td class="val-bold">{{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}</td>
                 </tr>
             </table>
             <div class="clearfix"></div>

@@ -216,8 +216,20 @@ class ProformaInvoiceCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'name'  => 'currency_code',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
                 'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
                 'name' => 'price_total_exclude_ppn',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.client_quotation.column.job_value_base'),
+                'name'  => 'nominal_exclude_ppn_base',
                 'type'  => 'text',
                 'orderable' => true,
             ],
@@ -441,11 +453,31 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
             'name' => 'price_total_exclude_ppn',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->price_total_exclude_ppn);
+                return CustomHelper::formatCurrency($entry->price_total_exclude_ppn, $entry->currency_code ?? 'IDR', $status_file == 'excel');
+            },
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base.label'),
+            'name' => 'nominal_exclude_ppn_base',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency($entry->nominal_exclude_ppn_base ?? $entry->price_total_exclude_ppn, 'IDR', $status_file == 'excel');
             },
         ]);
 
@@ -463,7 +495,7 @@ class ProformaInvoiceCrudController extends CrudController
             'name' => 'price_total_include_ppn',
             'type'  => 'closure',
             'function' => function ($entry) use ($status_file) {
-                return $this->priceFormatExport($status_file, $entry->price_total_include_ppn);
+                return CustomHelper::formatCurrency($entry->price_total_include_ppn, $entry->currency_code ?? 'IDR', $status_file == 'excel');
             },
         ]);
 
@@ -688,14 +720,31 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'nominal_exclude_ppn',
             'label' => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'nominal_exclude_ppn_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+                'EUR' => 'EUR (€)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -703,7 +752,6 @@ class ProformaInvoiceCrudController extends CrudController
                 'placeholder' => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.placeholder'),
             ]
         ]);
-
 
         CRUD::addField([
             'name' => 'tax_ppn',
@@ -723,11 +771,6 @@ class ProformaInvoiceCrudController extends CrudController
             'name' => 'nominal_include_ppn',
             'label' => trans('backpack::crud.invoice_client.field.nominal_include_ppn.label'),
             'type' => 'text',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -838,15 +881,12 @@ class ProformaInvoiceCrudController extends CrudController
                     ],
                     [
                         'name' => 'price',
-                        'type' => 'mask_repeat',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
-                        ],
-                        'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-                        'mask' => '000.000.000.000.000.000',
-                        'mask_options' => [
-                            'reverse' => true
                         ],
                     ],
                 ]
@@ -881,12 +921,9 @@ class ProformaInvoiceCrudController extends CrudController
                     [
                         'name' => 'price',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
-                        'type' => 'mask',
-                        'mask' => '000.000.000.000.000.000',
-                        'mask_options' => [
-                            'reverse' => true
-                        ],
-                        'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
                         'wrapper'   => [
                             'class' => 'form-group col-md-5'
                         ],
@@ -910,16 +947,10 @@ class ProformaInvoiceCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-        $request = request();
-        $exclude_ppn = (float) str_replace('.', '', $request->nominal_exclude_ppn ?? '0');
-        $tax_ppn = (float) ($request->tax_ppn ?? 0);
-        $request->merge([
-            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
-        ]);
-
         $this->crud->validateRequest();
 
         try {
+            $request = request();
             $dto = ProformaInvoiceSaveData::fromRequest($request);
             $invoice = $this->service->createInvoice($dto);
 
@@ -951,16 +982,10 @@ class ProformaInvoiceCrudController extends CrudController
     public function update($id)
     {
         $this->crud->hasAccessOrFail('update');
-        $request = request();
-        $exclude_ppn = (float) str_replace('.', '', $request->nominal_exclude_ppn ?? '0');
-        $tax_ppn = (float) ($request->tax_ppn ?? 0);
-        $request->merge([
-            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
-        ]);
-
         $this->crud->validateRequest();
 
         try {
+            $request = request();
             $dto = ProformaInvoiceSaveData::fromRequest($request);
             $invoice = $this->service->updateInvoice((int) $id, $dto);
 
@@ -1161,11 +1186,31 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.currency_code.label'),
+            'name' => 'currency_code',
+            'type' => 'closure',
+            'function' => function ($entry) {
+                $code = strtoupper($entry->currency_code ?? 'IDR');
+                $badgeClass = $code === 'USD' ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                return "<span class='{$badgeClass}'>{$code}</span>";
+            }
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
             'name' => 'nominal_exclude_ppn',
             'type'  => 'closure',
             'function' => function ($entry) {
-                return CustomHelper::formatRupiahWithCurrency($entry->price_total_exclude_ppn);
+                return CustomHelper::formatCurrency($entry->price_total_exclude_ppn, $entry->currency_code ?? 'IDR');
+            }
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base.label'),
+            'name' => 'nominal_exclude_ppn_base',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->nominal_exclude_ppn_base ?? $entry->price_total_exclude_ppn, 'IDR');
             }
         ]);
 
@@ -1181,7 +1226,7 @@ class ProformaInvoiceCrudController extends CrudController
             'name' => 'nominal_include_ppn',
             'type'  => 'closure',
             'function' => function ($entry) {
-                return CustomHelper::formatRupiahWithCurrency($entry->price_total_include_ppn);
+                return CustomHelper::formatCurrency($entry->price_total_include_ppn, $entry->currency_code ?? 'IDR');
             }
         ]);
 
@@ -1198,19 +1243,18 @@ class ProformaInvoiceCrudController extends CrudController
             'value' => $this->crud->getCurrentEntry()?->term,
         ]);
 
-
-
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'name' => 'price_total',
             'type' => 'closure',
             'function' => function ($entry) {
+                $curr = $entry->currency_code ?? 'IDR';
                 if ($entry->withholding_agent == "NON WAPU" || $entry->withholding_agent == "" || $entry->withholding_agent == null) {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total);
+                    return CustomHelper::formatCurrency($entry->price_total, $curr);
                 } else if ($entry->withholding_agent == "WAPU") {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total_exclude_ppn - $entry->discount_pph);
+                    return CustomHelper::formatCurrency($entry->price_total_exclude_ppn - $entry->discount_pph, $curr);
                 } else {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total);
+                    return CustomHelper::formatCurrency($entry->price_total, $curr);
                 }
             }
         ]);

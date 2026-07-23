@@ -72,6 +72,15 @@ class ProformaInvoiceService
 
     private function mapDtoToModel(ProformaInvoice $invoice, ProformaInvoiceSaveData $dto, float $total_price, float $diskon_pph): void
     {
+        $currencyCode = $dto->currency_code ?? 'IDR';
+        $usdRate = \App\Models\Setting::first()->usd_rate ?? 16000;
+        $exchangeRate = ($currencyCode === 'USD') ? (float)$usdRate : 1.0;
+
+        $invoice->currency_code = $currencyCode;
+        $invoice->exchange_rate = $exchangeRate;
+        $invoice->nominal_exclude_ppn_base = $dto->nominal_exclude_ppn * $exchangeRate;
+        $invoice->nominal_include_ppn_base = $dto->nominal_include_ppn * $exchangeRate;
+
         $invoice->invoice_number = $dto->invoice_number;
         $invoice->name = 'proforma';
         $invoice->address_po = $dto->address_po ?? '';
@@ -95,16 +104,31 @@ class ProformaInvoiceService
         $invoice->subkon_id = $dto->subkon_id;
     }
 
+    private function parseItemPrice(mixed $val, string $currencyCode): float
+    {
+        if ($val === null || $val === '') return 0.0;
+        if (is_numeric($val)) return (float) $val;
+        $str = (string) $val;
+        if (strtoupper($currencyCode) === 'USD') {
+            return (float) str_replace(',', '', $str);
+        }
+        return (float) str_replace('.', '', $str);
+    }
+
     private function saveDetails(ProformaInvoice $invoice, array $details): void
     {
+        $currencyCode = $invoice->currency_code ?? 'IDR';
+        $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
+
         foreach ($details as $item) {
-            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+            $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
             if ($price > 0 || !empty($item['name'])) {
                 $invoice_item = new ProformaInvoiceDetail();
                 $invoice_item->proforma_invoice_id = $invoice->id;
                 $invoice_item->name = $item['name'] ?? '';
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
+                $invoice_item->price_base = $price * $exchangeRate;
                 $invoice_item->save();
             }
         }
@@ -112,9 +136,10 @@ class ProformaInvoiceService
 
     private function calculateTotalPrice(ProformaInvoiceSaveData $dto): float
     {
+        $currencyCode = $dto->currency_code ?? 'IDR';
         $total = $dto->nominal_include_ppn;
         foreach ($dto->proforma_invoice_details as $item) {
-            $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+            $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
             $qty = (int) ($item['qty'] ?? 1);
             $total += ($price * $qty);
         }

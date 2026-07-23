@@ -26,11 +26,23 @@ class ProformaInvoiceRequest extends FormRequest
     {
         $id = $this->get('id') ?? $this->route('id');
         $client_po = request()->client_po_id;
+        $currency_code = request()->currency_code ?? 'IDR';
+        $isUsd = strtoupper($currency_code) === 'USD';
+        $minPrice = $isUsd ? 0.01 : 1;
+
+        $parsePrice = function ($val) use ($isUsd) {
+            $str = (string) ($val ?? 0);
+            if ($isUsd) {
+                return (float) str_replace(',', '', $str);
+            }
+            return (float) str_replace('.', '', $str);
+        };
 
         $rule = [
             'invoice_number' => 'required|min:3|max:50|unique:proforma_invoices,invoice_number,' . $id,
             'invoice_date' => 'required',
             'client_po_id' => 'nullable|exists:client_po,id',
+            'currency_code' => 'nullable|in:IDR,USD',
             'status' => 'nullable|in:Paid,Unpaid',
             'withholding_agent' => 'nullable|in:WAPU,NON WAPU',
             'account_source_id' => 'nullable|exists:cast_accounts,id',
@@ -45,7 +57,7 @@ class ProformaInvoiceRequest extends FormRequest
             $items_total_price = 0;
             if ($items != null) {
                 foreach ($items as $item) {
-                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                    $price = $parsePrice($item['price'] ?? 0);
                     $qty = (int) ($item['qty'] ?? 1);
                     $items_total_price += ($price * $qty);
                 }
@@ -61,14 +73,14 @@ class ProformaInvoiceRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
+                    function ($attribute, $value, $fail) use ($client_po, $items, $parsePrice) {
                         if ($client_po) {
                             $client = ClientPo::find($client_po);
                             if ($client) {
                                 $price_total = $client->job_value;
                                 $items_total_price = 0;
                                 foreach ($items as $item) {
-                                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                                    $price = $parsePrice($item['price'] ?? 0);
                                     $qty = (int) ($item['qty'] ?? 1);
                                     $items_total_price += ($price * $qty);
                                 }
@@ -80,7 +92,7 @@ class ProformaInvoiceRequest extends FormRequest
                     }
                 ];
                 $rule['proforma_invoice_details_edit.*.name'] = 'required|max:120';
-                $rule['proforma_invoice_details_edit.*.price'] = 'required|numeric|min:1000';
+                $rule['proforma_invoice_details_edit.*.price'] = "required|numeric|min:{$minPrice}";
             }
         } else {
             $items = json_decode(request()->proforma_invoice_details, true);
@@ -88,7 +100,7 @@ class ProformaInvoiceRequest extends FormRequest
             $items_total_price = 0;
             if ($items != null) {
                 foreach ($items as $item) {
-                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                    $price = $parsePrice($item['price'] ?? 0);
                     $qty = (int) ($item['qty'] ?? 1);
                     $items_total_price += ($price * $qty);
                 }
@@ -104,7 +116,7 @@ class ProformaInvoiceRequest extends FormRequest
                     'required',
                     'array',
                     'min:1',
-                    function ($attribute, $value, $fail) use ($client_po, $items) {
+                    function ($attribute, $value, $fail) use ($client_po, $items, $parsePrice) {
                         if ($client_po) {
                             $client = ClientPo::find($client_po);
                             if ($client) {
@@ -112,7 +124,7 @@ class ProformaInvoiceRequest extends FormRequest
 
                                 $items_total_price = 0;
                                 foreach ($items as $item) {
-                                    $price = (float) str_replace('.', '', (string) ($item['price'] ?? 0));
+                                    $price = $parsePrice($item['price'] ?? 0);
                                     $qty = (int) ($item['qty'] ?? 1);
                                     $items_total_price += ($price * $qty);
                                 }
@@ -125,7 +137,7 @@ class ProformaInvoiceRequest extends FormRequest
                     }
                 ];
                 $rule['proforma_invoice_details.*.name'] = 'required|max:120';
-                $rule['proforma_invoice_details.*.price'] = 'required|numeric|min:1000';
+                $rule['proforma_invoice_details.*.price'] = "required|numeric|min:{$minPrice}";
             }
         }
 

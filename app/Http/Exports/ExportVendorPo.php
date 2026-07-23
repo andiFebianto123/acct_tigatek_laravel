@@ -121,7 +121,8 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             'total_value_with_tax',
             'due_date',
             'status',
-            'company_id'
+            'company_id',
+            'currency_code'
         )->with('company')->get();
     }
 
@@ -133,6 +134,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             trans('backpack::crud.po.column.date_po'),
             trans('backpack::crud.subkon.column.name'),
             trans('backpack::crud.po.column.job_name'),
+            trans('backpack::crud.client_quotation.column.currency_code'),
             trans('backpack::crud.po.column.job_description'),
             trans('backpack::crud.po.column.job_value'),
             trans('backpack::crud.po.column.tax_ppn'),
@@ -163,16 +165,21 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
 
         $status = strtoupper($entry->status ?? '-');
 
+        $job_value = \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR', true);
+        $total_value_with_tax = \App\Http\Helpers\CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR', true);
+        $currency_code = $entry->currency_code ?? 'IDR';
+
         $data = [
             $this->rowNumber,
             $entry->po_number ?? '-',
             $date_po,
             $subkonName,
             $entry->job_name ?? '-',
+            $currency_code,
             $entry->job_description ?? '-',
-            $entry->job_value ?? 0,
+            $job_value,
             $entry->tax_ppn ?? 0,
-            $entry->total_value_with_tax ?? 0,
+            $total_value_with_tax,
             $due_date,
             $status,
         ];
@@ -186,7 +193,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
 
     public function styles(Worksheet $sheet)
     {
-        $highestColumn = backpack_user()->hasRole('Super Admin') ? 'L' : 'K'; // Ganti jika jumlah kolom berubah
+        $highestColumn = backpack_user()->hasRole('Super Admin') ? 'M' : 'L'; // Ganti jika jumlah kolom berubah
 
         $sheet->getStyle("A1:{$highestColumn}" . ($this->rowNumber + 1))->applyFromArray([
             'borders' => [

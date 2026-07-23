@@ -36,8 +36,9 @@
             @foreach ($items as $item)
                 @php
                     $row_number++;
-                    $price_str = \App\Http\Helpers\CustomHelper::formatRupiahWithCurrency($item->price);
-                    $total_price_str = \App\Http\Helpers\CustomHelper::formatRupiahWithCurrency($item->price * $item->qty);
+                    $curr = $entry->currency_code ?? 'IDR';
+                    $price_str = \App\Http\Helpers\CustomHelper::formatCurrency($item->price, $curr);
+                    $total_price_str = \App\Http\Helpers\CustomHelper::formatCurrency($item->price * $item->qty, $curr);
                 @endphp
                 <tr>
                     <td>{{$row_number}}</td>

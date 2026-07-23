@@ -18,13 +18,13 @@ class PurchaseOrderRepository
         if ($filterYear != 'all' && $filterYear != null) {
             $total_open = $total_open->where(DB::raw("YEAR(date_po)"), $filterYear);
         }
-        $sum_open = $total_open->sum('total_value_with_tax');
+        $sum_open = $total_open->sum('total_value_with_tax_base');
 
         $total_closed = PurchaseOrder::query()->where('status', PurchaseOrder::CLOSE);
         if ($filterYear != 'all' && $filterYear != null) {
             $total_closed = $total_closed->where(DB::raw("YEAR(date_po)"), $filterYear);
         }
-        $sum_closed = $total_closed->sum('total_value_with_tax');
+        $sum_closed = $total_closed->sum('total_value_with_tax_base');
 
         return [
             'total_open' => CustomHelper::formatRupiahWithCurrency($sum_open),

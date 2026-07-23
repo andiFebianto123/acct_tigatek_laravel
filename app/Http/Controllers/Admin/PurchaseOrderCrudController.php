@@ -113,9 +113,130 @@ class PurchaseOrderCrudController extends CrudController
         return $this->purchaseOrderRepository->applySearchFilters($query, $filters);
     }
 
+    private function getPoColumns(): array
+    {
+        return [
+            [
+                'name'      => 'row_number',
+                'type'      => 'row_number',
+                'label'     => 'No',
+                'orderable' => false,
+            ],
+            ...(backpack_user()->hasRole('Super Admin') ? [[
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]] : []),
+            [
+                'label' => trans('backpack::crud.po.column.po_number'),
+                'name'  => 'po_number',
+                'type'  => 'text'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.date_po'),
+                'name'  => 'date_po',
+                'type'  => 'date'
+            ],
+            [
+                'label'     => trans('backpack::crud.subkon.column.name'),
+                'type'      => 'select',
+                'name'      => 'subkon_id',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.client_po.field.work_code.label'),
+                'name'  => 'work_code',
+                'type'  => 'text'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_name'),
+                'name'  => 'job_name',
+                'type'  => 'text'
+            ],
+            [
+                'name'  => 'currency_code',
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    $code = $entry->currency_code ?? 'IDR';
+                    $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                    return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+                },
+                'escaped' => false,
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_description'),
+                'name'  => 'job_description',
+                'type'  => 'textarea'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_value'),
+                'name'  => 'job_value',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.job_value') . ' (IDR)',
+                'name'  => 'job_value_base',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.tax_ppn'),
+                'name'  => 'tax_ppn',
+                'type'  => 'number',
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.total_value_with_tax'),
+                'name'  => 'total_value_with_tax',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR');
+                },
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.due_date'),
+                'name'  => 'date_po',
+                'type'  => 'date'
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.status'),
+                'name'  => 'status',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return strtoupper($entry->status ?? '');
+                }
+            ],
+            [
+                'name'  => 'document_path',
+                'type'  => 'upload',
+                'label' => trans('backpack::crud.po.column.document_path'),
+            ],
+            [
+                'label' => trans('backpack::crud.po.column.additional_info'),
+                'name'  => 'additional_info',
+                'type'  => 'textarea'
+            ],
+            [
+                'name'  => 'action',
+                'type'  => 'action',
+                'label' => trans('backpack::crud.actions'),
+            ],
+        ];
+    }
+
     public function index()
     {
         $this->crud->hasAccessOrFail('list');
+
+        $poColumns = $this->getPoColumns();
 
         $this->card->addCard([
             'name' => 'po_tab',
@@ -132,93 +253,7 @@ class PurchaseOrderCrudController extends CrudController
                         'params' => [
                             'filter' => true,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.po.column.po_number'),
-                                    'name' => 'po_number',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.date_po'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'name' => 'action',
-                                    'type' => 'action',
-                                    'label' =>  trans('backpack::crud.actions'),
-                                ],
-                            ],
+                            'columns' => $poColumns,
                             'route' => backpack_url('/vendor/purchase-order/search?tab=list_all_po'),
                             'route_export_pdf' => backpack_url('/vendor/download-po-pdf?tab=list_all_po'),
                             'title_export_pdf' => 'Purchase_order.pdf',
@@ -230,200 +265,34 @@ class PurchaseOrderCrudController extends CrudController
                         'name' => 'list_open',
                         'name_tab' => 'po_tab',
                         'label' => trans('backpack::crud.po.tab.open'),
-                        // 'class' => '',
                         'active' => false,
                         'view' => 'crud::components.datatable-po',
                         'params' => [
                             'filter' => true,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.po.column.po_number'),
-                                    'name' => 'po_number',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.date_po'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                            ],
-                            'total_include_ppn' => CustomHelper::formatRupiah(PurchaseOrder::where('status', PurchaseOrder::OPEN)->sum('total_value_with_tax')),
-                            'route' => backpack_url('/vendor/purchase-order/search?tab=open'),
-                            'route_export_pdf' => backpack_url('/vendor/download-po-pdf?tab=open'),
-                            'title_export_pdf' => 'Purchase_order-open.pdf',
-                            'route_export_excel' => backpack_url('/vendor/download-po?tab=open'),
-                            'title_export_excel' => 'Purchase_order-open.xlsx',
+                            'columns' => $poColumns,
+                            'route' => backpack_url('/vendor/purchase-order/search?tab=list_open'),
+                            'route_export_pdf' => backpack_url('/vendor/download-po-pdf?tab=list_open'),
+                            'title_export_pdf' => 'Purchase_order.pdf',
+                            'route_export_excel' => backpack_url('/vendor/download-po?tab=list_open'),
+                            'title_export_excel' => 'Purchase_order.xlsx',
                         ],
                     ],
                     [
                         'name' => 'list_close',
                         'name_tab' => 'po_tab',
                         'label' => trans('backpack::crud.po.tab.close'),
-                        // 'class' => '',
                         'active' => false,
                         'view' => 'crud::components.datatable-po',
                         'params' => [
                             'filter' => true,
                             'crud_custom' => $this->crud,
-                            'columns' => [
-                                [
-                                    'name'      => 'row_number',
-                                    'type'      => 'row_number',
-                                    'label'     => 'No',
-                                    'orderable' => false,
-                                ],
-                                ...(backpack_user()->hasRole('Super Admin') ? [[
-                                    'label' => trans('backpack::crud.subkon.column.company'),
-                                    'type'      => 'select',
-                                    'name'      => 'company_id',
-                                    'entity'    => 'company',
-                                    'attribute' => 'name',
-                                    'model'     => "App\Models\Company",
-                                ]] : []),
-                                [
-                                    'label'  => trans('backpack::crud.po.column.po_number'),
-                                    'name' => 'po_number',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.date_po'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.subkon.column.name'),
-                                    'type'      => 'select',
-                                    'name'      => 'subkon_id',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                                    'name' => 'work_code',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_name'),
-                                    'name' => 'job_name',
-                                    'type'  => 'text'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_description'),
-                                    'name' => 'job_description',
-                                    'type'  => 'textarea'
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.job_value'),
-                                    'name' => 'job_value',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.tax_ppn'),
-                                    'name' => 'tax_ppn',
-                                    'type'  => 'number',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                                    'name' => 'total_value_with_tax',
-                                    'type'  => 'number-custom',
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.due_date'),
-                                    'name' => 'date_po',
-                                    'type'  => 'date'
-                                ],
-                                [
-                                    'label' => trans('backpack::crud.po.column.status'),
-                                    'name' => 'status',
-                                    'type' => 'closure'
-                                ],
-                                [
-                                    'name'   => 'document_path',
-                                    'type'   => 'upload',
-                                    'label'  => trans('backpack::crud.po.column.document_path'),
-                                ],
-                                [
-                                    'label'  => trans('backpack::crud.po.column.additional_info'),
-                                    'name' => 'additional_info',
-                                    'type'  => 'textarea'
-                                ],
-                            ],
-                            'total_include_ppn' => CustomHelper::formatRupiah(PurchaseOrder::where('status', PurchaseOrder::CLOSE)->sum('total_value_with_tax')),
-                            'route' => backpack_url('/vendor/purchase-order/search?tab=close'),
-                            'route_export_pdf' => backpack_url('/vendor/download-po-pdf?tab=close'),
-                            'title_export_pdf' => 'Purchase_order-close.pdf',
-                            'route_export_excel' => backpack_url('/vendor/download-po?tab=close'),
-                            'title_export_excel' => 'Purchase_order-close.xlsx',
+                            'columns' => $poColumns,
+                            'route' => backpack_url('/vendor/purchase-order/search?tab=list_close'),
+                            'route_export_pdf' => backpack_url('/vendor/download-po-pdf?tab=list_close'),
+                            'title_export_pdf' => 'Purchase_order.pdf',
+                            'route_export_excel' => backpack_url('/vendor/download-po?tab=list_close'),
+                            'title_export_excel' => 'Purchase_order.xlsx',
                         ],
                     ]
                 ]
@@ -562,6 +431,8 @@ class PurchaseOrderCrudController extends CrudController
 
         $settings = Setting::first();
         $request = request();
+        $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
+
 
         $new_format_date = 'DD/MM/YYYY';
 
@@ -634,6 +505,17 @@ class PurchaseOrderCrudController extends CrudController
             ],
         );
 
+        $app->addColumn([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
         $app->addColumn(
             [
                 'label'  => trans('backpack::crud.po.column.job_description'),
@@ -644,17 +526,35 @@ class PurchaseOrderCrudController extends CrudController
             ],
         );
 
-        $app->addColumn(
-            [
-                'label'  => trans('backpack::crud.po.column.job_value'),
-                'name' => 'job_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
+        // $app->addColumn(
+        //     [
+        //         'label'  => trans('backpack::crud.po.column.job_value'),
+        //         'name' => 'job_value',
+        //         'type'  => 'number',
+        //         'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
+        //         'decimals'      => 2,
+        //         'dec_point'     => ',',
+        //         'thousands_sep' => '.',
+        //     ],
+        // );
+
+        $app->addColumn([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_exclude_ppn'),
+            'name'   => 'job_value',
+            'type'   => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code, $status_file === 'excel');
+            },
+        ]);
+
+        $app->addColumn([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
+            'name'   => 'job_value_base',
+            'type'   => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR', $status_file === 'excel');
+            },
+        ]);
 
         $app->addColumn([
             'label'  => trans('backpack::crud.po.column.tax_ppn'),
@@ -663,20 +563,14 @@ class PurchaseOrderCrudController extends CrudController
             'suffix' => '%',
         ]);
 
-        $app->addColumn(
-            [
-                'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                'name' => 'total_value_with_tax',
-                'type'  => 'number-custom',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-                'function' => function ($entry) {
-                    return $entry->job_value + ($entry->job_value * $entry->tax_ppn / 100);
-                }
-            ],
-        );
+        $app->addColumn([
+            'label'  => trans('backpack::crud.client_quotation.column.job_value_include_ppn'),
+            'name'   => 'total_value_with_tax',
+            'type'   => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                return CustomHelper::formatCurrency(($entry->job_value + ($entry->job_value * $entry->tax_ppn / 100)), $entry->currency_code, $status_file === 'excel');
+            },
+        ]);
 
         $app->addColumn([
             'label'  => trans('backpack::crud.po.column.due_date'),
@@ -891,9 +785,21 @@ class PurchaseOrderCrudController extends CrudController
             'name' => 'job_name',
             'label' => trans('backpack::crud.po.column.job_name'),
             'type' => 'text',
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([
@@ -903,24 +809,24 @@ class PurchaseOrderCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.po.field.job_description.placeholder')
             ]
-            // 'wrapper'   => [
-            //     'class' => 'form-group col-md-6'
-            // ],
         ]);
-
 
         CRUD::addField([
             'name' => 'job_value',
             'label' => trans('backpack::crud.po.column.job_value'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'currency_code',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.po.column.job_value'),
+            ]
         ]);
 
         CRUD::addField([
@@ -940,16 +846,13 @@ class PurchaseOrderCrudController extends CrudController
         CRUD::addField([
             'name' => 'total_value_with_tax',
             'label' => trans('backpack::crud.po.column.total_value_with_tax'),
-            'type' => 'number-disable-po',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
-            ],
+            'type' => 'text',
             'attributes' => [
                 'placeholder' => trans('backpack::crud.spk.field.total_value_with_tax.placeholder'),
             ],
-            // optionals
-            // 'attributes' => ["step" => "any"], // allow decimals
+            'attributes' => [
+                'readonly' => true,
+            ],
             'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
@@ -1080,6 +983,7 @@ class PurchaseOrderCrudController extends CrudController
         CRUD::field('space_0')->remove();
         CRUD::field('space')->remove();
         CRUD::field('additional_info')->remove();
+        CRUD::field('logic_purchase_order')->remove();
         CRUD::field('space_2')->remove();
         CRUD::field('po_type')->remove();
 
@@ -1203,6 +1107,17 @@ class PurchaseOrderCrudController extends CrudController
             ],
         );
 
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.po.column.job_name'),
@@ -1227,12 +1142,11 @@ class PurchaseOrderCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.po.column.job_value'),
                 'name' => 'job_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR');
+                },
+            ]
         );
 
         CRUD::column([
@@ -1242,19 +1156,24 @@ class PurchaseOrderCrudController extends CrudController
             'suffix' => '%',
         ]);
 
+        // CRUD::column([
+        //     'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
+        //     'name'   => 'job_value_base',
+        //     'type'   => 'closure',
+        //     'function' => function ($entry) {
+        //         return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
+        //     },
+        // ]);
+
         CRUD::column(
             [
                 'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
                 'name' => 'total_value_with_tax',
-                'type'  => 'number-custom',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
                 'function' => function ($entry) {
-                    return $entry->job_value + ($entry->job_value * $entry->tax_ppn / 100);
-                }
-            ],
+                    return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR');
+                },
+            ]
         );
 
         CRUD::column([

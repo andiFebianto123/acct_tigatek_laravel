@@ -225,10 +225,18 @@
                     <td class="label">Date</td>
                     <td>: &nbsp; {{ \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') }}</td>
                 </tr>
+                <tr>
+                    <td class="label">Currency</td>
+                    <td>: &nbsp; {{ $entry->currency_code ?? 'IDR' }}</td>
+                </tr>
             </table>
         </div>
         <div class="clearfix"></div>
     </div>
+
+    @php
+        $currencyCode = $entry->currency_code ?? 'IDR';
+    @endphp
 
     <div class="items-section">
         <table class="items-table">
@@ -250,10 +258,10 @@
                     </td>
                     <td class="text-center">1</td>
                     <td class="text-right">
-                        <span style="float: left;">Rp</span> {{ number_format($entry->job_value, 0, ',', '.') }}
+                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
                     </td>
                     <td class="text-right">
-                        <span style="float: left;">Rp</span> {{ number_format($entry->job_value, 0, ',', '.') }}
+                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
                     </td>
                 </tr>
             </tbody>
@@ -262,7 +270,7 @@
                     <td colspan="3" style="border: none;"></td>
                     <td class="grand-total-label">GRAND TOTAL</td>
                     <td class="grand-total-value">
-                        <span style="float: left;">Rp</span> {{ number_format($entry->job_value, 0, ',', '.') }}
+                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
                     </td>
                 </tr>
             </tfoot>

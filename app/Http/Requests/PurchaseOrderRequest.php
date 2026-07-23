@@ -28,6 +28,9 @@ class PurchaseOrderRequest extends FormRequest
 
         $id = request('id');
 
+        $currencyCode = request('currency_code', 'IDR');
+        $minJobValue = ($currencyCode === 'USD') ? 0.01 : 1000;
+
         $rule = [
             'po_type' => 'required|in:subkon,supplier',
             'subkon_id' => 'required|exists:subkons,id',
@@ -35,7 +38,7 @@ class PurchaseOrderRequest extends FormRequest
             'date_po' => 'required|string',
             'job_name' => 'required|string|max:255',
             'job_description' => 'required',
-            'job_value' => 'required|numeric|min:1000',
+            'job_value' => 'required|numeric|min:' . $minJobValue,
             'status' => 'required|in:open,close',
             'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
             'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',

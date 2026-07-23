@@ -3,6 +3,7 @@
 namespace App\Services\SubkonManagement;
 
 use App\Models\PurchaseOrder;
+use App\Models\Setting;
 use App\DTOs\SubkonManagement\PurchaseOrderData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,8 +20,18 @@ class PurchaseOrderService
         return DB::transaction(function () use ($data) {
             $payload = $data->toArray();
 
+            // Multi-Currency & Exchange Rate Calculations
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $payload['currency_code'] = $currencyCode;
+            $payload['exchange_rate'] = $exchangeRate;
+            $payload['job_value_base'] = $data->job_value * $exchangeRate;
+
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
+            $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
 
             // Auto generate work_code for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
@@ -52,8 +63,18 @@ class PurchaseOrderService
             $po = PurchaseOrder::findOrFail($id);
             $payload = $data->toArray();
 
+            // Multi-Currency & Exchange Rate Calculations
+            $currencyCode = $data->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $payload['currency_code'] = $currencyCode;
+            $payload['exchange_rate'] = $exchangeRate;
+            $payload['job_value_base'] = $data->job_value * $exchangeRate;
+
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
+            $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
 
             // Auto generate work_code for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
@@ -82,6 +103,8 @@ class PurchaseOrderService
 
             $po->fill($payload);
             $po->total_value_with_tax = $payload['total_value_with_tax'];
+            $po->job_value_base = $payload['job_value_base'];
+            $po->total_value_with_tax_base = $payload['total_value_with_tax_base'];
             $po->save();
 
             return $po;
