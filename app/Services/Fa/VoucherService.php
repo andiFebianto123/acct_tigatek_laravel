@@ -22,6 +22,7 @@ class VoucherService
 {
     public function calculatePayment(array $inputs): array
     {
+        $currency  = strtoupper($inputs['currency_code'] ?? 'IDR');
         $billValue = (float) ($inputs['bill_value'] ?? 0);
         $ppn       = (float) ($inputs['tax_ppn'] ?? 0);
         $pph23     = (float) ($inputs['pph_23'] ?? 0);
@@ -29,13 +30,22 @@ class VoucherService
         $pph21     = (float) ($inputs['pph_21'] ?? 0);
 
         $nilaiPpn = ($ppn == 0) ? 0 : ($billValue * ($ppn / 100));
+        if ($currency === 'IDR') $nilaiPpn = round($nilaiPpn);
+
         $total    = $billValue + $nilaiPpn;
+        if ($currency === 'IDR') $total = round($total);
 
         $diskonPph23 = ($pph23 == 0) ? 0 : $billValue * ($pph23 / 100);
+        if ($currency === 'IDR') $diskonPph23 = round($diskonPph23);
+
         $diskonPph4  = ($pph4  == 0) ? 0 : $billValue * ($pph4  / 100);
+        if ($currency === 'IDR') $diskonPph4 = round($diskonPph4);
+
         $diskonPph21 = ($pph21 == 0) ? 0 : $billValue * ($pph21 / 100);
+        if ($currency === 'IDR') $diskonPph21 = round($diskonPph21);
 
         $paymentTransfer = $total - $diskonPph23 - $diskonPph4 - $diskonPph21;
+        if ($currency === 'IDR') $paymentTransfer = round($paymentTransfer);
 
         return [
             'bill_value'               => $billValue,
@@ -51,6 +61,7 @@ class VoucherService
     public function createVoucher(VoucherData $data, $request): Voucher
     {
         $hasilPerhitungan = $this->calculatePayment([
+            'currency_code' => $data->currency_code,
             'bill_value' => $data->bill_value,
             'tax_ppn' => $data->tax_ppn,
             'pph_23' => $data->pph_23,
@@ -98,6 +109,33 @@ class VoucherService
         $item->job_name = $data->job_name;
         $item->for_voucher = '';
         $item->date_voucher = $data->date_voucher;
+        $currencyCode = strtoupper($data->currency_code ?? 'IDR');
+        $setting = \App\Models\Setting::first();
+        $usdRate = (float) ($setting?->usd_rate ?? 16000);
+
+        $exchangeRate = ($currencyCode === 'USD') ? $usdRate : 1.0;
+
+        $billValueBase       = $data->bill_value * $exchangeRate;
+        $dppValue            = (float) ($request->dpp_value ?? 0);
+        $dppValueBase        = $dppValue * $exchangeRate;
+        $totalPricePpnBase   = $hasilPerhitungan['nilai_ppn'] * $exchangeRate;
+        $totalBase           = $hasilPerhitungan['total'] * $exchangeRate;
+        $diskonPph23Base     = $hasilPerhitungan['diskon_pph_23'] * $exchangeRate;
+        $diskonPph4Base      = $hasilPerhitungan['diskon_pph_4'] * $exchangeRate;
+        $diskonPph21Base     = $hasilPerhitungan['diskon_pph_21'] * $exchangeRate;
+        $paymentTransferBase = $hasilPerhitungan['payment_transfer'] * $exchangeRate;
+
+        $item->currency_code         = $currencyCode;
+        $item->exchange_rate         = $exchangeRate;
+        $item->bill_value_base       = $billValueBase;
+        $item->dpp_value_base        = $dppValueBase;
+        $item->total_price_ppn_base  = $totalPricePpnBase;
+        $item->total_base            = $totalBase;
+        $item->discount_pph_23_base  = $diskonPph23Base;
+        $item->discount_pph_4_base   = $diskonPph4Base;
+        $item->discount_pph_21_base  = $diskonPph21Base;
+        $item->payment_transfer_base = $paymentTransferBase;
+
         $item->bussines_entity_code = '';
         $item->bussines_entity_type = '';
         $item->bussines_entity_name = '';
@@ -177,6 +215,7 @@ class VoucherService
     public function updateVoucher(int $id, VoucherData $data, $request): Voucher
     {
         $hasilPerhitungan = $this->calculatePayment([
+            'currency_code' => $data->currency_code,
             'bill_value' => $data->bill_value,
             'tax_ppn' => $data->tax_ppn,
             'pph_23' => $data->pph_23,
@@ -226,6 +265,33 @@ class VoucherService
         $item->job_name = $data->job_name;
         $item->for_voucher = '';
         $item->date_voucher = $data->date_voucher;
+        $currencyCode = strtoupper($data->currency_code ?? 'IDR');
+        $setting = \App\Models\Setting::first();
+        $usdRate = (float) ($setting?->usd_rate ?? 16000);
+
+        $exchangeRate = ($currencyCode === 'USD') ? $usdRate : 1.0;
+
+        $billValueBase       = $data->bill_value * $exchangeRate;
+        $dppValue            = (float) ($request->dpp_value ?? 0);
+        $dppValueBase        = $dppValue * $exchangeRate;
+        $totalPricePpnBase   = $hasilPerhitungan['nilai_ppn'] * $exchangeRate;
+        $totalBase           = $hasilPerhitungan['total'] * $exchangeRate;
+        $diskonPph23Base     = $hasilPerhitungan['diskon_pph_23'] * $exchangeRate;
+        $diskonPph4Base      = $hasilPerhitungan['diskon_pph_4'] * $exchangeRate;
+        $diskonPph21Base     = $hasilPerhitungan['diskon_pph_21'] * $exchangeRate;
+        $paymentTransferBase = $hasilPerhitungan['payment_transfer'] * $exchangeRate;
+
+        $item->currency_code         = $currencyCode;
+        $item->exchange_rate         = $exchangeRate;
+        $item->bill_value_base       = $billValueBase;
+        $item->dpp_value_base        = $dppValueBase;
+        $item->total_price_ppn_base  = $totalPricePpnBase;
+        $item->total_base            = $totalBase;
+        $item->discount_pph_23_base  = $diskonPph23Base;
+        $item->discount_pph_4_base   = $diskonPph4Base;
+        $item->discount_pph_21_base  = $diskonPph21Base;
+        $item->payment_transfer_base = $paymentTransferBase;
+
         $item->bussines_entity_code = '';
         $item->bussines_entity_type = '';
         $item->bussines_entity_name = '';

@@ -20,329 +20,355 @@
 
 @push('crud_fields_scripts')
     <script>
-
-        if(typeof setInputNumber2 == "undefined"){
-            function formatIdr(angka){
-                const formatter = new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR'
-                });
-
-                let hasilFormat = formatter.format(angka);
-                let tanpaRp = hasilFormat.replace('Rp', '').trim();
-
-                return tanpaRp;
-            }
-            function setInputNumber2(selected, value){
-                let nominal = formatIdr(value);
+        /**
+         * Global Helper Utility untuk Format Nominal
+         */
+        if (typeof setInputNumberCurrency === "undefined") {
+            function setInputNumberCurrency(selected, value, curr = 'IDR') {
+                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
+                let nominal = (typeof window.formatCurrency === 'function')
+                    ? window.formatCurrency(cleanVal, curr)
+                    : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
                 $(selected).val(nominal).trigger('input');
             }
         }
 
-        SIAOPS.setAttribute('logic_asset', function(){
+        if (typeof setInputNumber2 === "undefined") {
+            function formatIdr(angka) {
+                const formatter = new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR'
+                });
+                return formatter.format(angka).replace('Rp', '').trim();
+            }
+
+            function setInputNumber2(selector, value) {
+                let nominal = formatIdr(value);
+                $(selector).val(nominal).trigger('input');
+            }
+        }
+
+        /**
+         * Voucher Logic Module (Modular & Clean Code Pattern)
+         */
+        SIAOPS.setAttribute('logic_asset', function() {
             return {
-                form_type : "{{ $crud->getActionMethod() }}",
-                logicFormula: function(){
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
-                    var bill_value = getInputNumber(form+' #bill_value');
-                    var ppn = getInputNumber(form+' input[name="tax_ppn"]');
-
-                    var nilai_ppn = (ppn == 0) ? 0 : (bill_value * (ppn / 100));
-                    setInputNumber2(form+' input[name="total_price_ppn"]', nilai_ppn);
-
-                    var total = bill_value + nilai_ppn;
-                    setInputNumber2(form+ ' input[name="total"]', total);
-
-                    var pph_23 = getInputNumber(form + ' input[name="pph_23"]');
-                    var diskon_pph_23 = (pph_23 == 0) ? 0 : bill_value * (pph_23 / 100);
-                    setInputNumber2(form+' input[name="discount_pph_23"]', diskon_pph_23);
-
-                    var pph_4 = getInputNumber(form + ' input[name="pph_4"]');
-                    var diskon_pph_4 = (pph_4 == 0) ? 0 : bill_value * (pph_4 / 100);
-                    setInputNumber2(form+' input[name="discount_pph_4"]', diskon_pph_4);
-
-                    var pph_21 = getInputNumber(form+' input[name="pph_21"]');
-                    var diskon_pph_21 = (pph_21 == 0) ? 0 : bill_value * (pph_21 / 100);
-                    setInputNumber2(form+' input[name="discount_pph_21"]', diskon_pph_21);
-
-                    var payment_transfer = total - diskon_pph_23 - diskon_pph_4 - diskon_pph_21;
-                    setInputNumber2(form+' input[name="payment_transfer"]', payment_transfer);
-
+                formType: "{{ $crud->getActionMethod() }}",
+                get formSelector() {
+                    return this.formType === 'create' ? '#form-create' : '#form-edit';
                 },
-                togglePoType: function(isInit = false){
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
-                    var po_type = $(form+' select[name="po_type"]').val();
-                    
-                    var clientPoWrapper = $(form+' select[name="client_po_id"]').closest('.form-group');
-                    var invoiceClientWrapper = $(form+' select[name="invoice_client_id"]').closest('.form-group');
-                    var referenceWrapper = $(form+' select[name="reference_id"]').closest('.form-group');
-                    
-                    var jobNameWrapper = $(form+' input[name="job_name_disabled"]').closest('.form-group');
-                    var jobNameLabel = jobNameWrapper.find('label');
-                    
+                getEl: function(name) {
+                    return $(this.formSelector + ' ' + name);
+                },
+
+                /**
+                 * Kalkulasi & Formula Voucher
+                 */
+                logicFormula: function() {
+                    var form = this.formSelector;
+                    var curr = this.getEl('select[name="currency_code"]').val() || 'IDR';
+                    var symbol = (curr === 'USD' ? '$' : 'Rp');
+
+                    // Update simbol input-group-text prefix untuk seluruh field nominal
+                    ['total_price_ppn', 'total', 'discount_pph_23', 'discount_pph_4', 'discount_pph_21', 'payment_transfer'].forEach(function(fieldName) {
+                        var $group = $(form + ' input[name="' + fieldName + '"]').closest('.input-group');
+                        if ($group.length && $group.find('.input-group-text').length) {
+                            $group.find('.input-group-text').first().text(symbol);
+                        }
+                    });
+
+                    var billValue = getInputNumber(form + ' #bill_value');
+                    var ppnPercent = getInputNumber(form + ' input[name="tax_ppn"]');
+
+                    var nilaiPpn = (ppnPercent === 0) ? 0 : (billValue * (ppnPercent / 100));
+                    if (curr === 'IDR') nilaiPpn = Math.round(nilaiPpn);
+                    setInputNumberCurrency(form + ' input[name="total_price_ppn"]', nilaiPpn, curr);
+
+                    var total = billValue + nilaiPpn;
+                    if (curr === 'IDR') total = Math.round(total);
+                    setInputNumberCurrency(form + ' input[name="total"]', total, curr);
+
+                    var pph23Percent = getInputNumber(form + ' input[name="pph_23"]');
+                    var diskonPph23 = (pph23Percent === 0) ? 0 : (billValue * (pph23Percent / 100));
+                    if (curr === 'IDR') diskonPph23 = Math.round(diskonPph23);
+                    setInputNumberCurrency(form + ' input[name="discount_pph_23"]', diskonPph23, curr);
+
+                    var pph4Percent = getInputNumber(form + ' input[name="pph_4"]');
+                    var diskonPph4 = (pph4Percent === 0) ? 0 : (billValue * (pph4Percent / 100));
+                    if (curr === 'IDR') diskonPph4 = Math.round(diskonPph4);
+                    setInputNumberCurrency(form + ' input[name="discount_pph_4"]', diskonPph4, curr);
+
+                    var pph21Percent = getInputNumber(form + ' input[name="pph_21"]');
+                    var diskonPph21 = (pph21Percent === 0) ? 0 : (billValue * (pph21Percent / 100));
+                    if (curr === 'IDR') diskonPph21 = Math.round(diskonPph21);
+                    setInputNumberCurrency(form + ' input[name="discount_pph_21"]', diskonPph21, curr);
+
+                    var paymentTransfer = total - diskonPph23 - diskonPph4 - diskonPph21;
+                    if (curr === 'IDR') paymentTransfer = Math.round(paymentTransfer);
+                    setInputNumberCurrency(form + ' input[name="payment_transfer"]', paymentTransfer, curr);
+                },
+
+                /**
+                 * Konversi Nominal Otomatis saat Pengguna Mengganti Currency (IDR <-> USD)
+                 */
+                convertVoucherTotals: function(previousCurrency, newCurrency, usdRate) {
+                    var form = this.formSelector;
+                    var rate = usdRate || window.usdRate || 16000;
+
+                    var $hiddenBill = this.getEl('#bill_value');
+                    var rawBill = parseFloat($hiddenBill.val() || 0);
+
+                    if (rawBill > 0 && typeof window.convertCurrency === 'function') {
+                        var convertedBill = window.convertCurrency(rawBill, previousCurrency, newCurrency, rate);
+                        $hiddenBill.val(convertedBill);
+                        var $maskedBill = this.getEl('#bill_value_masked');
+                        if ($maskedBill.length) {
+                            $maskedBill.val(window.formatCurrency(convertedBill, newCurrency));
+                        }
+                    }
+
+                    this.logicFormula();
+                },
+
+                /**
+                 * Dynamic Form Toggle berdasarkan Jenis Voucher (po_type)
+                 */
+                togglePoType: function(isInit = false) {
+                    var poType = this.getEl('select[name="po_type"]').val();
+                    var clientPoWrapper = this.getEl('select[name="client_po_id"]').closest('.form-group');
+                    var invoiceClientWrapper = this.getEl('select[name="invoice_client_id"]').closest('.form-group');
+                    var referenceWrapper = this.getEl('select[name="reference_id"]').closest('.form-group');
+                    var jobNameWrapper = this.getEl('input[name="job_name_disabled"]').closest('.form-group');
+
                     referenceWrapper.show();
-                    $(form+' select[name="reference_id"]').removeAttr('disabled');
-                    
-                    if (po_type === 'supplier') {
+                    this.getEl('select[name="reference_id"]').removeAttr('disabled');
+
+                    if (poType === 'supplier') {
                         clientPoWrapper.hide();
-                        $(form+' select[name="client_po_id"]').attr('disabled', true);
+                        this.getEl('select[name="client_po_id"]').attr('disabled', true);
                         
                         invoiceClientWrapper.hide();
-                        $(form+' select[name="invoice_client_id"]').attr('disabled', true);
+                        this.getEl('select[name="invoice_client_id"]').attr('disabled', true);
                         
-                        jobNameLabel.text("Deskripsi Pesanan");
+                        jobNameWrapper.find('label').text("Deskripsi Pesanan");
                     } else {
                         // subkon
                         clientPoWrapper.hide();
-                        $(form+' select[name="client_po_id"]').attr('disabled', true);
+                        this.getEl('select[name="client_po_id"]').attr('disabled', true);
                         
                         invoiceClientWrapper.show();
-                        $(form+' select[name="invoice_client_id"]').removeAttr('disabled');
+                        this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
                         
-                        jobNameLabel.text("Nama Pekerjaan");
+                        jobNameWrapper.find('label').text("Nama Pekerjaan");
                     }
-                    
+
                     if (!isInit) {
-                        $(form+' select[name="client_po_id"]').val(null).trigger('change');
-                        $(form+' select[name="invoice_client_id"]').val(null).trigger('change');
-                        $(form+' select[name="reference_id"]').val(null).trigger('change');
-                        $(form+' select[name="subkon_id"]').val(null).trigger('change');
-                        $(form+' input[name="job_name"]').val(null);
-                        $(form+' input[name="job_name_disabled"]').val(null);
+                        this.getEl('select[name="client_po_id"]').val(null).trigger('change');
+                        this.getEl('select[name="invoice_client_id"]').val(null).trigger('change');
+                        this.getEl('select[name="reference_id"]').val(null).trigger('change');
+                        this.getEl('select[name="subkon_id"]').val(null).trigger('change');
+                        this.getEl('input[name="job_name"]').val(null);
+                        this.getEl('input[name="job_name_disabled"]').val(null);
                     }
                 },
-                load: function(){
-                    var instance = this;
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
 
-                    instance.togglePoType(true);
-                    $(form+' select[name="po_type"]').on('change select2:select', function() {
-                        instance.togglePoType(false);
+                /**
+                 * Event Listeners Binding
+                 */
+                bindEvents: function() {
+                    var self = this;
+                    var form = this.formSelector;
+                    var previousCurrency = this.getEl('select[name="currency_code"]').val() || 'IDR';
+
+                    // Toggle PO Type
+                    this.getEl('select[name="po_type"]').off('change select2:select').on('change select2:select', function() {
+                        self.togglePoType(false);
                     });
 
-                    @if (isset($entry))
-                        var data_po_spk = {!! json_encode($set_value) !!};
-                        var data_entry = {!! json_encode($entry) !!};
+                    // Main Currency Selection & Auto Conversion Listener
+                    this.getEl('select[name="currency_code"]').off('change select2:select').on('change select2:select', function() {
+                        var newCurrency = $(this).val() || 'IDR';
+                        
+                        // Sync dropdown terkunci pada mask_currency
+                        self.getEl('select.currency-select-dropdown').val(newCurrency).trigger('change');
 
-                        if(data_po_spk != null){
-                            var no_po_spk = "";
-                            if(data_po_spk.type == 'spk'){
-                                no_po_spk = data_entry.reference.no_spk;
-                            }else{
-                                no_po_spk = data_entry.reference.po_number;
+                        if (newCurrency !== previousCurrency) {
+                            var usdRate = window.usdRate || 16000;
+                            self.convertVoucherTotals(previousCurrency, newCurrency, usdRate);
+                            previousCurrency = newCurrency;
+                        }
+                    });
+
+                    // Reference ID (PO/SPK) Selection
+                    this.getEl('select[name="reference_id"]').off('select2:select').on('select2:select', function(e) {
+                        self.fetchReferenceDetail(e.params.data.id, e.params.data.type);
+                    });
+
+                    // Client PO Selection
+                    this.getEl('select[name="client_po_id"]').off('select2:select').on('select2:select', function(e) {
+                        self.fetchClientPoDetail(e.params.data.id, e.params.data.type);
+                    });
+
+                    // Invoice Client Selection
+                    this.getEl('select[name="invoice_client_id"]').off('select2:select').on('select2:select', function(e) {
+                        self.fetchInvoiceClientDetail(e.params.data.id);
+                    });
+
+                    // Faktur Status Toggle
+                    this.getEl('select[name="factur_status"]').off('select2:select').on('select2:select', function(e) {
+                        var status = e.params.data.id;
+                        var isReadOnly = (status === 'TIDAK ADA' || status === 'AKAN ADA');
+                        
+                        self.getEl('input[name="no_factur"]').attr('readonly', isReadOnly);
+                        self.getEl('#date_factur').attr('disabled', isReadOnly);
+                    });
+
+                    // Subkon Account Source Selection
+                    this.getEl('select[name="subkon_id"]').off('select2:select').on('select2:select', function(e) {
+                        self.fetchSubkonAccountDetail(e.params.data.id);
+                    });
+
+                    // Trigger Calculation on Keyup / Input Change
+                    $(form + ' #bill_value_masked, ' +
+                      form + ' input[name="bill_value"], ' +
+                      form + ' input[name="tax_ppn"], ' +
+                      form + ' input[name="pph_23"], ' +
+                      form + ' input[name="pph_4"], ' +
+                      form + ' input[name="pph_21"]'
+                    ).off('keyup.logicVoucher input.logicVoucher').on('keyup.logicVoucher input.logicVoucher', function() {
+                        self.logicFormula();
+                    });
+                },
+
+                /**
+                 * AJAX API Fetch Handlers
+                 */
+                fetchReferenceDetail: function(id, type) {
+                    var self = this;
+                    $.ajax({
+                        url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + id + "&type=" + type,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.company) {
+                                var subkonOption = new Option(data.company.name, data.company.id, true, true);
+                                self.getEl('select[name="subkon_id"]').append(subkonOption).trigger('change');
+                                self.getEl('input[name="bank_name"]').val(data.company.bank_name || null);
+                                self.getEl('input[name="no_account"]').val(data.company.bank_account || null);
+                                self.getEl('input[name="account_holder_name"]').val(data.company.account_holder_name || null);
+                            } else {
+                                self.getEl('select[name="subkon_id"]').val(null).trigger('change');
+                                self.getEl('input[name="bank_name"]').val(null);
+                                self.getEl('input[name="no_account"]').val(null);
+                                self.getEl('input[name="account_holder_name"]').val(null);
                             }
 
-                            $(form+ ' input[name="bussines_entity_name"]').val(data_po_spk.name_company);
-                            $(form+' input[name="type"]').val(data_po_spk.type);
+                            self.getEl('input[name="date_po_spk"]').val(data.date_po || null);
+                            if (data.po) {
+                                self.getEl('input[name="type"]').val(data.po.type);
+                            }
+                        }
+                    });
+                },
 
-                            var selectedOptionw = new Option(no_po_spk, data_entry.reference.id, true, true);
-                            $(form+' select[name="reference_id"]').append(selectedOptionw).trigger('change');
+                fetchClientPoDetail: function(id, type) {
+                    var self = this;
+                    $.ajax({
+                        url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + id + "&type=" + type,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.company) {
+                                var subkonOption = new Option(data.company.name, data.company.id, true, true);
+                                self.getEl('select[name="subkon_id"]').append(subkonOption).trigger('change');
+                                self.getEl('input[name="bank_name"]').val(data.company.bank_name || null);
+                                self.getEl('input[name="no_account"]').val(data.company.bank_account || null);
+                            }
+                            if (data.po) {
+                                self.getEl('input[name="job_name"]').val(data.po.job_name);
+                                self.getEl('input[name="job_name_disabled"]').val(data.po.job_name);
+                            }
+                        }
+                    });
+                },
+
+                fetchInvoiceClientDetail: function(id) {
+                    var self = this;
+                    $.ajax({
+                        url: "{{ url($crud->route) }}/get_invoice_selected_ajax?id=" + id,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.company) {
+                                var subkonOption = new Option(data.company.name, data.company.id, true, true);
+                                self.getEl('select[name="subkon_id"]').append(subkonOption).trigger('change');
+                                self.getEl('input[name="bank_name"]').val(data.company.bank_name || null);
+                                self.getEl('input[name="no_account"]').val(data.company.bank_account || null);
+                            }
+                            if (data.po) {
+                                self.getEl('input[name="job_name"]').val(data.po.job_name);
+                                self.getEl('input[name="job_name_disabled"]').val(data.po.job_name);
+                            }
+                        }
+                    });
+                },
+
+                fetchSubkonAccountDetail: function(id) {
+                    var self = this;
+                    $.ajax({
+                        url: "{{ url($crud->route) }}/get_account_source_selected_ajax?id=" + id,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            self.getEl('input[name="bank_name"]').val(data.bank_name || null);
+                            self.getEl('input[name="no_account"]').val(data.bank_account || null);
+                        }
+                    });
+                },
+
+                /**
+                 * Pre-fill state pada Mode Edit Form
+                 */
+                initEditMode: function() {
+                    @if (isset($entry))
+                        var dataPoSpk = {!! json_encode($set_value) !!};
+                        var dataEntry = {!! json_encode($entry) !!};
+
+                        if (dataPoSpk != null) {
+                            var noPoSpk = (dataPoSpk.type === 'spk') ? dataEntry.reference.no_spk : dataEntry.reference.po_number;
+                            this.getEl('input[name="bussines_entity_name"]').val(dataPoSpk.name_company);
+                            this.getEl('input[name="type"]').val(dataPoSpk.type);
+
+                            var selectedOption = new Option(noPoSpk, dataEntry.reference.id, true, true);
+                            this.getEl('select[name="reference_id"]').append(selectedOption).trigger('change');
                         }
 
-                        if (data_entry.invoice_client) {
-                            var selectedOptionInvoice = new Option(data_entry.invoice_client.invoice_number, data_entry.invoice_client.id, true, true);
-                            $(form+ ' select[name="invoice_client_id"]').append(selectedOptionInvoice).trigger('change');
+                        if (dataEntry.invoice_client) {
+                            var selectedOptionInvoice = new Option(dataEntry.invoice_client.invoice_number, dataEntry.invoice_client.id, true, true);
+                            this.getEl('select[name="invoice_client_id"]').append(selectedOptionInvoice).trigger('change');
                         }
 
-                        $(form+' input[name="job_name_disabled"]').val(data_entry.job_name);
-                        // $(form+ ' input[name="date_po_spk"]').val(data_po_spk.date_po_spk_str);
-                        // $(form+ ' input[name="bank_name"]').val(data_po_spk.bank_name);
-                        // $(form+' input[name="no_account"]').val(data_po_spk.bank_account);
-                        // $(form+' input[name="no_type"]').val(data_po_spk.type);
+                        this.getEl('input[name="job_name_disabled"]').val(dataEntry.job_name);
 
-                        // setTimeout(() => {
-                        //      $(form+ ' input[name="date_po_spk"]').val(data_po_spk.date_po_spk_str);
-                        // }, 500);
-
-                        setTimeout(() => {
-                            instance.logicFormula();
+                        var self = this;
+                        setTimeout(function() {
+                            self.logicFormula();
                         }, 200);
                     @endif
+                },
 
-                    $(form+ ' select[name="reference_id"]').off('select2:select').on('select2:select', function (e) {
-                        var id = e.params.data.id;
-                        var type = e.params.data.type;
-                        $.ajax({
-                            url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + id + "&type=" + type,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function (data) {
-
-                                var po = data.po;
-                                var account = data.account;
-
-                                if(data.company){
-                                    var subkon_option = new Option(data.company.name, data.company.id, true, true);
-                                    $(form+' select[name="subkon_id"]').append(subkon_option).trigger('change');
-                                    if(data.company.bank_name){
-                                        $(form+' input[name="bank_name"]').val(data.company.bank_name);
-                                    }
-                                    if(data.company.bank_account){
-                                        $(form+' input[name="no_account"]').val(data.company.bank_account);
-                                    }
-                                    if(data.company.account_holder_name){
-                                        $(form+' input[name="account_holder_name"]').val(data.company.account_holder_name);
-                                    }
-                                }else{
-                                    $(form+' select[name="subkon_id"]').val(null).trigger('change');
-                                    $(form+' input[name="bank_name"]').val(null);
-                                    $(form+' input[name="no_account"]').val(null);
-                                    $(form+' input[name="account_holder_name"]').val(null);
-                                }
-
-                                if(data.date_po){
-                                    $(form+' input[name="date_po_spk"]').val(data.date_po);
-                                }else{
-                                    $(form+' input[name="date_po_spk"]').val(null);
-                                }
-
-                                // var account_text = `${account.code} - ${account.name}`;
-                                // var account_option = new Option(account_text, account.id, true, true);
-                                // $(form+ ' select[name="account_id"]').append(account_option).trigger('change');
-
-                                var work_code_text = `${po.work_code} (${po.type})`;
-
-                                // var work_option = new Option(work_code_text, po.id, true, true);
-                                // $(form+ ' select[name="reference_id"]').append(work_option).trigger('change');
-                                // $(form+' input[name="job_name"]').val(po.job_name);
-                                // setInputNumber(form+' #bill_value_masked', po.price_total);
-                                // setInputNumber(form+' input[name="tax_ppn"]', po.ppn);
-                                $(form+' input[name="type"]').val(po.type);
-                                // instance.logicFormula();
-                            }
-                        })
-                    });
-
-                    $(form+' select[name="client_po_id"]').off('select2:select').on('select2:select', function (e) {
-                        var id = e.params.data.id;
-                        var type = e.params.data.type;
-                        $.ajax({
-                            url: "{{ url($crud->route) }}/get_client_selected_ajax?id=" + id + "&type=" + type,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function (data) {
-
-                                var po = data.po;
-                                var account = data.account;
-
-
-                                // var account_text = `${account.code} - ${account.name}`;
-                                // var account_option = new Option(account_text, account.id, true, true);
-                                // $(form+ ' select[name="account_id"]').append(account_option).trigger('change');
-
-                                var po_number_text = `${po.po_number} (${po.type})`;
-
-                                if(po.status){
-                                    if(po.status == 'TANPA PO'){
-                                        po_number_text = "Tanpa PO";
-                                    }
-                                }
-
-                                if(data.company){
-                                    var subkon_option = new Option(data.company.name, data.company.id, true, true);
-                                    $(form+' select[name="subkon_id"]').append(subkon_option).trigger('change');
-                                    if(data.company.bank_name){
-                                        $(form+' input[name="bank_name"]').val(data.company.bank_name);
-                                    }
-                                    if(data.company.bank_account){
-                                        $(form+' input[name="no_account"]').val(data.company.bank_account);
-                                    }
-                                }else{
-                                    // $(form+' select[name="subkon_id"]').val(null).trigger('change');
-                                    // $(form+' input[name="bank_name"]').val(null);
-                                    // $(form+' input[name="no_account"]').val(null);
-                                }
-
-                                // if(data.date_po){
-                                //     $(form+' input[name="date_po_spk"]').val(data.date_po);
-                                // }else{
-                                //     $(form+' input[name="date_po_spk"]').val(null);
-                                // }
-
-                                // var po_number_option = new Option(po_number_text, po.id, true, true);
-                                // $(form+ ' select[name="client_po_id"]').append(po_number_option).trigger('change');
-
-                                $(form+' input[name="job_name"]').val(po.job_name);
-                                $(form+' input[name="job_name_disabled"]').val(po.job_name);
-                                // setInputNumber(form+' #bill_value_masked', po.price_total);
-                                // setInputNumber(form+' input[name="tax_ppn"]', po.ppn);
-                                // $(form+' input[name="type"]').val(po.type);
-                                // instance.logicFormula();
-                            }
-                        })
-                    });
-
-                    $(form+' select[name="invoice_client_id"]').off('select2:select').on('select2:select', function (e) {
-                        var id = e.params.data.id;
-                        $.ajax({
-                            url: "{{ url($crud->route) }}/get_invoice_selected_ajax?id=" + id,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function (data) {
-                                var po = data.po;
-                                if(data.company){
-                                    var subkon_option = new Option(data.company.name, data.company.id, true, true);
-                                    $(form+' select[name="subkon_id"]').append(subkon_option).trigger('change');
-                                    if(data.company.bank_name){
-                                        $(form+' input[name="bank_name"]').val(data.company.bank_name);
-                                    }
-                                    if(data.company.bank_account){
-                                        $(form+' input[name="no_account"]').val(data.company.bank_account);
-                                    }
-                                }
-                                $(form+' input[name="job_name"]').val(po.job_name);
-                                $(form+' input[name="job_name_disabled"]').val(po.job_name);
-                            }
-                        })
-                    });
-
-                    $(form+' select[name="factur_status"]').off('select2:select').on('select2:select', function (e) {
-                        if(e.params.data.id == 'TIDAK ADA' || e.params.data.id == "AKAN ADA"){
-                            $(form+' input[name="no_factur"]').attr('readonly', true);
-                            $(form+' #date_factur').attr('disabled', true);
-                        }else{
-                            $(form+' input[name="no_factur"]').removeAttr('readonly');
-                            $(form+' #date_factur').removeAttr('disabled');
-                        }
-                    });
-
-                    $(form+' select[name="subkon_id"]').off('select2:select').on('select2:select', function (e) {
-                        var id = e.params.data.id;
-                        console.log('selected');
-                        $.ajax({
-                            url: "{{ url($crud->route) }}/get_account_source_selected_ajax?id=" + id,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function (data) {
-                                $(form+' input[name="bank_name"]').val(data.bank_name);
-                                $(form+' input[name="no_account"]').val(data.bank_account);
-                            }
-                        })
-                    });
-
-                    $(form+' #bill_value_masked').on('keyup', function(){
-                        instance.logicFormula();
-                    });
-
-                    $(form+' input[name="tax_ppn"]').on('keyup', function(){
-                        instance.logicFormula();
-                    });
-
-                    $(form + ' input[name="pph_23"]').on('keyup', function(){
-                        instance.logicFormula();
-                    });
-
-                    $(form + ' input[name="pph_4"]').on('keyup', function(){
-                        instance.logicFormula();
-                    });
-
-                    $(form+' input[name="pph_21"]').on('keyup', function(){
-                        instance.logicFormula();
-                    });
-
+                /**
+                 * Module Boot Initialization
+                 */
+                load: function() {
+                    this.togglePoType(true);
+                    this.bindEvents();
+                    this.initEditMode();
                 }
-            }
+            };
         });
+
+        // Exec Module
         SIAOPS.getAttribute('logic_asset').load();
     </script>
 @endpush

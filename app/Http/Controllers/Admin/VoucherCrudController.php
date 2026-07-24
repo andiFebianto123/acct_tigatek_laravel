@@ -197,6 +197,12 @@ class VoucherCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
+                                    'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                                    'name'  => 'currency_code',
+                                    'type'  => 'text',
+                                    'orderable' => true,
+                                ],
+                                [
                                     'label' => trans('backpack::crud.voucher.column.voucher.bill_value.label'),
                                     'type' => 'text',
                                     'name' => 'bill_value',
@@ -514,40 +520,46 @@ class VoucherCrudController extends CrudController
                 ],
             );
             CRUD::column([
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'name'  => 'currency_code',
+                'type'  => 'text',
+                'wrapper' => [
+                    'badge' => function ($crud, $column, $entry) {
+                        return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                    }
+                ]
+            ]);
+            CRUD::column([
                 'label'  => '',
                 'name' => 'bill_value',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->bill_value, $entry->currency_code ?? 'IDR');
+                },
             ]);
             CRUD::column([
                 'label'  => '',
                 'name' => 'total_price_ppn',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->total_price_ppn, $entry->currency_code ?? 'IDR');
+                },
             ]);
             CRUD::column([
                 'label'  => '',
                 'name' => 'total',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->total, $entry->currency_code ?? 'IDR');
+                },
             ]);
             CRUD::column([
                 'label'  => '',
                 'name' => 'payment_transfer',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatCurrency($entry->payment_transfer, $entry->currency_code ?? 'IDR');
+                },
             ]);
             CRUD::column(
                 [
@@ -911,13 +923,17 @@ class VoucherCrudController extends CrudController
             );
 
             CRUD::column([
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'name'  => 'currency_code',
+                'type'  => 'text',
+            ]);
+
+            CRUD::column([
                 'label' => trans('backpack::crud.voucher.column.voucher.bill_value.label'),
                 'name' => 'bill_value',
-                // 'type'  => 'bald',
-                // 'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->bill_value);
+                    return CustomHelper::formatCurrency($entry->bill_value, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -936,9 +952,7 @@ class VoucherCrudController extends CrudController
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
                     $total_price_ppn = ($entry->bill_value * $entry->tax_ppn / 100);
-                    $total_price_ppn = str_replace('.00', '', $total_price_ppn);
-                    $total_price_ppn = str_replace('.0', '', $total_price_ppn);
-                    return $this->priceFormatExport($status_file, $total_price_ppn);
+                    return CustomHelper::formatCurrency($total_price_ppn, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -947,7 +961,7 @@ class VoucherCrudController extends CrudController
                 'name' => 'total',
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->total);
+                    return CustomHelper::formatCurrency($entry->total, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -965,7 +979,7 @@ class VoucherCrudController extends CrudController
                 'label' => trans('backpack::crud.voucher.field.discount_pph_23.label'),
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->discount_pph_23);
+                    return CustomHelper::formatCurrency($entry->discount_pph_23, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -983,7 +997,7 @@ class VoucherCrudController extends CrudController
                 'label' =>  trans('backpack::crud.voucher.field.discount_pph_4.label'),
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->discount_pph_4);
+                    return CustomHelper::formatCurrency($entry->discount_pph_4, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -1001,7 +1015,7 @@ class VoucherCrudController extends CrudController
                 'label' =>  trans('backpack::crud.voucher.field.discount_pph_21.label'),
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->discount_pph_21);
+                    return CustomHelper::formatCurrency($entry->discount_pph_21, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -1010,7 +1024,7 @@ class VoucherCrudController extends CrudController
                 'name' => 'payment_transfer',
                 'type'  => 'closure',
                 'function' => function ($entry) use ($status_file) {
-                    return $this->priceFormatExport($status_file, $entry->payment_transfer);
+                    return CustomHelper::formatCurrency($entry->payment_transfer, $entry->currency_code ?? 'IDR', $status_file == 'excel');
                 },
             ]);
 
@@ -1676,14 +1690,30 @@ class VoucherCrudController extends CrudController
 
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'bill_value',
             'label' =>  trans('backpack::crud.voucher.field.bill_value.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'bill_value_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -3035,24 +3065,33 @@ class VoucherCrudController extends CrudController
             'format' => $new_format_date,
         ]);
 
+        // CRUD::column([
+        //     'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+        //     'name'  => 'currency_code',
+        //     'type'  => 'text',
+        //     'wrapper' => [
+        //         'badge' => function ($crud, $column, $entry) {
+        //             return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+        //         }
+        //     ]
+        // ]);
+
         CRUD::column([
             'label'  => '',
             'name' => 'bill_value',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->bill_value, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
             'label'  => 'Nilai DPP',
             'name' => 'dpp_value',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->dpp_value, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
@@ -3065,11 +3104,10 @@ class VoucherCrudController extends CrudController
         CRUD::column([
             'label'  => '',
             'name' => 'total',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->total, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
@@ -3082,11 +3120,10 @@ class VoucherCrudController extends CrudController
         CRUD::column([
             'label'  => '',
             'name' => 'discount_pph_23',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->discount_pph_23, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
@@ -3099,11 +3136,10 @@ class VoucherCrudController extends CrudController
         CRUD::column([
             'label'  => '',
             'name' => 'discount_pph_4',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->discount_pph_4, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
@@ -3116,21 +3152,19 @@ class VoucherCrudController extends CrudController
         CRUD::column([
             'label'  => '',
             'name' => 'discount_pph_21',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->discount_pph_21, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
             'label'  => '',
             'name' => 'payment_transfer',
-            'type'  => 'number',
-            'prefix' => "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->payment_transfer, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([

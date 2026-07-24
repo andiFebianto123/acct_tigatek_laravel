@@ -18,37 +18,36 @@ class VoucherPaymentRepository
         $non_rutin_filter = $dto->non_rutin;
         $rutin_filter = $dto->rutin;
 
-        $total_voucher_data_non_rutin = PaymentVoucher::select(DB::raw('SUM(vouchers.payment_transfer) as jumlah_nilai_transfer'));
-
         $p_v_p = DB::table('payment_voucher_plan')
             ->select(DB::raw('MAX(id) as id'), 'payment_voucher_id')
             ->groupBy('payment_voucher_id');
-
-        $total_voucher_data_non_rutin = $total_voucher_data_non_rutin
-            ->leftJoin('vouchers', 'vouchers.id', '=', 'payment_vouchers.voucher_id')
-            ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
-            ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
-                $join->on('p_v_p.payment_voucher_id', '=', 'payment_vouchers.id');
-            })
-            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id');
 
         $a_p = DB::table('approvals')
             ->select(DB::raw('MAX(id) as id'), 'model_type', 'model_id')
             ->groupBy('model_type', 'model_id');
 
-        $total_voucher_data_non_rutin = $total_voucher_data_non_rutin
+        $total_voucher_data_non_rutin = DB::table('payment_vouchers')
+            ->selectRaw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer')
+            ->leftJoin('vouchers', 'vouchers.id', '=', 'payment_vouchers.voucher_id')
+            ->leftJoin('log_payments as log_void', function ($join) {
+                $join->on('log_void.reference_id', '=', 'vouchers.id')
+                    ->where('log_void.reference_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'))
+                    ->where('log_void.name', '=', DB::raw('"CREATE_PAYMENT_VOUCHER"'));
+            })
+            ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
+                $join->on('p_v_p.payment_voucher_id', '=', 'payment_vouchers.id');
+            })
+            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id')
             ->leftJoinSub($a_p, 'a_p', function ($join) {
                 $join->on('a_p.model_id', '=', 'payment_voucher_plan.id')
                     ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\PaymentVoucherPlan"'));
             })
-            ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id');
-
-        $total_voucher_data_non_rutin = $total_voucher_data_non_rutin
+            ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id')
             ->leftJoin('spk', function ($join) {
                 $join->on('spk.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\Spk"'));
             })
-            ->leftJoin('subkons','subkons.id','=','vouchers.subkon_id')
+            ->leftJoin('subkons', 'subkons.id', '=', 'vouchers.subkon_id')
             ->leftJoin('purchase_orders', function ($join) {
                 $join->on('purchase_orders.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\PurchaseOrder"'));
@@ -69,25 +68,24 @@ class VoucherPaymentRepository
 
         $total_voucher_data_non_rutin = $total_voucher_data_non_rutin->first();
 
-        // RUTIN
-        $total_voucher_data_rutin = PaymentVoucher::select(DB::raw('SUM(vouchers.payment_transfer) as jumlah_nilai_transfer'));
-
-        $total_voucher_data_rutin = $total_voucher_data_rutin
+        // 2. Summary for SUBKON (RUTIN)
+        $total_voucher_data_rutin = DB::table('payment_vouchers')
+            ->selectRaw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer')
             ->leftJoin('vouchers', 'vouchers.id', '=', 'payment_vouchers.voucher_id')
-            ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
+            ->leftJoin('log_payments as log_void', function ($join) {
+                $join->on('log_void.reference_id', '=', 'vouchers.id')
+                    ->where('log_void.reference_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'))
+                    ->where('log_void.name', '=', DB::raw('"CREATE_PAYMENT_VOUCHER"'));
+            })
             ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
                 $join->on('p_v_p.payment_voucher_id', '=', 'payment_vouchers.id');
             })
-            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id');
-
-        $total_voucher_data_rutin = $total_voucher_data_rutin
+            ->leftJoin('payment_voucher_plan', 'payment_voucher_plan.id', '=', 'p_v_p.id')
             ->leftJoinSub($a_p, 'a_p', function ($join) {
                 $join->on('a_p.model_id', '=', 'payment_voucher_plan.id')
                     ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\PaymentVoucherPlan"'));
             })
-            ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id');
-
-        $total_voucher_data_rutin = $total_voucher_data_rutin
+            ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id')
             ->leftJoin('spk', function ($join) {
                 $join->on('spk.id', '=', 'vouchers.reference_id')
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\Spk"'));
@@ -394,7 +392,8 @@ class VoucherPaymentRepository
                 'company_name' => $v->company_name,
                 'bill_date' => Carbon::parse($v->bill_date)->format('d/m/Y'),
                 'reference_no' => ($v->reference_type == 'App\Models\Spk') ? $v->spk_no : $v->po_no,
-                'payment_transfer' => ($settings?->currency_symbol) ? $settings->currency_symbol . ' ' . CustomHelper::formatRupiah($v->payment_transfer) : "Rp." . CustomHelper::formatRupiah($v->payment_transfer),
+                'currency_code' => $v->currency_code ?? 'IDR',
+                'payment_transfer' => CustomHelper::formatCurrency($v->payment_transfer, $v->currency_code ?? 'IDR'),
                 'due_date' => Carbon::parse($v->due_date)->format('d/m/Y'),
                 'factur_status' => $v->factur_status,
                 'payment_type' => $v->payment_type,

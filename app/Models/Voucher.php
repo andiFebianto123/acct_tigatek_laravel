@@ -27,8 +27,18 @@ class Voucher extends Model
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
-    // protected $fillable = [];
-    // protected $hidden = [];
+
+    protected $casts = [
+        'exchange_rate' => 'float',
+        'bill_value_base' => 'float',
+        'dpp_value_base' => 'float',
+        'total_price_ppn_base' => 'float',
+        'total_base' => 'float',
+        'discount_pph_23_base' => 'float',
+        'discount_pph_4_base' => 'float',
+        'discount_pph_21_base' => 'float',
+        'payment_transfer_base' => 'float',
+    ];
 
     /*
     |--------------------------------------------------------------------------

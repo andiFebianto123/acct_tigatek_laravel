@@ -97,6 +97,7 @@ class VoucherRequest extends FormRequest
             'job_name' => 'nullable',
             'company_id' => 'nullable|exists:companies,id',
             'po_type' => 'required|in:subkon,supplier',
+            'currency_code' => 'nullable|in:IDR,USD',
         ];
 
         if ($factur_status == 'ADA') {

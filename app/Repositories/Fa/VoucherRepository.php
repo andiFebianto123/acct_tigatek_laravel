@@ -190,9 +190,9 @@ class VoucherRepository
     public function getSummaryValues(VoucherFilterData $filters)
     {
         $data = Voucher::selectRaw('
-            SUM(bill_value) as jumlah_exclude_ppn,
-            SUM(total) as jumlah_include_ppn,
-            SUM(payment_transfer) as jumlah_nilai_transfer
+            SUM(bill_value_base) as jumlah_exclude_ppn,
+            SUM(total_base) as jumlah_include_ppn,
+            SUM(payment_transfer_base) as jumlah_nilai_transfer
         ');
 
         $v_e = DB::table('voucher_edit')
@@ -276,15 +276,17 @@ class VoucherRepository
     {
         Carbon::setLocale('id');
         $voucher = Voucher::findOrFail($id);
-        $voucher->total_str = CustomHelper::formatRupiahWithCurrency($voucher->total);
-        $voucher->discount_pph_23_str = CustomHelper::formatRupiahWithCurrency($voucher->discount_pph_23);
-        $voucher->discount_pph_4_str = CustomHelper::formatRupiahWithCurrency($voucher->discount_pph_4);
-        $voucher->bill_value_str = CustomHelper::formatRupiahWithCurrency($voucher->bill_value);
-        $voucher->discount_pph_21_str = CustomHelper::formatRupiahWithCurrency($voucher->discount_pph_21);
-        $voucher->payment_transfer_str = CustomHelper::formatRupiahWithCurrency($voucher->payment_transfer);
+        $currencyCode = $voucher->currency_code ?? 'IDR';
+
+        $voucher->total_str            = CustomHelper::formatCurrency($voucher->total, $currencyCode);
+        $voucher->discount_pph_23_str  = CustomHelper::formatCurrency($voucher->discount_pph_23, $currencyCode);
+        $voucher->discount_pph_4_str   = CustomHelper::formatCurrency($voucher->discount_pph_4, $currencyCode);
+        $voucher->bill_value_str       = CustomHelper::formatCurrency($voucher->bill_value, $currencyCode);
+        $voucher->discount_pph_21_str  = CustomHelper::formatCurrency($voucher->discount_pph_21, $currencyCode);
+        $voucher->payment_transfer_str = CustomHelper::formatCurrency($voucher->payment_transfer, $currencyCode);
 
         $price_ppn = ($voucher->bill_value * ($voucher->tax_ppn / 100));
-        $voucher->price_ppn_str = CustomHelper::formatRupiahWithCurrency($price_ppn);
+        $voucher->price_ppn_str = CustomHelper::formatCurrency($price_ppn, $currencyCode);
 
         if ($voucher->reference_type == \App\Models\PurchaseOrder::class) {
             $voucher->reference_date_str = $voucher->reference ? Carbon::parse($voucher->reference->date_po)->translatedFormat('d F Y') : '';
@@ -301,7 +303,8 @@ class VoucherRepository
         $voucher->payment_date_str = $voucher->payment_date ? Carbon::parse($voucher->payment_date)->translatedFormat('d F Y') : '';
 
         $numberToWords = new NumberToWords();
-        $numberTransformer = $numberToWords->getNumberTransformer('id');
+        $lang = ($currencyCode === 'USD') ? 'en' : 'id';
+        $numberTransformer = $numberToWords->getNumberTransformer($lang);
         $voucher->payment_transfer_word = ucwords($numberTransformer->toWords($voucher->payment_transfer));
 
         $voucher->date_now_str = Carbon::now()->translatedFormat('d F Y');

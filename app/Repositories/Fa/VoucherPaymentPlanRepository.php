@@ -31,7 +31,7 @@ class VoucherPaymentPlanRepository
 
         // Base query builder untuk plan yang sudah diapprove
         $basePlanQuery = function (?string $type = null) use ($p_v_p, $a_p) {
-            $query = PaymentVoucher::select(DB::raw('SUM(vouchers.payment_transfer) as jumlah_nilai_transfer'))
+            $query = PaymentVoucher::select(DB::raw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer'))
                 ->leftJoin('vouchers', 'vouchers.id', '=', 'payment_vouchers.voucher_id')
                 ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
                 ->leftJoinSub($p_v_p, 'p_v_p', function ($join) {
@@ -74,7 +74,7 @@ class VoucherPaymentPlanRepository
         $queryNonRutin = Voucher::leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
             ->where('vouchers.payment_type', 'NON RUTIN')
             ->where('vouchers.payment_status', 'BELUM BAYAR')
-            ->select(DB::raw('SUM(vouchers.payment_transfer) as jumlah_nilai_transfer'));
+            ->select(DB::raw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer'));
         if ($dto->filter_year && $dto->filter_year !== 'all') {
             $queryNonRutin->whereYear('date_voucher', $dto->filter_year);
         }
@@ -85,7 +85,7 @@ class VoucherPaymentPlanRepository
         $querySubkon = Voucher::leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
             ->where('vouchers.payment_type', 'SUBKON')
             ->where('vouchers.payment_status', 'BELUM BAYAR')
-            ->select(DB::raw('SUM(vouchers.payment_transfer) as jumlah_nilai_transfer'));
+            ->select(DB::raw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer'));
         if ($dto->filter_year && $dto->filter_year !== 'all') {
             $querySubkon->whereYear('date_voucher', $dto->filter_year);
         }
@@ -196,9 +196,8 @@ class VoucherPaymentPlanRepository
                 'subkon_name'         => $v->account_holder_name ?? $v->reference?->subkon?->account_holder_name,
                 'bill_date'           => Carbon::parse($v->bill_date)->format('d/m/Y'),
                 'reference_no'        => ($v->reference_type === 'App\Models\Spk') ? $v->spk_no : $v->po_no,
-                'payment_transfer'    => ($settings?->currency_symbol)
-                    ? $settings->currency_symbol . ' ' . CustomHelper::formatRupiah($v->payment_transfer)
-                    : 'Rp.' . CustomHelper::formatRupiah($v->payment_transfer),
+                'currency_code'       => $v->currency_code ?? 'IDR',
+                'payment_transfer'    => CustomHelper::formatCurrency($v->payment_transfer, $v->currency_code ?? 'IDR'),
                 'due_date'            => Carbon::parse($v->due_date)->format('d/m/Y'),
                 'factur_status'       => $v->factur_status,
                 'payment_type'        => $v->payment_type,

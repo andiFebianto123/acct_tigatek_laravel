@@ -37,6 +37,7 @@ class VoucherData
         public readonly float $pph_4,
         public readonly float $pph_21,
         public readonly ?string $po_type = 'subkon',
+        public readonly string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -80,6 +81,7 @@ class VoucherData
             pph_4: (float) ($request->pph_4 ?? 0),
             pph_21: (float) ($request->pph_21 ?? 0),
             po_type: $request->input('po_type', 'subkon'),
+            currency_code: strtoupper($request->input('currency_code', 'IDR')),
         );
     }
 }

@@ -294,7 +294,7 @@
             <td rowspan="2"><center><span></span> <strong>{{$voucher?->payment_transfer_str}}</strong></center></td>
         </tr>
         <tr>
-            <td><center>({{$voucher?->payment_transfer_word}} Rupiah)</center></td>
+            <td><center>({{$voucher?->payment_transfer_word}} {{ ($voucher->currency_code === 'USD') ? 'Dollars' : 'Rupiah' }})</center></td>
         </tr>
     </table>
 

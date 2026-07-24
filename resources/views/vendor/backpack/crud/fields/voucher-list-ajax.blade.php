@@ -28,6 +28,7 @@
                     <th>{{ trans('backpack::crud.voucher.column.voucher.no_voucher.label') }}</th>
                     <th>{{ trans('backpack::crud.voucher.column.voucher.date_voucher.label') }}</th>
                     <th>A/N Rekening</th>
+                    <th>{{ trans('backpack::crud.client_quotation.column.currency_code') }}</th>
                     <th>{{ trans('backpack::crud.voucher.column.voucher.payment_transfer.label_2') }}</th>
                     <th>{{ trans('backpack::crud.voucher.column.voucher.payment_description.label') }}</th>
                     <th>{{ trans('backpack::crud.voucher.column.voucher.no_po_spk.label') }}</th>
@@ -194,6 +195,14 @@
                 { data: 'no_voucher', orderable: false },
                 { data: 'date_voucher', name: 'date_voucher', orderable: true },
                 { data: 'subkon_name', orderable: false },
+                { 
+                    data: 'currency_code', 
+                    orderable: false,
+                    render: function(data, type, row) {
+                        let badgeClass = (data === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                        return `<span class="${badgeClass}">${data || 'IDR'}</span>`;
+                    }
+                },
                 { data: 'payment_transfer', orderable: false },
                 { 
                     data: 'payment_description',

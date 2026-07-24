@@ -119,6 +119,12 @@ class VoucherPaymentPlanCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'type'      => 'text',
+                'name'      => 'currency_code',
+                'orderable' => true,
+            ],
+            [
                 'label' => trans('backpack::crud.voucher.column.voucher.payment_transfer.label'),
                 'type'      => 'text',
                 'name'      => 'payment_transfer',
@@ -227,6 +233,12 @@ class VoucherPaymentPlanCrudController extends CrudController
                 'name' => 'reference_id',
                 'type'  => 'text',
                 'orderable' => false,
+            ],
+            [
+                'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+                'name'  => 'currency_code',
+                'type'  => 'text',
+                'orderable' => true,
             ],
             [
                 'label' => trans('backpack::crud.voucher.column.voucher.total.label'),
@@ -449,13 +461,21 @@ class VoucherPaymentPlanCrudController extends CrudController
         ]);
 
         CRUD::addColumn([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
+        CRUD::addColumn([
             'label' => trans('backpack::crud.voucher.column.voucher.total.label'),
             'name'  => 'total',
             'type'  => 'closure',
-            'function' => fn($entry) => $this->priceFormatExport($status_file, $entry->total),
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'function' => fn($entry) => CustomHelper::formatCurrency($entry->total, $entry->currency_code ?? 'IDR', $status_file === 'excel'),
             'orderable'     => false,
         ]);
 
@@ -542,13 +562,25 @@ class VoucherPaymentPlanCrudController extends CrudController
         ]);
 
         CRUD::addColumn([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+            'orderLogic' => fn($query, $column, $order) => $query->orderBy('vouchers.currency_code', $order),
+            'wrapper' => [
+                'badge' => function ($crud, $column, $entry) {
+                    return (($entry->currency_code ?? $entry?->voucher?->currency_code) === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                }
+            ]
+        ]);
+
+        CRUD::addColumn([
             'label'         => trans('backpack::crud.voucher.column.voucher.payment_transfer.label'),
             'name'          => 'payment_transfer',
-            'type'          => 'number',
-            'prefix'        => $settings?->currency_symbol ?? "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'          => 'closure',
+            'function'      => function ($entry) {
+                $curr = $entry->currency_code ?? $entry?->voucher?->currency_code ?? 'IDR';
+                return CustomHelper::formatCurrency($entry->payment_transfer, $curr);
+            },
             'orderLogic'    => fn($query, $column, $order) => $query->orderBy('vouchers.payment_transfer', $order)
         ]);
 
@@ -800,13 +832,20 @@ class VoucherPaymentPlanCrudController extends CrudController
         );
 
         CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
+            'name'  => 'currency_code',
+            'type'  => 'text',
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.voucher.column.voucher.payment_transfer.label_2'),
             'name' => 'payment_transfer',
-            'type'  => 'number',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-            'decimals'      => 2,
-            'dec_point'     => ',',
-            'thousands_sep' => '.',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                $curr = $entry->currency_code ?? $entry?->voucher?->currency_code ?? 'IDR';
+                $isExport = strpos(url()->current(), 'excel') !== false;
+                return CustomHelper::formatCurrency($entry->payment_transfer, $curr, $isExport);
+            },
             'orderLogic' => function ($query, $column, $order) {
                 return $query->orderBy('vouchers.payment_transfer', $order);
             }
