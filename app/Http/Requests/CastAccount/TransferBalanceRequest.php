@@ -49,6 +49,7 @@ class TransferBalanceRequest extends FormRequest
                     }
                 }
             ],
+            'currency_code' => ['nullable', 'in:IDR,USD'],
             'nominal_transfer' => [
                 'required',
                 'numeric',

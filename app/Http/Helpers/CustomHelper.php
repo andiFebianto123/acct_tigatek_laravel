@@ -266,6 +266,20 @@ class CustomHelper
     // update or create journal_entry
     public static function updateOrCreateJournalEntry($payload, $reference)
     {
+        if (!isset($payload['currency_code'])) {
+            $payload['currency_code'] = 'IDR';
+        }
+        if (!isset($payload['exchange_rate'])) {
+            $payload['exchange_rate'] = 1.0;
+        }
+        $rate = (float) ($payload['exchange_rate'] ?? 1.0);
+        if (!isset($payload['debit_base'])) {
+            $payload['debit_base'] = (float) ($payload['debit'] ?? 0) * $rate;
+        }
+        if (!isset($payload['credit_base'])) {
+            $payload['credit_base'] = (float) ($payload['credit'] ?? 0) * $rate;
+        }
+
         $journal = JournalEntry::class;
         $journal::updateOrCreate($reference, $payload);
         return $journal::where($reference)->first();
@@ -273,6 +287,20 @@ class CustomHelper
 
     public static function insertJournalEntry($payload)
     {
+        if (!isset($payload['currency_code'])) {
+            $payload['currency_code'] = 'IDR';
+        }
+        if (!isset($payload['exchange_rate'])) {
+            $payload['exchange_rate'] = 1.0;
+        }
+        $rate = (float) ($payload['exchange_rate'] ?? 1.0);
+        if (!isset($payload['debit_base'])) {
+            $payload['debit_base'] = (float) ($payload['debit'] ?? 0) * $rate;
+        }
+        if (!isset($payload['credit_base'])) {
+            $payload['credit_base'] = (float) ($payload['credit'] ?? 0) * $rate;
+        }
+
         return JournalEntry::create($payload);
     }
 
@@ -535,7 +563,11 @@ class CustomHelper
                     : "Masuk piutang invoice " . $invoice->invoice_number;
 
                 // Nominal journal yang masuk itu adalah nilai excl ppn
-                $nominal = $invoice->price_total_exclude_ppn;
+                $nominal = (float) $invoice->price_total_exclude_ppn;
+                $currency_code = $transaction->currency_code ?? $invoice->currency_code ?? 'IDR';
+                $exchange_rate = (float) ($transaction->exchange_rate ?? $invoice->exchange_rate ?? 1.0);
+                $debit = $is_out ? 0 : $nominal;
+                $credit = $is_out ? $nominal : 0;
 
                 $piutang_trans = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $piutang->id,
@@ -543,8 +575,12 @@ class CustomHelper
                     'reference_type' => AccountTransaction::class,
                     'description' => $description,
                     'date' => Carbon::now(),
-                    'debit' => $is_out ? 0 : $nominal,      // DEBIT jika ENTER
-                    'credit' => $is_out ? $nominal : 0,     // CREDIT jika OUT
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
+                    'debit' => $debit,      // DEBIT jika ENTER
+                    'credit' => $credit,    // CREDIT jika OUT
+                    'debit_base' => $debit * $exchange_rate,
+                    'credit_base' => $credit * $exchange_rate,
                 ], [
                     'account_id' => $piutang->id,
                     'reference_id' => $transaction->id,
@@ -564,8 +600,10 @@ class CustomHelper
     {
         $log_payment = [];
         $voucher_id = $voucher->id;
+        $currency_code = $voucher->currency_code ?? 'IDR';
+        $exchange_rate = (float) ($voucher->exchange_rate ?? 1.0);
 
-        $price_unifikasi = $voucher->discount_pph_23 + $voucher->discount_pph_4;
+        $price_unifikasi = (float) ($voucher->discount_pph_23 + $voucher->discount_pph_4);
         if ($price_unifikasi > 0) {
             $account_unifikasi = Account::where('code', self::getAccountMapping('UNIFICATION'))->first();
             $trans_0 = CustomHelper::updateOrCreateJournalEntry([
@@ -574,8 +612,12 @@ class CustomHelper
                 'reference_type' => Voucher::class,
                 'description' => "tambahan pph unifikasi " . $voucher->no_voucher,
                 'date' => Carbon::now(),
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
                 'debit' => $price_unifikasi,
                 'credit' => 0,
+                'debit_base' => $price_unifikasi * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $account_unifikasi->id,
                 'reference_id' => $voucher->id,
@@ -596,14 +638,19 @@ class CustomHelper
 
         $hutang = Account::where('code', self::getAccountMapping('DEBT_VOUCHER'))->first();
         if ($hutang) {
+            $pay_transfer = (float) $voucher->payment_transfer;
             $trans_1 = CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
                 'description' => "piutang voucher " . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => $voucher->payment_transfer,
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $pay_transfer,
                 'credit' => 0,
+                'debit_base' => $pay_transfer * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
@@ -616,14 +663,14 @@ class CustomHelper
                 'reference_type' => Voucher::class,
                 'description' => "piutang voucher " . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => $voucher->payment_transfer,
+                'debit' => $pay_transfer,
                 'credit' => 0,
                 'type' => JournalEntry::class,
             ];
         }
         if ($voucher->total > 0) {
             $ppn = Account::where('code', self::getAccountMapping('TAX'))->first();
-            $total_ppn = $voucher->bill_value * ($voucher->tax_ppn / 100);
+            $total_ppn = (float) ($voucher->bill_value * ($voucher->tax_ppn / 100));
             if ($ppn) {
                 $trans_2 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $ppn->id,
@@ -631,8 +678,12 @@ class CustomHelper
                     'reference_type' => Voucher::class,
                     'description' => "PPN voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $total_ppn,
                     'credit' => 0,
+                    'debit_base' => $total_ppn * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $ppn->id,
                     'reference_id' => $voucher->id,
@@ -654,14 +705,19 @@ class CustomHelper
         if ($voucher->discount_pph_23 > 0) {
             $pph_23 = Account::where('code', self::getAccountMapping('PPH_23'))->first();
             if ($pph_23) {
+                $disc_23 = (float) $voucher->discount_pph_23;
                 $trans_3 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $pph_23->id,
                     'reference_id' => $voucher->id,
                     'reference_type' => Voucher::class,
                     'description' => "PPH 23 voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
-                    'debit' => $voucher->discount_pph_23,
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
+                    'debit' => $disc_23,
                     'credit' => 0,
+                    'debit_base' => $disc_23 * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $pph_23->id,
                     'reference_id' => $voucher->id,
@@ -674,7 +730,7 @@ class CustomHelper
                     'reference_type' => Voucher::class,
                     'description' => "PPH 23 voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
-                    'debit' => $voucher->discount_pph_23,
+                    'debit' => $disc_23,
                     'credit' => 0,
                     'type' => JournalEntry::class,
                 ];
@@ -683,14 +739,19 @@ class CustomHelper
         if ($voucher->discount_pph_4 > 0) {
             $pph_4 = Account::where('code', self::getAccountMapping('PPH_4'))->first();
             if ($pph_4) {
+                $disc_4 = (float) $voucher->discount_pph_4;
                 $trans_4 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $pph_4->id,
                     'reference_id' => $voucher->id,
                     'reference_type' => Voucher::class,
                     'description' => "PPH 4 voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
-                    'debit' => $voucher->discount_pph_4,
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
+                    'debit' => $disc_4,
                     'credit' => 0,
+                    'debit_base' => $disc_4 * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $pph_4->id,
                     'reference_id' => $voucher->id,
@@ -703,7 +764,7 @@ class CustomHelper
                     'reference_type' => Voucher::class,
                     'description' => "PPH 4 voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
-                    'debit' => $voucher->discount_pph_4,
+                    'debit' => $disc_4,
                     'credit' => 0,
                     'type' => JournalEntry::class,
                 ];
@@ -712,14 +773,19 @@ class CustomHelper
         if ($voucher->discount_pph_21 > 0) {
             $pph_21 = Account::where('code', self::getAccountMapping('PPH_21'))->first();
             if ($pph_21) {
+                $disc_21 = (float) $voucher->discount_pph_21;
                 $trans_5 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $pph_21->id,
                     'reference_id' => $voucher->id,
                     'reference_type' => Voucher::class,
                     'description' => "PPH 21 voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
-                    'debit' => $voucher->discount_pph_21,
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
+                    'debit' => $disc_21,
                     'credit' => 0,
+                    'debit_base' => $disc_21 * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $pph_21->id,
                     'reference_id' => $voucher->id,

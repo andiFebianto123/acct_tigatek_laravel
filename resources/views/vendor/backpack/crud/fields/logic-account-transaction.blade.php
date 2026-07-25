@@ -21,21 +21,38 @@
         SIAOPS.setAttribute('{{ $field["name"] }}', function(){
             return {
                 form_type : "{{ $crud->getActionMethod() }}",
-                getRawValue: function(val) {
-                    if (!val) return 0;
-                    if (typeof val !== 'string') val = String(val);
-                    return parseFloat(val.replace(/[^\d]/g, '')) || 0;
+                getRawValue: function(val, currency) {
+                    if (!val && val !== 0) return 0;
+                    val = String(val).trim();
+                    currency = currency || 'IDR';
+                    if (currency === 'IDR') {
+                        return parseFloat(val.replace(/[^\d-]/g, '')) || 0;
+                    } else {
+                        var clean = val.replace(/,/g, '');
+                        return parseFloat(clean.replace(/[^\d.-]/g, '')) || 0;
+                    }
                 },
-                formatIdr: function(angka){
-                    const formatter = new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR'
-                    });
+                formatIdr: function(angka, currencyCode){
+                    currencyCode = currencyCode || 'IDR';
+                    if (currencyCode === 'USD') {
+                        const formatter = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                        return formatter.format(angka).replace('$', '').trim();
+                    } else {
+                        const formatter = new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR'
+                        });
 
-                    let hasilFormat = formatter.format(angka);
-                    let tanpaRp = hasilFormat.replace('Rp', '').trim();
+                        let hasilFormat = formatter.format(angka);
+                        let tanpaRp = hasilFormat.replace('Rp', '').trim();
 
-                    return tanpaRp;
+                        return tanpaRp;
+                    }
                 },
                 setInputMasked: function(form, name, value) {
                     var $hidden = $(form + ' [name="' + name + '"]');
@@ -45,7 +62,8 @@
                     if ($masked.length) {
                         $masked.val(value).trigger('input').trigger('change').trigger('keyup');
                     } else {
-                        $hidden.val(this.formatIdr(value)).trigger('change');
+                        var curr = $(form + ' [name="currency_code"]').val() || 'IDR';
+                        $hidden.val(this.formatIdr(value, curr)).trigger('change');
                     }
                 },
                 toggleCalculationFields: function(show, form) {
@@ -83,9 +101,18 @@
                     // 1. Show calculation fields
                     this.toggleCalculationFields(true, form);
 
-                    // 2. Company field: readonly
+                    // 2. Company & Currency fields
                     $(form + ' [name="company_id"]').prop('disabled', true);
                     
+                    var currencyCode = invoice.currency_code || 'IDR';
+                    if ($(form + ' [name="currency_code"]').length) {
+                        $(form + ' [name="currency_code"]').val(currencyCode).trigger('change');
+                        $(form + ' [name="currency_code"]').prop('disabled', true);
+                    }
+                    if ($(form + ' [name="nominal_transaction_currency"]').length) {
+                        $(form + ' [name="nominal_transaction_currency"]').val(currencyCode).trigger('change');
+                    }
+
                     // 3. field keluar/masuk readonly dan default pilih masuk
                     $(form + ' [name="status"]').val('enter').trigger('change');
                     $(form + ' [name="status"]').css('pointer-events', 'none').attr('readonly', true);
@@ -116,7 +143,12 @@
                     this.setInputMasked(form, 'nominal_transaction', initialNominal);
 
                     var calculate = function() {
-                        var excl_ppn = instance.getRawValue($(form + ' #nominal_transaction_masked').val());
+                        var curr = $(form + ' [name="currency_code"]').val() || currencyCode || 'IDR';
+                        var rawVal = $(form + ' [name="nominal_transaction"]').val();
+                        var excl_ppn = (rawVal !== undefined && rawVal !== '') 
+                            ? parseFloat(rawVal) || 0 
+                            : instance.getRawValue($(form + ' #nominal_transaction_masked').val(), curr);
+
                         var ppn_percent = instance.tax_ppn_percent || 0;
                         var pph_percent = instance.pph_percent || 0;
                         var is_wapu = instance.is_wapu;
@@ -126,13 +158,22 @@
                         
                         var total_transfer = is_wapu ? (excl_ppn - pph_nominal) : (excl_ppn + ppn_nominal - pph_nominal);
                         
-                        instance.setInputMasked(form, 'tax_ppn_nominal', ppn_nominal);
-                        instance.setInputMasked(form, 'pph_nominal', pph_nominal);
-                        instance.setInputMasked(form, 'total_nominal_transfer', total_transfer);
+                        var symbol = (curr === 'USD') ? '$' : 'Rp.';
+                        ['tax_ppn_nominal', 'pph_nominal', 'total_nominal_transfer'].forEach(function(name) {
+                            var $input = $(form + ' [name="' + name + '"]');
+                            var $prefix = $input.closest('.input-group').find('.input-group-text');
+                            if ($prefix.length) {
+                                $prefix.text(symbol);
+                            }
+                        });
+
+                        $(form + ' [name="tax_ppn_nominal"]').val(instance.formatIdr(ppn_nominal, curr));
+                        $(form + ' [name="pph_nominal"]').val(instance.formatIdr(pph_nominal, curr));
+                        $(form + ' [name="total_nominal_transfer"]').val(instance.formatIdr(total_transfer, curr));
                         $(form + ' [name="withholding_agent_status"]').val(instance.withholding_agent);
                     };
 
-                    $(form + ' #nominal_transaction_masked').on('change keyup input', calculate);
+                    $(document).off('input change keyup', form + ' #nominal_transaction_masked').on('input change keyup', form + ' #nominal_transaction_masked, ' + form + ' [name="nominal_transaction"]', calculate);
                     calculate();
                 },
                 loadCastAccountLogic: function(form) {
@@ -180,6 +221,26 @@
                     instance.withholding_agent = "NON WAPU";
                     instance.is_wapu = false;
 
+                    function updateCurrencyUI() {
+                        var curr = $(form + ' [name="currency_code"]').val() || 'IDR';
+                        var symbol = (curr === 'USD') ? '$' : 'Rp.';
+                        
+                        $(form + ' [name="nominal_transaction_currency"]').val(curr).trigger('change');
+
+                        ['tax_ppn_nominal', 'pph_nominal', 'total_nominal_transfer'].forEach(function(name) {
+                            var $input = $(form + ' [name="' + name + '"]');
+                            var $prefix = $input.closest('.input-group').find('.input-group-text');
+                            if ($prefix.length) {
+                                $prefix.text(symbol);
+                            }
+                        });
+                    }
+
+                    $(form + ' [name="currency_code"]').on('change', function() {
+                        updateCurrencyUI();
+                        calculateFromNominal();
+                    });
+
                     function calculateTransaction(id, source_field) {
                         if (!id) {
                             toggleCalculationFieldsInternal(false);
@@ -199,6 +260,11 @@
                                     var invoice_number = data.invoice_number;
                                     var kdp = data.kdp;
                                     var job_name = data.job_name;
+
+                                    if (data.currency_code) {
+                                        $(form + ' [name="currency_code"]').val(data.currency_code).trigger('change');
+                                    }
+                                    var curr = $(form + ' [name="currency_code"]').val() || data.currency_code || 'IDR';
 
                                     var excl_ppn = parseFloat(data.price_total_exclude_ppn) || 0;
                                     var tax_ppn_percent = parseFloat(data.tax_ppn) || 0;
@@ -220,10 +286,10 @@
                                         total_transfer = excl_ppn + ppn_nominal - pph_nominal;
                                     }
 
-                                    instance.setInputMasked(form, 'nominal_transaction', excl_ppn);
-                                    $(form + ' [name="tax_ppn_nominal"]').val(instance.formatIdr(ppn_nominal));
-                                    $(form + ' [name="pph_nominal"]').val(instance.formatIdr(pph_nominal));
-                                    $(form + ' [name="total_nominal_transfer"]').val(instance.formatIdr(total_transfer));
+                                    instance.setInputMasked(form, 'nominal_transaction', excl_ppn, curr);
+                                    $(form + ' [name="tax_ppn_nominal"]').val(instance.formatIdr(ppn_nominal, curr));
+                                    $(form + ' [name="pph_nominal"]').val(instance.formatIdr(pph_nominal, curr));
+                                    $(form + ' [name="total_nominal_transfer"]').val(instance.formatIdr(total_transfer, curr));
                                     $(form + ' [name="withholding_agent_status"]').val(instance.withholding_agent);
                                     
                                     if (job_name) {
@@ -244,8 +310,12 @@
                     }
 
                     function calculateFromNominal() {
-                        var $masked = $(form + ' #nominal_transaction_masked');
-                        var excl_ppn = instance.getRawValue($masked.val());
+                        var curr = $(form + ' [name="currency_code"]').val() || 'IDR';
+                        var rawVal = $(form + ' [name="nominal_transaction"]').val();
+                        var excl_ppn = (rawVal !== undefined && rawVal !== '' && rawVal !== null)
+                            ? parseFloat(rawVal) || 0
+                            : instance.getRawValue($(form + ' #nominal_transaction_masked').val(), curr);
+
                         var ppn_percent = instance.tax_ppn_percent || 0;
                         var pph_percent = instance.pph_percent || 0;
                         var is_wapu = instance.is_wapu;
@@ -255,12 +325,21 @@
                         
                         var total_transfer = is_wapu ? (excl_ppn - pph_nominal) : (excl_ppn + ppn_nominal - pph_nominal);
                         
-                        instance.setInputMasked(form, 'tax_ppn_nominal', ppn_nominal);
-                        instance.setInputMasked(form, 'pph_nominal', pph_nominal);
-                        instance.setInputMasked(form, 'total_nominal_transfer', total_transfer);
+                        var symbol = (curr === 'USD') ? '$' : 'Rp.';
+                        ['tax_ppn_nominal', 'pph_nominal', 'total_nominal_transfer'].forEach(function(name) {
+                            var $input = $(form + ' [name="' + name + '"]');
+                            var $prefix = $input.closest('.input-group').find('.input-group-text');
+                            if ($prefix.length) {
+                                $prefix.text(symbol);
+                            }
+                        });
+
+                        $(form + ' [name="tax_ppn_nominal"]').val(instance.formatIdr(ppn_nominal, curr));
+                        $(form + ' [name="pph_nominal"]').val(instance.formatIdr(pph_nominal, curr));
+                        $(form + ' [name="total_nominal_transfer"]').val(instance.formatIdr(total_transfer, curr));
                     }
 
-                    $(form + ' #nominal_transaction_masked').on('change keyup input', function(){
+                    $(document).off('input change keyup', form + ' #nominal_transaction_masked').on('input change keyup', form + ' #nominal_transaction_masked, ' + form + ' [name="nominal_transaction"]', function(){
                         calculateFromNominal();
                     });
 

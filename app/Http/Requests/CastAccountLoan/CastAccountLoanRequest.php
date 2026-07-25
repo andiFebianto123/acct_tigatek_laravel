@@ -19,6 +19,7 @@ class CastAccountLoanRequest extends FormRequest
             'bank_name' => 'required|max:50',
             'no_account' => 'required|max:100|unique:cast_accounts,no_account,' . $id,
             'account_id' => 'required|exists:accounts,id',
+            'currency_code' => 'nullable|in:IDR,USD',
             'total_saldo' => 'required|numeric|min:0',
             'status' => 'required|in:loan',
             'date_transaction_init' => 'nullable|date',

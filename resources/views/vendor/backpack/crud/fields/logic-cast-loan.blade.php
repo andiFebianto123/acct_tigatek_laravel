@@ -38,6 +38,21 @@
                     });
                 });
 
+                function syncCurrency() {
+                    var curr = $(form + ' [name="currency_code"]').val() || 'IDR';
+                    var $ts = $(form + ' [name="total_saldo_currency"]');
+                    if ($ts.length) $ts.val(curr).trigger('change');
+                    var $nt = $(form + ' [name="nominal_transaction_currency"]');
+                    if ($nt.length) $nt.val(curr).trigger('change');
+                    var $pp = $(form + ' [name="payment_price_currency"]');
+                    if ($pp.length) $pp.val(curr).trigger('change');
+                }
+
+                $(document).off('change', form + ' [name="currency_code"]').on('change', form + ' [name="currency_code"]', function() {
+                    syncCurrency();
+                });
+
+                syncCurrency();
             }
         }
     });

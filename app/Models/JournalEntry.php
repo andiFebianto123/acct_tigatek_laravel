@@ -15,8 +15,12 @@ class JournalEntry extends Model{
         'reference_id',
         'description',
         'date',
+        'currency_code',
+        'exchange_rate',
         'debit',
-        'credit'
+        'credit',
+        'debit_base',
+        'credit_base',
     ];
     // protected $hidden = [];
 

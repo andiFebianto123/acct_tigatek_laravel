@@ -20,12 +20,16 @@ class LoanTransactionRequest extends FormRequest
         $status = $this->status;
         $cast_account_destination_id = $this->cast_account_destination_id;
 
+        $currencyCode = $this->currency_code ?? $this->nominal_transaction_currency ?? request()->input('currency_code') ?? 'IDR';
+        $minNominal = ($currencyCode === 'USD') ? 0.01 : 1000;
+
         $rules = [
             'date_transaction' => 'required',
+            'currency_code' => 'nullable|in:IDR,USD',
             'nominal_transaction' => [
                 'required',
                 'numeric',
-                'min:1000',
+                'min:' . $minNominal,
                 function ($attribute, $value, $fail) use ($cast_account_id, $status, $cast_account_destination_id) {
                     if ($status == CastAccount::ENTER) {
                         $balance = CustomHelper::total_balance_cast_account($cast_account_destination_id, CastAccount::CASH);
@@ -60,7 +64,7 @@ class LoanTransactionRequest extends FormRequest
 
         if ($cast_account_destination_id == AccountTransaction::BANK_LOAN) {
             $rules['cast_account_destination_id'] = 'required|in:' . AccountTransaction::BANK_LOAN;
-            $rules['nominal_transaction'] = 'required|numeric|min:1000';
+            $rules['nominal_transaction'] = 'required|numeric|min:' . $minNominal;
         }
 
         return $rules;

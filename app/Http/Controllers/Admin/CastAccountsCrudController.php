@@ -645,6 +645,7 @@ class CastAccountsCrudController extends CrudController
             'bank_branch' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:255',
             'swift_code' => 'nullable|string|max:20',
+            'currency_code' => 'nullable|in:IDR,USD',
             'total_saldo' => 'required|numeric|min:0',
             'account_id' => [
                 'required',
@@ -673,6 +674,7 @@ class CastAccountsCrudController extends CrudController
         $rule = [
             'date_transaction' => 'required',
             'status' => 'required|in:enter,out', // Validasi status
+            'currency_code' => 'nullable|in:IDR,USD',
             'nominal_transaction' => [
                 'required',
                 'numeric',
@@ -688,12 +690,15 @@ class CastAccountsCrudController extends CrudController
             $rule['account_id'] = 'nullable';
         }
 
+        $currencyCode = request()->input('currency_code') ?? request()->input('nominal_transaction_currency') ?? 'IDR';
+        $minNominal = ($currencyCode === 'USD') ? 0.01 : 1000;
+
         // Validasi saldo hanya untuk transaksi keluar (out) dan bukan primary/payment account
         if ($has_access_primary == 0 && $status == 'out') {
             $rule['nominal_transaction'] = [
                 'required',
                 'numeric',
-                'min:1000',
+                'min:' . $minNominal,
                 function ($attribute, $value, $fail) use ($cast_account_id, $has_access_payment) {
                     if ($has_access_payment > 0) {
                         // Payment account bisa overdraft
@@ -735,6 +740,9 @@ class CastAccountsCrudController extends CrudController
             })->exists();
         }
 
+        $currSec = request()->input('currency_code') ?? request()->input('nominal_transaction_currency') ?? 'IDR';
+        $minSec = ($currSec === 'USD') ? 0.01 : 1000;
+
         $rules = [
             'date_transaction' => 'required',
             'kdp' => 'max:50',
@@ -744,7 +752,7 @@ class CastAccountsCrudController extends CrudController
             'nominal_transaction' => [
                 'required',
                 'numeric',
-                'min:1000',
+                'min:' . $minSec,
                 function ($attribute, $value, $fail) use ($cast_account_id, $id, $has_access_payment) {
                     // Tentukan status untuk cek saldo
                     $status = request()->status;
@@ -788,6 +796,9 @@ class CastAccountsCrudController extends CrudController
             })->exists();
         }
 
+        $currPri = request()->input('currency_code') ?? request()->input('nominal_transaction_currency') ?? 'IDR';
+        $minPri = ($currPri === 'USD') ? 0.01 : 1000;
+
         $rules = [
             'date_transaction' => 'required',
             'kdp' => 'max:50',
@@ -797,7 +808,7 @@ class CastAccountsCrudController extends CrudController
             'nominal_transaction' => [
                 'required',
                 'numeric',
-                'min:1000',
+                'min:' . $minPri,
                 function ($attribute, $value, $fail) use ($cast_account_id, $id) {
                     // Tentukan status untuk cek saldo
                     $status = request()->status;
@@ -928,7 +939,9 @@ class CastAccountsCrudController extends CrudController
             invoice_clients.tax_ppn,
             invoice_clients.pph,
             invoice_clients.discount_pph,
-            invoice_clients.withholding_agent
+            invoice_clients.withholding_agent,
+            invoice_clients.currency_code,
+            invoice_clients.exchange_rate
         '))
             ->first();
         return response()->json($invoice);
@@ -1057,6 +1070,21 @@ class CastAccountsCrudController extends CrudController
             ]);
         }
 
+        CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
         CRUD::addField([   // date_picker
             'name'  => 'date_transaction',
             'type'  => 'date_picker',
@@ -1077,12 +1105,13 @@ class CastAccountsCrudController extends CrudController
         CRUD::addField([
             'name' => 'nominal_transaction',
             'label' =>  trans('backpack::crud.cash_account.field_transaction.nominal_transaction.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'nominal_transaction_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -1402,6 +1431,21 @@ class CastAccountsCrudController extends CrudController
             ]);
 
             CRUD::addField([
+                'name'        => 'currency_code',
+                'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+                'type'        => 'select_from_array',
+                'options'     => [
+                    'IDR' => 'IDR (Rp)',
+                    'USD' => 'USD ($)',
+                ],
+                'default'     => 'IDR',
+                'allows_null' => false,
+                'wrapper'     => [
+                    'class' => 'form-group col-md-6',
+                ],
+            ]);
+
+            CRUD::addField([
                 'label'       => trans('backpack::crud.cash_account_loan.field.account.label'), // Table column heading
                 'type'        => "select2_ajax_custom",
                 'name'        => 'account_id',
@@ -1420,12 +1464,13 @@ class CastAccountsCrudController extends CrudController
             CRUD::addField([
                 'name' => 'total_saldo',
                 'label' => trans('backpack::crud.cash_account.field.total_saldo.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
-                'mask_options' => [
-                    'reverse' => true
+                'type' => 'mask_currency',
+                'currency_name' => 'total_saldo_currency',
+                'currency_options' => [
+                    'IDR' => 'IDR (Rp)',
+                    'USD' => 'USD ($)',
                 ],
-                'prefix' => 'Rp',
+                'default_currency' => 'IDR',
                 'wrapper'   => [
                     'class' => 'form-group col-md-6',
                 ],
@@ -1447,6 +1492,11 @@ class CastAccountsCrudController extends CrudController
                 ],
                 // 'show_select_all' => true, // default false
                 // 'number_of_columns' => 3,
+            ]);
+
+            CRUD::addField([
+                'name' => 'logic_cast_account',
+                'type' => 'logic-cast-account',
             ]);
         }
     }
@@ -1622,9 +1672,7 @@ class CastAccountsCrudController extends CrudController
             }
         }
 
-        CRUD::setValidation([
-            'name' => 'required|max:100|unique:cast_accounts,name,' . request('id'),
-        ]);
+        CRUD::setValidation($this->ruleValidation());
 
         $request = $this->crud->validateRequest();
         $dto = CastAccountSaveData::fromRequest($request);

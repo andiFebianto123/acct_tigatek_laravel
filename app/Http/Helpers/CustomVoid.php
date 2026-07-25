@@ -21,10 +21,11 @@ class CustomVoid
     public static function voucherCreate(Voucher $voucher, $invoice_not_exists = false)
     {
         $log_payment = [];
-        // $voucher = Voucher::where('id', $voucher_id)->first();
         $invoice = InvoiceClient::where('client_po_id', $voucher->client_po_id)->first();
         $client_po = $voucher->client_po;
-        $bill_value = $voucher->bill_value; // Menggunakan Exclude PPN
+        $bill_value = (float) $voucher->bill_value; // Menggunakan Exclude PPN
+        $currency_code = $voucher->currency_code ?? 'IDR';
+        $exchange_rate = (float) ($voucher->exchange_rate ?? 1.0);
 
         if($voucher->client_po_id == null){
             $invoice = true;
@@ -41,8 +42,12 @@ class CustomVoid
                     'reference_type' => Voucher::class,
                     'description' => "Transaksi tanpa PO " . $client_po->work_code,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $bill_value,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                    'credit' => 0,
+                    'debit_base' => $bill_value * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
@@ -73,9 +78,12 @@ class CustomVoid
                     'reference_type' => Voucher::class,
                     'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $bill_value,
                     'credit' => 0,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                    'debit_base' => $bill_value * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
@@ -101,9 +109,12 @@ class CustomVoid
                     'reference_type' => Voucher::class,
                     'description' => "Transaksi voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $bill_value,
                     'credit' => 0,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                    'debit_base' => $bill_value * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
@@ -131,9 +142,12 @@ class CustomVoid
                     'reference_type' => Voucher::class,
                     'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $bill_value,
                     'credit' => 0,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                    'debit_base' => $bill_value * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
@@ -153,18 +167,18 @@ class CustomVoid
             } else {
                 $account = Account::where('id', $voucher->account_id)->first();
 
-                // $invoice->status = 'Paid';
-                // $invoice->save();
-
                 $trans_5 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
                     'reference_type' => Voucher::class,
                     'description' => "Transaksi voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $bill_value,
                     'credit' => 0,
-                    // 'credit' => ($status == CastAccount::OUT) ? $nominal_transaction : 0,
+                    'debit_base' => $bill_value * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $account->id,
                     'reference_id' => $voucher->id,
@@ -198,8 +212,10 @@ class CustomVoid
     {
         $log_payment = [];
         $voucher_id = $voucher->id;
+        $currency_code = $voucher->currency_code ?? 'IDR';
+        $exchange_rate = (float) ($voucher->exchange_rate ?? 1.0);
 
-        $price_unifikasi = $voucher->discount_pph_23 + $voucher->discount_pph_4 + $voucher->discount_pph_21;
+        $price_unifikasi = (float) ($voucher->discount_pph_23 + $voucher->discount_pph_4 + $voucher->discount_pph_21);
         if ($price_unifikasi > 0) {
             $account_unifikasi = Account::where('code', CustomHelper::getAccountMapping('UNIFICATION'))->first();
             $trans_0 = CustomHelper::updateOrCreateJournalEntry([
@@ -208,8 +224,12 @@ class CustomVoid
                 'reference_type' => Voucher::class,
                 'description' => "tambahan pph unifikasi " . $voucher->no_voucher,
                 'date' => Carbon::now(),
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
                 'debit' => $price_unifikasi,
                 'credit' => 0,
+                'debit_base' => $price_unifikasi * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $account_unifikasi->id,
                 'reference_id' => $voucher->id,
@@ -230,14 +250,19 @@ class CustomVoid
 
         $hutang = Account::where('code', CustomHelper::getAccountMapping('DEBT_VOUCHER'))->first();
         if ($hutang) {
+            $bill_val = (float) $voucher->bill_value;
             $trans_1 = CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
                 'description' => "piutang voucher " . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => $voucher->bill_value,
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $bill_val,
                 'credit' => 0,
+                'debit_base' => $bill_val * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
@@ -250,14 +275,14 @@ class CustomVoid
                 'reference_type' => Voucher::class,
                 'description' => "piutang voucher " . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => $voucher->bill_value,
+                'debit' => $bill_val,
                 'credit' => 0,
                 'type' => JournalEntry::class,
             ];
         }
         if ($voucher->total > 0) {
             $ppn = Account::where('code', CustomHelper::getAccountMapping('TAX'))->first();
-            $total_ppn = $voucher->bill_value * ($voucher->tax_ppn / 100);
+            $total_ppn = (float) ($voucher->bill_value * ($voucher->tax_ppn / 100));
             if ($ppn && $total_ppn != 0) {
                 $trans_2 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $ppn->id,
@@ -265,8 +290,12 @@ class CustomVoid
                     'reference_type' => Voucher::class,
                     'description' => "PPN voucher " . $voucher->no_voucher,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $total_ppn,
                     'credit' => 0,
+                    'debit_base' => $total_ppn * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $ppn->id,
                     'reference_id' => $voucher->id,
@@ -608,15 +637,22 @@ class CustomVoid
                 foreach ($vouchers_in_wip as $v) {
                     $log_payment_voucher = [];
                     $account_beban = Account::where('code', CustomHelper::getAccountMapping('WIP'))->first();
-                    $bill_value = $v->bill_value; // Menggunakan Exclude PPN
+                    $bill_value = (float) $v->bill_value; // Menggunakan Exclude PPN
+                    $v_currency = $v->currency_code ?? $invoice->currency_code ?? 'IDR';
+                    $v_rate = (float) ($v->exchange_rate ?? $invoice->exchange_rate ?? 1.0);
+
                     $trans_1 = CustomHelper::insertJournalEntry([
                         'account_id' => $account_beban->id,
                         'reference_id' => $v->id,
                         'reference_type' => Voucher::class,
                         'description' => "Beban pekerjaan voucher " . $v->no_voucher,
                         'date' => Carbon::now(),
+                        'currency_code' => $v_currency,
+                        'exchange_rate' => $v_rate,
                         'debit' => 0,
                         'credit' => $bill_value,
+                        'debit_base' => 0,
+                        'credit_base' => $bill_value * $v_rate,
                     ]);
                     $log_payment_voucher[] = [
                         'id' => $trans_1->id,
@@ -637,8 +673,12 @@ class CustomVoid
                         'reference_type' => Voucher::class,
                         'description' => $v?->client_po?->work_code,
                         'date' => Carbon::now(),
+                        'currency_code' => $v_currency,
+                        'exchange_rate' => $v_rate,
                         'debit' => $bill_value,
                         'credit' => 0,
+                        'debit_base' => $bill_value * $v_rate,
+                        'credit_base' => 0,
                     ]);
                     $log_payment_voucher[] = [
                         'id' => $trans_2->id,
@@ -669,19 +709,25 @@ class CustomVoid
     {
         $log_payment = [];
         $invoice_id = $invoice->id;
-        // ambil voucher yang belum dibayar
+        $currency_code = $invoice->currency_code ?? 'IDR';
+        $exchange_rate = (float) ($invoice->exchange_rate ?? 1.0);
 
         // masuk pendapatan
         $revenue = Account::where('code', CustomHelper::getAccountMapping('REVENUE_INVOICE'))->first();
         if ($revenue) {
+            $debit = (float) $invoice->price_total_exclude_ppn;
             $trans_1 = CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $revenue->id,
                 'reference_id' => $invoice->id,
                 'reference_type' => InvoiceClient::class,
                 'description' => "Pendapatan invoice " . $invoice->invoice_number,
                 'date' => Carbon::now(),
-                'debit' => $invoice->price_total_exclude_ppn,
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $debit,
                 'credit' => 0,
+                'debit_base' => $debit * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $revenue->id,
                 'reference_id' => $invoice->id,
@@ -694,7 +740,7 @@ class CustomVoid
                 'reference_type' => InvoiceClient::class,
                 'description' => "Pendapatan invoice " . $invoice->invoice_number,
                 'date' => Carbon::now(),
-                'debit' => $invoice->price_total_exclude_ppn,
+                'debit' => $debit,
                 'credit' => 0,
                 'type' => JournalEntry::class,
             ];
@@ -704,7 +750,7 @@ class CustomVoid
         // keluar PPN
         $acct_ppn = Account::where('code', CustomHelper::getAccountMapping('TAX'))->first();
         if ($acct_ppn) {
-            $price_ppn = $invoice->price_total_exclude_ppn * ($invoice->tax_ppn / 100);
+            $price_ppn = (float) ($invoice->price_total_exclude_ppn * ($invoice->tax_ppn / 100));
             if ($price_ppn != 0) {
                 $trans_4 = CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $acct_ppn->id,
@@ -712,8 +758,12 @@ class CustomVoid
                     'reference_type' => InvoiceClient::class,
                     'description' => "PPN invoice " . $invoice->invoice_number,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => 0,
                     'credit' => $price_ppn,
+                    'debit_base' => 0,
+                    'credit_base' => $price_ppn * $exchange_rate,
                 ], [
                     'account_id' => $acct_ppn->id,
                     'reference_id' => $invoice->id,
@@ -744,14 +794,19 @@ class CustomVoid
         }
 
         if ($acct_piutang) {
+            $debit_piutang = (float) $invoice->price_total_exclude_ppn;
             $trans_5 = CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $acct_piutang->id,
                 'reference_id' => $invoice->id,
                 'reference_type' => InvoiceClient::class,
                 'description' => "Piutang " . $invoice->withholding_agent . " invoice " . $invoice->invoice_number,
                 'date' => Carbon::now(),
-                'debit' => $invoice->price_total_exclude_ppn,
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $debit_piutang,
                 'credit' => 0,
+                'debit_base' => $debit_piutang * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $acct_piutang->id,
                 'reference_id' => $invoice->id,
@@ -764,7 +819,7 @@ class CustomVoid
                 'reference_type' => InvoiceClient::class,
                 'description' => "Piutang " . $invoice->withholding_agent . " invoice " . $invoice->invoice_number,
                 'date' => Carbon::now(),
-                'debit' => $invoice->price_total_exclude_ppn,
+                'debit' => $debit_piutang,
                 'credit' => 0,
                 'type' => JournalEntry::class,
             ];
@@ -878,6 +933,14 @@ class CustomVoid
             $nominal_transfer_account = $nominal_transaction;
         }
 
+        $currency_code = request()->input('currency_code') ?? $request->currency_code ?? $request->nominal_transaction_currency ?? ($invoice?->currency_code ?? 'IDR');
+        $exchange_rate = 1.0;
+        if ($currency_code === 'USD') {
+            $setting = \App\Models\Setting::first();
+            $exchange_rate = (float) ($setting?->usd_rate ?? 16000);
+        }
+        $nominal_transaction_base = (float) $nominal_transfer_account * $exchange_rate;
+
         if ($status == AccountTransaction::ENTER) {
             $new_saldo = $before_saldo + $nominal_transfer_account;
         } else {
@@ -889,6 +952,9 @@ class CustomVoid
         $newTransaction->date_transaction = $date_transaction;
         $newTransaction->no_invoice = $no_invoice;
         $newTransaction->nominal_transaction = $nominal_transfer_account;
+        $newTransaction->currency_code = $currency_code;
+        $newTransaction->exchange_rate = $exchange_rate;
+        $newTransaction->nominal_transaction_base = $nominal_transaction_base;
         $newTransaction->total_saldo_before = $before_saldo;
         $newTransaction->total_saldo_after = $new_saldo;
         $newTransaction->status = $status;
@@ -920,8 +986,12 @@ class CustomVoid
                 'reference_type' => AccountTransaction::class,
                 'description' => $description,
                 'date' => Carbon::now(),
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
                 'debit' => ($status == AccountTransaction::ENTER) ? $nominal_transfer_account : 0,
                 'credit' => ($status == AccountTransaction::OUT) ? $nominal_transfer_account : 0,
+                'debit_base' => ($status == AccountTransaction::ENTER) ? $nominal_transaction_base : 0,
+                'credit_base' => ($status == AccountTransaction::OUT) ? $nominal_transaction_base : 0,
             ], [
                 'account_id' => $newTransaction->account_id,
                 'reference_id' => $newTransaction->id,
@@ -956,8 +1026,12 @@ class CustomVoid
             'reference_type' => AccountTransaction::class,
             'description' => $description,
             'date' => Carbon::now(),
+            'currency_code' => $currency_code,
+            'exchange_rate' => $exchange_rate,
             'debit' => ($status == AccountTransaction::ENTER) ? $nominal_transfer_account : 0,
             'credit' => ($status == AccountTransaction::OUT) ? $nominal_transfer_account : 0,
+            'debit_base' => ($status == AccountTransaction::ENTER) ? $nominal_transaction_base : 0,
+            'credit_base' => ($status == AccountTransaction::OUT) ? $nominal_transaction_base : 0,
         ], [
             'account_id' => $updateAccount->account_id,
             'reference_id' => $newTransaction->id,
@@ -1065,7 +1139,9 @@ class CustomVoid
     }
     public static function invoiceAllPph(InvoiceClient $invoice, array &$log_payment)
     {
-        $discount_pph = $invoice->discount_pph;
+        $discount_pph = (float) $invoice->discount_pph;
+        $currency_code = $invoice->currency_code ?? 'IDR';
+        $exchange_rate = (float) ($invoice->exchange_rate ?? 1.0);
 
         if ($discount_pph > 0) {
             // Default to PPh 23 (50306) as it's common for client invoices
@@ -1080,8 +1156,12 @@ class CustomVoid
                     'reference_type' => InvoiceClient::class,
                     'description' => "PPh invoice " . $invoice->invoice_number,
                     'date' => Carbon::now(),
+                    'currency_code' => $currency_code,
+                    'exchange_rate' => $exchange_rate,
                     'debit' => $discount_pph,
                     'credit' => 0,
+                    'debit_base' => $discount_pph * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $pph_account->id,
                     'reference_id' => $invoice->id,

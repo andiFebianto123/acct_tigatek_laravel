@@ -2072,6 +2072,21 @@ class InvoiceClientCrudController extends CrudController
         }
 
         CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => $invoice->currency_code ?? 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name'  => 'date_transaction',
             'type'  => 'date_picker',
             'label' => trans('backpack::crud.cash_account.field_transaction.date_transaction.label'),
@@ -2087,17 +2102,20 @@ class InvoiceClientCrudController extends CrudController
         CRUD::addField([
             'name' => 'nominal_transaction',
             'label' =>  trans('backpack::crud.cash_account.field_transaction.nominal_transaction.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'nominal_transaction_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => $invoice->currency_code ?? 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
             'default' => $invoice->price_total_exclude_ppn,
         ]);
+
+        $currencySymbol = ($invoice->currency_code === 'USD') ? '$' : (($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.');
 
         CRUD::addField([
             'name' => 'withholding_agent_status',
@@ -2120,7 +2138,7 @@ class InvoiceClientCrudController extends CrudController
             'mask_options' => [
                 'reverse' => true
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'prefix' => $currencySymbol,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -2138,7 +2156,7 @@ class InvoiceClientCrudController extends CrudController
             'mask_options' => [
                 'reverse' => true
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'prefix' => $currencySymbol,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -2156,7 +2174,7 @@ class InvoiceClientCrudController extends CrudController
             'mask_options' => [
                 'reverse' => true
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'prefix' => $currencySymbol,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],

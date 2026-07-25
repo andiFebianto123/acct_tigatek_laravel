@@ -7,6 +7,7 @@ use App\Models\AccountTransaction;
 use App\Models\LoanTransactionFlag;
 use App\Models\JournalEntry;
 use App\Models\LogPayment;
+use App\Models\Setting;
 use App\DTOs\CastAccountLoan\CastAccountLoanSaveData;
 use App\DTOs\CastAccountLoan\LoanTransactionSaveData;
 use App\DTOs\CastAccountLoan\LoanMoveTransactionSaveData;
@@ -27,13 +28,26 @@ class CastAccountLoanService
     public function storeLoanAccount(CastAccountLoanSaveData $data): CastAccount
     {
         return DB::transaction(function () use ($data) {
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->total_saldo * $exchangeRate;
+
             if ($data->id) {
                 $item = CastAccount::findOrFail($data->id);
-                $item->update($data->toArray());
+                $item->update(array_merge($data->toArray(), [
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'total_saldo_base' => $nominalBase,
+                ]));
                 return $item;
             }
 
-            $item = CastAccount::create($data->toArray());
+            $item = CastAccount::create(array_merge($data->toArray(), [
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'total_saldo_base' => $nominalBase,
+            ]));
 
             if ($item->status == CastAccount::LOAN && $item->total_saldo > 0) {
                 $log_payment = [];
@@ -56,6 +70,9 @@ class CastAccountLoanService
                     'cast_account_id' => $item->id,
                     'date_transaction' => $dateTransactionInit,
                     'nominal_transaction' => $item->total_saldo,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'nominal_transaction_base' => $nominalBase,
                     'total_saldo_before' => $item->total_saldo,
                     'total_saldo_after' => $item->total_saldo,
                     'status' => 'enter',
@@ -78,7 +95,12 @@ class CastAccountLoanService
                     'reference_type' => AccountTransaction::class,
                     'description' => $loan_transaction->description,
                     'date' => $dateTransactionInit,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
                     'debit' => $item->total_saldo,
+                    'credit' => 0,
+                    'debit_base' => $nominalBase,
+                    'credit_base' => 0,
                 ], [
                     'reference_id' => $loan_transaction->id,
                     'reference_type' => AccountTransaction::class,
@@ -112,6 +134,11 @@ class CastAccountLoanService
             $codeLoan = $this->generateCodeLoan();
             $log_payment = [];
 
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? $cast_account_loan->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->nominal_transaction * $exchangeRate;
+
             if ($data->cast_account_destination_id == AccountTransaction::BANK_LOAN) {
                 $total_saldo_loan_before = CustomHelper::balanceAccount($cast_account_loan->account->code);
                 $total_saldo_loan_after = $total_saldo_loan_before + $data->nominal_transaction;
@@ -120,6 +147,9 @@ class CastAccountLoanService
                     'cast_account_id' => $data->cast_account_id,
                     'date_transaction' => $data->date_transaction,
                     'nominal_transaction' => $data->nominal_transaction,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'nominal_transaction_base' => $nominalBase,
                     'total_saldo_before' => $total_saldo_loan_before,
                     'total_saldo_after' => $total_saldo_loan_after,
                     'status' => $data->status,
@@ -143,8 +173,12 @@ class CastAccountLoanService
                     'reference_type' => AccountTransaction::class,
                     'description' => $data->description,
                     'date' => Carbon::now(),
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
                     'debit' => $data->nominal_transaction,
                     'credit' => 0,
+                    'debit_base' => $nominalBase,
+                    'credit_base' => 0,
                 ], [
                     'reference_id' => $acctTransactionLoan->id,
                     'reference_type' => AccountTransaction::class,
@@ -176,6 +210,9 @@ class CastAccountLoanService
                     'cast_account_destination_id' => $data->cast_account_destination_id,
                     'date_transaction' => $data->date_transaction,
                     'nominal_transaction' => $data->nominal_transaction,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'nominal_transaction_base' => $nominalBase,
                     'total_saldo_before' => $data->nominal_transaction,
                     'total_saldo_after' => $data->nominal_transaction,
                     'status' => $data->status,
@@ -197,6 +234,9 @@ class CastAccountLoanService
                     'cast_account_destination_id' => $data->cast_account_id,
                     'date_transaction' => $data->date_transaction,
                     'nominal_transaction' => $data->nominal_transaction,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'nominal_transaction_base' => $nominalBase,
                     'total_saldo_before' => 0,
                     'total_saldo_after' => 0,
                     'status' => $data->status,
@@ -217,8 +257,12 @@ class CastAccountLoanService
                     'reference_type' => AccountTransaction::class,
                     'description' => $data->description,
                     'date' => Carbon::now(),
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
                     'debit' => ($data->status == 'enter') ? $data->nominal_transaction : 0,
                     'credit' => ($data->status == 'out') ? $data->nominal_transaction : 0,
+                    'debit_base' => ($data->status == 'enter') ? $nominalBase : 0,
+                    'credit_base' => ($data->status == 'out') ? $nominalBase : 0,
                 ], [
                     'reference_id' => $loan_transaction->id,
                     'reference_type' => AccountTransaction::class,
@@ -237,8 +281,12 @@ class CastAccountLoanService
                     'reference_type' => AccountTransaction::class,
                     'description' => $data->description,
                     'date' => Carbon::now(),
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
                     'debit' => ($data->status == 'enter') ? $data->nominal_transaction : 0,
                     'credit' => ($data->status == 'out') ? $data->nominal_transaction : 0,
+                    'debit_base' => ($data->status == 'enter') ? $nominalBase : 0,
+                    'credit_base' => ($data->status == 'out') ? $nominalBase : 0,
                 ], [
                     'reference_id' => $add_transaction_destination->id,
                     'reference_type' => AccountTransaction::class,
@@ -281,6 +329,11 @@ class CastAccountLoanService
             $balance_destination_after = $balance_destination_before - $data->payment_price;
             $log_payment = [];
 
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->payment_price * $exchangeRate;
+
             $first_account_transaction = $this->repository->getFirstAccountTransactionByFlagId($data->loan_transaction_flag_id);
             $total_loan_out_before = $this->repository->getTotalLoanOutByFlagId($data->loan_transaction_flag_id);
             $loan_transaction_flag = $this->repository->findLoanTransactionFlagById($data->loan_transaction_flag_id);
@@ -296,6 +349,9 @@ class CastAccountLoanService
                 'description' => $data->description,
                 'account_id' => $account_destination->id,
                 'nominal_transaction' => $data->payment_price,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'nominal_transaction_base' => $nominalBase,
                 'total_saldo_before' => $balance_destination_before,
                 'total_saldo_after' => $balance_destination_after,
                 'status' => 'out',
@@ -314,8 +370,12 @@ class CastAccountLoanService
                 'reference_type' => AccountTransaction::class,
                 'description' => $data->description,
                 'date' => $data->date_loan_transaction,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'debit' => 0,
                 'credit' => $data->payment_price,
+                'debit_base' => 0,
+                'credit_base' => $nominalBase,
             ], [
                 'reference_id' => $new_cast_transaction->id,
                 'reference_type' => AccountTransaction::class,
@@ -337,6 +397,9 @@ class CastAccountLoanService
                 'description' => $data->description,
                 'account_id' => $first_account_transaction->account_id,
                 'nominal_transaction' => $data->payment_price,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'nominal_transaction_base' => $nominalBase,
                 'total_saldo_before' => $total_loan_out_before,
                 'total_saldo_after' => $remaining_balance,
                 'status' => 'out',
@@ -355,8 +418,12 @@ class CastAccountLoanService
                 'reference_type' => AccountTransaction::class,
                 'description' => $data->description,
                 'date' => $data->date_loan_transaction,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'debit' => 0,
                 'credit' => $data->payment_price,
+                'debit_base' => 0,
+                'credit_base' => $nominalBase,
             ], [
                 'reference_id' => $new_loan_transaction->id,
                 'reference_type' => AccountTransaction::class,

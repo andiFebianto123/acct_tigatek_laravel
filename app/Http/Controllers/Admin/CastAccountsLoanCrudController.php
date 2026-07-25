@@ -620,23 +620,30 @@ class CastAccountsLoanCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'space_1',
-            'type' => 'hidden',
-            'value' => 'space_1',
-            'wrapper' => [
-                'class' => 'form-group col-md-6'
-            ]
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([
             'name' => 'nominal_transaction',
             'label' =>  trans('backpack::crud.cash_account.field_transaction.nominal_transaction.label'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'nominal_transaction_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -688,12 +695,11 @@ class CastAccountsLoanCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'space_4',
-            'type' => 'hidden',
-            'value' => 'space_4',
+            'name' => 'logic_cast_loan',
+            'type' => 'logic-cast-loan',
             'wrapper' => [
                 'class' => 'form-group col-md-6'
-            ]
+            ],
         ]);
     }
 
@@ -777,23 +783,30 @@ class CastAccountsLoanCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'space_2',
-            'type' => 'hidden',
-            'value' => 'space_2',
-            'wrapper' => [
-                'class' => 'form-group col-md-6'
-            ]
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
+            ],
+            'default'     => 'IDR',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([
             'name' => 'payment_price',
             'label' =>  trans('backpack::crud.cash_account_loan.field.balance_information.payment_price'),
-            'type' => 'mask',
-            'mask' => '000.000.000.000.000.000',
-            'mask_options' => [
-                'reverse' => true
+            'type' => 'mask_currency',
+            'currency_name' => 'payment_price_currency',
+            'currency_options' => [
+                'IDR' => 'IDR (Rp)',
+                'USD' => 'USD ($)',
             ],
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+            'default_currency' => 'IDR',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -920,22 +933,30 @@ class CastAccountsLoanCrudController extends CrudController
             ]);
 
             CRUD::addField([
-                'type' => 'hidden',
-                'name' => 'space_1',
-                'wrapper' => [
-                    'class' => 'form-group col-md-6'
-                ]
+                'name'        => 'currency_code',
+                'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
+                'type'        => 'select_from_array',
+                'options'     => [
+                    'IDR' => 'IDR (Rp)',
+                    'USD' => 'USD ($)',
+                ],
+                'default'     => 'IDR',
+                'allows_null' => false,
+                'wrapper'     => [
+                    'class' => 'form-group col-md-6',
+                ],
             ]);
 
             CRUD::addField([
                 'name' => 'total_saldo',
                 'label' => trans('backpack::crud.cash_account.field.total_saldo.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
-                'mask_options' => [
-                    'reverse' => true
+                'type' => 'mask_currency',
+                'currency_name' => 'total_saldo_currency',
+                'currency_options' => [
+                    'IDR' => 'IDR (Rp)',
+                    'USD' => 'USD ($)',
                 ],
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
+                'default_currency' => 'IDR',
                 'wrapper'   => [
                     'class' => 'form-group col-md-6',
                 ],
@@ -966,6 +987,14 @@ class CastAccountsLoanCrudController extends CrudController
                 'wrapper' => [
                     'class' => 'form-group col-md-6'
                 ]
+            ]);
+
+            CRUD::addField([
+                'name' => 'logic_cast_loan',
+                'type' => 'logic-cast-loan',
+                'wrapper' => [
+                    'class' => 'form-group col-md-6'
+                ],
             ]);
         }
     }

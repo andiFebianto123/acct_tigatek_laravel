@@ -12,23 +12,29 @@
             <div class="row">
                 <input type="hidden" name="cast_account_id" class="cast_account_id">
                 <input type="hidden" class="balance" name="balance">
-                <div class="form-group col-md-6 required" element="div" bp-field-wrapper="true" bp-field-name="nominal_transaction" bp-field-type="mask" bp-section="crud-field">
+                <div class="form-group col-md-6 required" element="div" bp-field-wrapper="true" bp-field-name="currency_code" bp-field-type="select_from_array" bp-section="crud-field">
+                    <label>{{ trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Mata Uang' }}</label>
+                    <select name="currency_code" id="transfer_currency_code" class="form-control form-select">
+                        <option value="IDR">IDR (Rp)</option>
+                        <option value="USD">USD ($)</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6 required" element="div" bp-field-wrapper="true" bp-field-name="nominal_transaction" bp-field-type="mask_currency" bp-section="crud-field">
                     <label>{{trans('backpack::crud.cash_account.field_transfer.nominal_transfer.label')}}</label>
                     <div class="input-group">
-                        <span class="input-group-text">{{($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp' }}</span>
+                        <select name="nominal_transfer_currency" id="nominal_transfer_currency" class="form-select bg-light fw-bold currency-select-dropdown" tabindex="-1" style="width: auto; min-width: 90px; max-width: 115px; cursor: not-allowed; pointer-events: none; z-index: 2; padding-left: 0.75rem; padding-right: 0.75rem !important; font-size: 0.9rem; -webkit-appearance: none !important; -moz-appearance: none !important; appearance: none !important;">
+                            <option value="IDR">IDR (Rp)</option>
+                            <option value="USD">USD ($)</option>
+                        </select>
                         <input
                             type="text"
                             data-alt="nominal_transaction_masked"
-                            data-bs-maskoption="{&quot;reverse&quot;:true}"
-                            data-init-function="bpFieldInitMaskElement"
                             value="" placeholder="000.000"
                             id="nominal_transfer_masked"
                             class="form-control"
                             data-initialized="true" maxlength="23">
                     </div>
                     <input type="hidden" name="nominal_transfer" id="nominal_transaction" value="">
-                </div>
-                <div class="form-group col-md-6">
                 </div>
                 <div class="form-group col-md-6" element="div" bp-field-wrapper="true" bp-field-name="description" bp-field-type="textarea" bp-section="crud-field">
                     <label>{{trans('backpack::crud.cash_account.field_transfer.description.label')}}</label>
@@ -135,24 +141,50 @@
                     });
                     function bpFieldInitMaskElement(element){
                         var $maskedInput = element;
-                        var $hiddenInput = $maskedInput.parent().next();
-                        var mask_option = $maskedInput.data('bs-maskoption');
+                        var $hiddenInput = $('#nominal_transaction');
+                        var $currencySelect = $('#nominal_transfer_currency');
 
-                        function getCleanValue(val) {
+                        function getCleanValue(val, curr) {
+                            if (curr === 'USD') {
+                                var parts = val.split('.');
+                                if (parts.length > 2) {
+                                    val = parts[0] + '.' + parts.slice(1).join('');
+                                }
+                                return val.replace(/[^\d.]/g, '');
+                            }
                             return val.replace(/[^\d]/g, '');
                         }
 
-                        // $maskedInput.unmask();
-                        setTimeout(() => {
-                            $maskedInput.mask('000.000.000.000.000', mask_option);
-                        }, 100);
+                        function applyMask() {
+                            var curr = $currencySelect.val() || 'IDR';
+                            if (typeof $maskedInput.unmask === 'function') {
+                                $maskedInput.unmask();
+                            }
+                            if (typeof $maskedInput.mask === 'function') {
+                                if (curr === 'USD') {
+                                    $maskedInput.mask('#,##0.00', { reverse: true });
+                                } else {
+                                    $maskedInput.mask('000.000.000.000.000', { reverse: true });
+                                }
+                            }
+                            $hiddenInput.val(getCleanValue($maskedInput.val(), curr));
+                        }
 
-                        $hiddenInput.val(getCleanValue($maskedInput.val()));
-
-                        $maskedInput.on('input change keyup', function () {
-                            let raw = getCleanValue($(this).val());
-                            $hiddenInput.val(raw);
+                        $maskedInput.off('input change keyup').on('input change keyup', function () {
+                            var curr = $currencySelect.val() || 'IDR';
+                            $hiddenInput.val(getCleanValue($(this).val(), curr));
                         });
+
+                        $currencySelect.off('change').on('change', function() {
+                            applyMask();
+                        });
+
+                        $(document).off('change', '#transfer_currency_code').on('change', '#transfer_currency_code', function() {
+                            var curr = $(this).val() || 'IDR';
+                            $('#nominal_transfer_currency').val(curr).trigger('change');
+                        });
+
+                        applyMask();
                     }
                     bpFieldInitMaskElement($('#nominal_transfer_masked'));
                 </script>

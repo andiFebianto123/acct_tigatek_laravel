@@ -16,12 +16,20 @@ class CastAccountSaveData
         public readonly ?string $swift_code,
         public readonly ?int $account_id,
         public readonly float $total_saldo,
-        public readonly array $informations = []
+        public readonly array $informations = [],
+        public readonly ?string $currency_code = 'IDR'
     ) {}
 
     public static function fromRequest(Request $request): self
     {
-        $cleanNominal = fn($val) => (float) str_replace('.', '', $val ?? '0');
+        $currencyCode = request()->input('currency_code')
+            ?? $request->currency_code
+            ?? $request->total_saldo_currency
+            ?? 'IDR';
+        $rawNominal = (string) ($request->total_saldo ?? '0');
+        $cleanNominal = ($currencyCode === 'USD')
+            ? (float) str_replace(',', '', $rawNominal)
+            : (float) str_replace('.', '', $rawNominal);
 
         $informations = $request->informations;
         if (is_string($informations)) {
@@ -37,8 +45,9 @@ class CastAccountSaveData
             address: $request->address,
             swift_code: $request->swift_code,
             account_id: $request->account_id ? (int) $request->account_id : null,
-            total_saldo: $cleanNominal($request->total_saldo),
-            informations: is_array($informations) ? $informations : []
+            total_saldo: $cleanNominal,
+            informations: is_array($informations) ? $informations : [],
+            currency_code: $currencyCode
         );
     }
 
@@ -53,6 +62,7 @@ class CastAccountSaveData
             'swift_code' => $this->swift_code,
             'account_id' => $this->account_id,
             'total_saldo' => $this->total_saldo,
+            'currency_code' => $this->currency_code,
         ], fn($v) => $v !== null);
     }
 }

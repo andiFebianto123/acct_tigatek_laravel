@@ -19,10 +19,13 @@ class LoanMoveTransactionRequest extends FormRequest
     {
         $loan_transaction_flag_id = $this->loan_transaction_flag_id;
         $cast_account_destination_id = $this->cast_account_destination_id;
+        $currencyCode = $this->currency_code ?? $this->payment_price_currency ?? request()->input('currency_code') ?? 'IDR';
+        $minNominal = ($currencyCode === 'USD') ? 0.01 : 1000;
 
         return [
             'loan_transaction_flag_id' => 'required|exists:loan_transaction_flags,id',
             'date_loan_transaction' => 'required|date',
+            'currency_code' => 'nullable|in:IDR,USD',
             'cast_account_destination_id' => [
                 'required',
                 'exists:cast_accounts,id',
@@ -30,7 +33,7 @@ class LoanMoveTransactionRequest extends FormRequest
             'payment_price' => [
                 'required',
                 'numeric',
-                'min:1000',
+                'min:' . $minNominal,
                 function ($attribute, $value, $fail) use ($loan_transaction_flag_id, $cast_account_destination_id) {
                     $cast_account_destination = CastAccount::find($cast_account_destination_id);
                     if (!$cast_account_destination) return;

@@ -6,6 +6,7 @@ use App\Models\CastAccount;
 use App\Models\AccountTransaction;
 use App\Models\LogPayment;
 use App\Models\JournalEntry;
+use App\Models\Setting;
 use App\DTOs\CastAccount\CastAccountSaveData;
 use App\DTOs\CastAccount\TransactionSaveData;
 use App\Http\Helpers\CustomHelper;
@@ -18,7 +19,16 @@ class CastAccountService
     public function storeCastAccount(CastAccountSaveData $data): CastAccount
     {
         return DB::transaction(function () use ($data) {
-            $castAccount = CastAccount::create($data->toArray());
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->total_saldo * $exchangeRate;
+
+            $castAccount = CastAccount::create(array_merge($data->toArray(), [
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'total_saldo_base' => $nominalBase,
+            ]));
             
             if (!empty($data->informations)) {
                 $castAccount->informations()->sync($data->informations);
@@ -29,6 +39,9 @@ class CastAccountService
             $acctTransaction->cast_account_id = $castAccount->id;
             $acctTransaction->date_transaction = Carbon::now()->format('Y-m-d');
             $acctTransaction->nominal_transaction = $data->total_saldo;
+            $acctTransaction->currency_code = $currencyCode;
+            $acctTransaction->exchange_rate = $exchangeRate;
+            $acctTransaction->nominal_transaction_base = $nominalBase;
             $acctTransaction->total_saldo_before = 0;
             $acctTransaction->total_saldo_after = $data->total_saldo;
             $acctTransaction->status = CastAccount::ENTER;
@@ -41,7 +54,12 @@ class CastAccountService
                 'reference_type' => CastAccount::class,
                 'description' => 'Start Saldo',
                 'date' => Carbon::now(),
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'debit' => $data->total_saldo,
+                'credit' => 0,
+                'debit_base' => $nominalBase,
+                'credit_base' => 0,
             ], [
                 'reference_id' => $castAccount->id,
                 'reference_type' => CastAccount::class,
@@ -55,7 +73,16 @@ class CastAccountService
     {
         return DB::transaction(function () use ($id, $data) {
             $castAccount = CastAccount::findOrFail($id);
-            $castAccount->update($data->toArray());
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? $castAccount->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->total_saldo * $exchangeRate;
+
+            $castAccount->update(array_merge($data->toArray(), [
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'total_saldo_base' => $nominalBase,
+            ]));
 
             if (isset($data->informations)) {
                 $castAccount->informations()->sync($data->informations);
@@ -166,6 +193,11 @@ class CastAccountService
             $castAccount = CastAccount::where('id', $data->cast_account_id)->first();
             $balance = CustomHelper::total_balance_cast_account($data->cast_account_id, CastAccount::CASH);
 
+            $currencyCode = $data->currency_code ?? request()->input('currency_code') ?? $castAccount->currency_code ?? 'IDR';
+            $usdRate = Setting::first()?->usd_rate ?? 16000;
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+            $nominalBase = (float) $data->nominal_transfer * $exchangeRate;
+
             $date_transfer = $data->date_move_balance ?: Carbon::now()->format('Y-m-d');
             
             $log_payment = [];
@@ -185,6 +217,9 @@ class CastAccountService
             }
             $newTransaction->date_transaction = $date_transfer;
             $newTransaction->nominal_transaction = $data->nominal_transfer;
+            $newTransaction->currency_code = $currencyCode;
+            $newTransaction->exchange_rate = $exchangeRate;
+            $newTransaction->nominal_transaction_base = $nominalBase;
             $newTransaction->total_saldo_before = $old_saldo;
             $newTransaction->total_saldo_after = $new_saldo;
             $newTransaction->status = 'out';
@@ -208,8 +243,12 @@ class CastAccountService
                 'reference_type' => AccountTransaction::class,
                 'description' => $description,
                 'date' => Carbon::parse($date_transfer),
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'debit' => 0,
                 'credit' => $data->nominal_transfer,
+                'debit_base' => 0,
+                'credit_base' => $nominalBase,
             ], [
                 'account_id' => $castAccount->account_id,
                 'reference_id' => $newTransaction->id,
@@ -234,6 +273,9 @@ class CastAccountService
                 $newTransaction_2->cast_account_destination_id = $newTransaction->cast_account_id;
                 $newTransaction_2->date_transaction = $date_transfer;
                 $newTransaction_2->nominal_transaction = $data->nominal_transfer;
+                $newTransaction_2->currency_code = $currencyCode;
+                $newTransaction_2->exchange_rate = $exchangeRate;
+                $newTransaction_2->nominal_transaction_base = $nominalBase;
                 $newTransaction_2->total_saldo_before = $other_old_saldo;
                 $newTransaction_2->total_saldo_after = $other_new_saldo;
                 $newTransaction_2->status = 'enter';
@@ -262,8 +304,12 @@ class CastAccountService
                 'reference_type' => AccountTransaction::class,
                 'description' => $description,
                 'date' => Carbon::parse($date_transfer),
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
                 'debit' => $data->nominal_transfer,
                 'credit' => 0,
+                'debit_base' => $nominalBase,
+                'credit_base' => 0,
             ], [
                 'account_id' => $otherAccount->account_id,
                 'reference_id' => $newTransaction_2->id,
