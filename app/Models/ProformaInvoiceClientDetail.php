@@ -18,4 +18,9 @@ class ProformaInvoiceClientDetail extends Model
     {
         return $this->belongsTo(ProformaInvoiceClient::class, 'proforma_invoice_client_id');
     }
+
+    public function deviceStock()
+    {
+        return $this->belongsTo(DeviceStock::class, 'device_stock_id');
+    }
 }

@@ -550,6 +550,169 @@
                         }, 200);
                     });
 
+                    // MODUL 5: DYNAMIC DEVICE STOCK SELECT2 MANAGER FOR PROFORMA INVOICE
+                    if (typeof window.ProformaDeviceStockManager === 'undefined') {
+                        window.ProformaDeviceStockManager = class ProformaDeviceStockManager {
+                            constructor(formSelector) {
+                                this.form = formSelector;
+                                this.ajaxUrl = '{{ backpack_url("invoice-client/select2-device-stock") }}';
+                                this.deviceStockType = 'App\\Models\\DeviceStock';
+                                this._isDeviceStock = false;
+                            }
+
+                            isDeviceStockMode() {
+                                return $(this.form + ' select[name="type_device"]').val() === this.deviceStockType;
+                            }
+
+                            activateDeviceStockMode() {
+                                var self = this;
+                                var form = this.form;
+                                this._isDeviceStock = true;
+
+                                $(form + ' .repeatable-element').each(function() {
+                                    self._convertRowToSelect2($(this));
+                                });
+                            }
+
+                            deactivateDeviceStockMode() {
+                                var self = this;
+                                var form = this.form;
+                                this._isDeviceStock = false;
+
+                                $(form + ' .repeatable-element').each(function() {
+                                    self._convertRowToText($(this));
+                                });
+                            }
+
+                            _convertRowToSelect2($row) {
+                                var self = this;
+                                var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                                if (!$textInput.length) return;
+
+                                if ($row.find('.proforma-device-select2').length) return;
+
+                                var currentVal = $textInput.val() || '';
+                                var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+
+                                $textInput.hide();
+
+                                var $select2Container = $('<div class="proforma-device-select2-wrapper" style="flex:1;min-width:0;"></div>');
+                                var $select2 = $('<select class="form-control proforma-device-select2" style="width:100%"></select>');
+
+                                if (currentVal && $hiddenDeviceStockId.val()) {
+                                    var initialOption = new Option(currentVal, $hiddenDeviceStockId.val(), true, true);
+                                    $select2.append(initialOption);
+                                }
+
+                                $select2Container.append($select2);
+                                $textInput.closest('.form-group').append($select2Container);
+
+                                $select2.select2({
+                                    ajax: {
+                                        url: self.ajaxUrl,
+                                        dataType: 'json',
+                                        delay: 300,
+                                        data: function(params) {
+                                            return { q: params.term || '' };
+                                        },
+                                        processResults: function(data) {
+                                            return { results: data.results };
+                                        },
+                                        cache: true
+                                    },
+                                    placeholder: 'Pilih Nama Barang',
+                                    minimumInputLength: 0,
+                                    allowClear: true,
+                                    dropdownParent: $(self.form),
+                                    templateResult: function(data) {
+                                        if (!data.id) return data.text;
+                                        return $('<span><strong>' + data.name + '</strong> <small class="text-muted">(Stok: ' + (data.qty_available || 0) + ')</small></span>');
+                                    },
+                                    templateSelection: function(data) {
+                                        return data.name || data.text;
+                                    }
+                                });
+
+                                $select2.on('select2:select', function(e) {
+                                    var selected = e.params.data;
+                                    $textInput.val(selected.name || selected.text);
+                                    if ($hiddenDeviceStockId.length) {
+                                        $hiddenDeviceStockId.val(selected.id);
+                                    }
+
+                                    if (selected.sell_price !== undefined) {
+                                        var $priceHidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"]').last();
+                                        var $priceMasked = $row.find('input[data-alt="price_masked"]');
+                                        var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
+
+                                        var priceVal = parseFloat(selected.sell_price) || 0;
+                                        if ($priceHidden.length) $priceHidden.val(priceVal);
+                                        if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                                            $priceMasked.val(window.formatCurrency(priceVal, activeCurrency)).trigger('change');
+                                        }
+                                        countTotalPrice();
+                                    }
+                                });
+
+                                $select2.on('select2:clear', function() {
+                                    $textInput.val('');
+                                    if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                                });
+                            }
+
+                            _convertRowToText($row) {
+                                var $select2Wrapper = $row.find('.proforma-device-select2-wrapper');
+                                var $select2 = $row.find('.proforma-device-select2');
+                                var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                                var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+
+                                var selectedText = '';
+                                if ($select2.length) {
+                                    try { selectedText = $select2.select2('data')[0]?.text || ''; } catch(e) {}
+                                    $select2.select2('destroy');
+                                }
+                                $select2Wrapper.remove();
+
+                                $textInput.val(selectedText).show();
+                                if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                            }
+
+                            init() {
+                                var self = this;
+                                var form = this.form;
+
+                                setTimeout(function() {
+                                    if (self.isDeviceStockMode()) {
+                                        self.activateDeviceStockMode();
+                                    }
+                                }, 400);
+
+                                $(form + ' select[name="type_device"]').on('change', function() {
+                                    if (self.isDeviceStockMode()) {
+                                        self.activateDeviceStockMode();
+                                    } else {
+                                        self.deactivateDeviceStockMode();
+                                    }
+                                });
+
+                                $(form + ' .add-repeatable-element-button').on('click', function() {
+                                    if (self._isDeviceStock) {
+                                        setTimeout(function() {
+                                            $(form + ' .repeatable-element').each(function() {
+                                                if (!$(this).find('.proforma-device-select2').length) {
+                                                    self._convertRowToSelect2($(this));
+                                                }
+                                            });
+                                        }, 300);
+                                    }
+                                });
+                            }
+                        };
+                    }
+
+                    var proformaMgr = new window.ProformaDeviceStockManager(form);
+                    proformaMgr.init();
+
                 }
             }
         });

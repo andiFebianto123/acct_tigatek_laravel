@@ -710,6 +710,21 @@ class ProformaInvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'type_device',
+            'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'App\Models\DeviceStock' => 'Persediaan',
+                'App\Models\BillingDevice' => 'Billing Device',
+                'App\Models\BillingSimcard' => 'Billing SIMCARD',
+            ],
+            'allows_null' => true,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'note',
             'label' => trans('backpack::crud.proforma_invoice.field.note.label'),
             'type' => 'textarea',
@@ -752,6 +767,13 @@ class ProformaInvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
                         'name' => 'qty',
                         'type' => 'number',
                         'label' => 'QTY',
@@ -789,6 +811,13 @@ class ProformaInvoiceClientCrudController extends CrudController
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
+                    ],
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
                     ],
                     [
                         'name' => 'qty',

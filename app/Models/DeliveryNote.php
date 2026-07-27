@@ -53,6 +53,21 @@ class DeliveryNote extends Model
         return $this->belongsTo(InvoiceClient::class, 'invoice_client_id');
     }
 
+    /**
+     * Relasi polymorphic ke dokumen referensi (Quotation / Proforma Invoice / Client PO / Invoice Client).
+     * Menggunakan reference_type & reference_id untuk membaca nama dokumen referensi pada tampilan list.
+     */
+    public function getReferenceNumberAttribute(): ?string
+    {
+        return match ($this->reference_type) {
+            'quotation'        => optional(ClientQuotation::find($this->reference_id))->po_number,
+            'proforma_invoice' => optional(ProformaInvoiceClient::find($this->reference_id))->invoice_number,
+            'client_po'        => optional(ClientPo::find($this->reference_id))->po_number,
+            'invoice_client'   => optional(InvoiceClient::find($this->reference_id))->invoice_number,
+            default            => null,
+        };
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

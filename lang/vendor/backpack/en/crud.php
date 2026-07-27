@@ -456,20 +456,38 @@ return [
     'delivery_note' => [
         'title_header' => 'Delivery Note',
         'column' => [
-            'number' => 'Number',
-            'date' => 'Date',
-            'client_id' => 'Client Name',
-            'description' => 'Description',
-            'qty' => 'Qty',
-            'information' => 'Keterangan',
+            'number'         => 'Number',
+            'date'           => 'Date',
+            'client_id'      => 'Client Name',
+            'reference_type' => 'Reference Type',
+            'description'    => 'Description',
+            'information'    => 'Information',
         ],
         'field' => [
+            'reference_type' => [
+                'label' => 'Reference Type',
+                'placeholder' => '- SELECT REFERENCE TYPE -',
+                'options' => [
+                    'quotation'        => 'Quotation',
+                    'proforma_invoice' => 'Proforma Invoice (PI)',
+                    'client_po'        => 'Client PO',
+                    'invoice_client'   => 'Invoice Client',
+                ],
+            ],
+            'reference_id' => [
+                'label' => 'Reference Document No.',
+                'placeholder' => '- SELECT DOCUMENT -',
+            ],
             'client_po_id' => [
                 'label' => 'No. PO',
                 'placeholder' => '- SELECT PO NO -',
             ],
+            'invoice_client_id' => [
+                'label' => 'Invoice No.',
+                'placeholder' => '- SELECT INVOICE NO -',
+            ],
             'client_id' => [
-                'label' => 'Kirim Ke',
+                'label' => 'Ship To',
                 'placeholder' => '- SELECT CLIENT -',
             ],
             'address' => [
@@ -480,22 +498,23 @@ return [
                 'label' => 'Date',
             ],
             'number' => [
-                'label' => 'No. Surat Jalan',
+                'label' => 'Delivery Note No.',
                 'placeholder' => 'Enter delivery note number',
             ],
             'description' => [
-                'label' => 'Item',
+                'label' => 'Description / Item',
                 'placeholder' => 'Enter item description',
             ],
             'qty' => [
                 'label' => 'Qty',
             ],
             'information' => [
-                'label' => 'Keterangan',
+                'label' => 'Information',
                 'placeholder' => 'Additional notes',
             ],
         ],
     ],
+
     'bast' => [
         'title_header' => 'BAST',
         'column' => [

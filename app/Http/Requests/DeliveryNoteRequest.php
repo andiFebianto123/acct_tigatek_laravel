@@ -22,15 +22,17 @@ class DeliveryNoteRequest extends FormRequest
         $id = $this->get('id') ?? $this->route('id');
 
         $rules = [
-            'client_id' => 'required|exists:clients,id',
-            'invoice_client_id' => 'required|exists:invoice_clients,id',
-            'client_po_id' => 'nullable|exists:client_po,id',
-            'address' => 'required|string',
-            'date' => 'required|date',
-            'number' => 'required|string|max:50|unique:delivery_notes,number,' . $id,
-            'description' => 'required|string',
-            'qty' => 'nullable|integer',
-            'information' => 'nullable|string',
+            'client_id'         => 'required|exists:clients,id',
+            'invoice_client_id' => 'nullable|exists:invoice_clients,id',
+            'client_po_id'      => 'nullable|exists:client_po,id',
+            'reference_type'    => 'nullable|in:quotation,proforma_invoice,client_po,invoice_client',
+            'reference_id'      => 'nullable|integer|min:1',
+            'address'           => 'nullable|string',
+            'date'              => 'required|date',
+            'number'            => 'required|string|max:50|unique:delivery_notes,number,' . $id,
+            'description'       => 'nullable|string',
+            'qty'               => 'nullable|integer',
+            'information'       => 'nullable|string',
         ];
 
         if (backpack_user() && backpack_user()->hasRole('Super Admin')) {

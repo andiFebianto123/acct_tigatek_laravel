@@ -34,7 +34,7 @@ class ProformaInvoiceClientRequest extends FormRequest
             'account_source_id' => 'nullable|exists:cast_accounts,id',
             'note' => 'nullable|string|max:500',
             'term' => 'nullable|string',
-            'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard',
+            'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',
             'currency_code' => 'nullable|string|in:IDR,USD',
         ];
 

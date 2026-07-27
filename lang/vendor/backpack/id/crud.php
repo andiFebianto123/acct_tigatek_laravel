@@ -619,11 +619,25 @@ return [
             'number' => 'Nomer',
             'date' => 'Tanggal',
             'client_id' => 'Nama Client',
-            'description' => 'Description',
-            'qty' => 'Qty',
+            'reference_type' => 'Jenis Referensi',
+            'description' => 'Deskripsi',
             'information' => 'Keterangan',
         ],
         'field' => [
+            'reference_type' => [
+                'label' => 'Jenis Referensi',
+                'placeholder' => '- PILIH JENIS REFERENSI',
+                'options' => [
+                    'quotation'        => 'Penawaran (Quotation)',
+                    'proforma_invoice' => 'Proforma Invoice (PI)',
+                    'client_po'        => 'Client PO',
+                    'invoice_client'   => 'Invoice Client',
+                ],
+            ],
+            'reference_id' => [
+                'label' => 'No. Dokumen Referensi',
+                'placeholder' => '- PILIH DOKUMEN',
+            ],
             'invoice_client_id' => [
                 'label' => 'No. Invoice',
                 'placeholder' => '- PILIH NO. INVOICE',
@@ -648,8 +662,8 @@ return [
                 'placeholder' => 'Masukkan nomor surat jalan',
             ],
             'description' => [
-                'label' => 'Item',
-                'placeholder' => 'Masukkan item barang',
+                'label' => 'Deskripsi / Item',
+                'placeholder' => 'Masukkan deskripsi item barang',
             ],
             'qty' => [
                 'label' => 'Qty',

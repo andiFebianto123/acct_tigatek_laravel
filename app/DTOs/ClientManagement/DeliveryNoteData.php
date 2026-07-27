@@ -17,6 +17,8 @@ class DeliveryNoteData
         public readonly ?string $description,
         public readonly int $qty,
         public readonly ?string $information,
+        public readonly ?string $reference_type,
+        public readonly ?int $reference_id,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -29,33 +31,46 @@ class DeliveryNoteData
             $company_id = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
         }
 
+        $referenceType = $request->input('reference_type') ?: null;
+        $referenceId   = $request->input('reference_id') ? (int) $request->input('reference_id') : null;
+
+        // invoice_client_id diisi otomatis dari reference_id jika reference_type = invoice_client
+        $invoiceClientId = null;
+        if ($referenceType === 'invoice_client' && $referenceId) {
+            $invoiceClientId = $referenceId;
+        }
+
         return new self(
             company_id: $company_id,
             client_po_id: $request->input('client_po_id') ? (int) $request->input('client_po_id') : null,
-            invoice_client_id: $request->input('invoice_client_id') ? (int) $request->input('invoice_client_id') : null,
+            invoice_client_id: $invoiceClientId,
             client_id: $request->input('client_id') ? (int) $request->input('client_id') : null,
             address: $request->input('address'),
             date: $request->input('date'),
             number: $request->input('number'),
             description: $request->input('description'),
-            qty: (int) ($request->input('qty') ?? 1),
+            qty: (int) ($request->input('qty') ?? 0),
             information: $request->input('information'),
+            reference_type: $referenceType,
+            reference_id: $referenceId,
         );
     }
 
     public function toArray(): array
     {
         return [
-            'company_id' => $this->company_id,
-            'client_po_id' => $this->client_po_id,
+            'company_id'        => $this->company_id,
+            'client_po_id'      => $this->client_po_id,
             'invoice_client_id' => $this->invoice_client_id,
-            'client_id' => $this->client_id,
-            'address' => $this->address,
-            'date' => $this->date,
-            'number' => $this->number,
-            'description' => $this->description,
-            'qty' => $this->qty,
-            'information' => $this->information,
+            'client_id'         => $this->client_id,
+            'address'           => $this->address,
+            'date'              => $this->date,
+            'number'            => $this->number,
+            'description'       => $this->description,
+            'qty'               => $this->qty,
+            'information'       => $this->information,
+            'reference_type'    => $this->reference_type,
+            'reference_id'      => $this->reference_id,
         ];
     }
 }

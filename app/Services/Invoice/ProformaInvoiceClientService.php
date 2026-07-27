@@ -134,6 +134,13 @@ class ProformaInvoiceClientService
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;
+
+                // Simpan device_stock_id jika ada (dari mode Persediaan)
+                $deviceStockId = isset($item['device_stock_id']) && !empty($item['device_stock_id'])
+                    ? (int) $item['device_stock_id']
+                    : null;
+                $invoice_item->device_stock_id = $deviceStockId;
+
                 $invoice_item->save();
             }
         }
