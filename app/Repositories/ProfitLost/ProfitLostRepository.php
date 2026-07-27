@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Voucher;
 use App\Http\Helpers\CustomHelper;
 use App\DTOs\ProfitLost\ProfitLostFilterData;
+use App\Models\InvoiceClient;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -484,12 +485,54 @@ class ProfitLostRepository
         $results = [];
         foreach ($union as $item) {
             $results[] = [
-                'data' => $item,
+                'data'       => $item,
                 'voucher_id' => null,
-                'id' => $item->id,
-                'po_number' => $item->po_number,
-                'text' => $item->po_number . ' - ' . $item->job_name,
-                'work_code' => $item->work_code,
+                'id'         => $item->id,
+                'po_number'  => $item->po_number,
+                'text'       => $item->po_number . ' - ' . $item->job_name,
+                'work_code'  => $item->work_code,
+            ];
+        }
+        return $results;
+    }
+
+    /**
+     * Endpoint baru: Cari Invoice by kode/nomor invoice untuk tipe Supplier.
+     * Digunakan pada form Tambah Laporan Laba Rugi saat orderable_type = Supplier.
+     */
+    public function getSelect2SupplierInvoice(?string $search): array
+    {
+        // Cari dari purchase_orders (PO Supplier) yang memiliki kode invoice
+        // Invoice supplier direpresentasikan oleh nomor PO / work_code di purchase_orders
+        $query = InvoiceClient::query();
+        $query->where('type_device', "App\\Models\\DeviceStock");
+            // ->with('subkon');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%$search%");
+                //   ->orWhere('work_code', 'like', "%$search%")
+                //   ->orWhere('job_name', 'like', "%$search%");
+            });
+        }
+
+        if (request()->has('company_id') && !empty(request()->input('company_id'))) {
+            $query->where('company_id', request()->input('company_id'));
+        }
+
+        // Filter berdasarkan purchase_order_id jika disertakan
+        if (request()->has('purchase_order_id') && !empty(request()->input('purchase_order_id'))) {
+            $query->where('id', request()->input('purchase_order_id'));
+        }
+
+        $items = $query->limit(20)->get();
+
+        $results = [];
+        foreach ($items as $item) {
+            $results[] = [
+                'id'             => $item->id,
+                'invoice_number' => $item->invoice_number,
+                'text'           => $item->invoice_number,
             ];
         }
         return $results;
@@ -516,6 +559,69 @@ class ProfitLostRepository
 
         // Default to ClientPo
         return $this->getClientPoSelectedData($id);
+    }
+
+    /**
+     * Query untuk tab Supplier — Perhitungan Laba Rugi FIFO Per Invoice Supplier / Device Stock.
+     */
+    public function applySupplierListQuery($query, ProfitLostFilterData $filter)
+    {
+        $supplierSubQuery = DB::table('invoice_clients as ic')
+            ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
+            ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
+            ->leftJoin('delivery_notes as dn', 'dn.invoice_client_id', '=', 'ic.id')
+            ->where('ic.type_device', 'App\\Models\\DeviceStock')
+            ->select([
+                'ic.id as invoice_id',
+                'ic.invoice_number as supplier_invoice_number',
+                'ic.invoice_date as supplier_date',
+                'c.name as supplier_name',
+                'ic.currency_code',
+                DB::raw("COALESCE(SUM(icd.qty), 0) AS total_qty_sold"),
+                DB::raw("ic.price_total_exclude_ppn_base AS total_harga_jual_base"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
+                DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_base"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(COALESCE(SUM(icd.cogs_amount_base), 0) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
+                DB::raw("(ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) AS laba_kotor_base"),
+                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
+                DB::raw("CASE WHEN dn.id IS NOT NULL THEN 'Dikirim (FIFO Posted)' ELSE 'Draft Stok (Belum Diterbitkan Surat Jalan)' END AS delivery_status")
+            ])
+            ->groupBy(
+                'ic.id',
+                'ic.invoice_number',
+                'ic.invoice_date',
+                'c.name',
+                'ic.currency_code',
+                'ic.price_total_exclude_ppn_base',
+                'dn.id'
+            );
+
+        $query->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')
+            ->joinSub($supplierSubQuery, 'supplier_data', function ($join) {
+                $join->on('supplier_data.invoice_id', '=', 'project_profit_lost.orderable_id');
+            });
+
+        if ($filter->year && $filter->year != 'all') {
+            $query->whereYear('supplier_data.supplier_date', $filter->year);
+        }
+
+        $query->select([
+            DB::raw("
+                project_profit_lost.*,
+                supplier_data.supplier_name,
+                supplier_data.supplier_invoice_number,
+                supplier_data.supplier_date,
+                supplier_data.currency_code,
+                supplier_data.total_qty_sold,
+                supplier_data.total_harga_jual_base as sell_value,
+                supplier_data.avg_harga_jual_satuan_base,
+                supplier_data.total_harga_beli_base as purchase_value,
+                supplier_data.avg_harga_beli_satuan_base,
+                supplier_data.laba_kotor_base as profit_lost_supplier,
+                supplier_data.margin_percent,
+                supplier_data.delivery_status
+            ")
+        ]);
     }
 
     public function applyListQuery($query, ProfitLostFilterData $filter)

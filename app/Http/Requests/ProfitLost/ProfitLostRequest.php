@@ -18,7 +18,7 @@ class ProfitLostRequest extends FormRequest
         
         if ($type === 'project') {
             // Determine if the type is supplier based on input fields
-            $isSupplier = $this->has('purchase_order_id') || $this->input('orderable_type') === 'App\\Models\\PurchaseOrder';
+            $isSupplier = $this->has('supplier_invoice_id') || $this->input('orderable_type') === 'App\\Models\\InvoiceClient';
 
             if (!$isSupplier) {
                 return [
@@ -35,13 +35,9 @@ class ProfitLostRequest extends FormRequest
                 ];
             } else {
                 return [
-                    'purchase_order_id' => [
-                        'required',
-                        Rule::unique('project_profit_lost', 'orderable_id')
-                            ->where('orderable_type', 'App\\Models\\ClientPo')
-                            ->ignore($this->id)
-                    ],
-                    'category' => 'required',
+                    'purchase_order_id' => 'nullable',
+                    'supplier_invoice_id' => 'nullable',
+                    'category' => 'nullable',
                     'company_id' => backpack_user()->hasRole('Super Admin') ? 'required' : 'nullable',
                     'price_after_year' => 'nullable',
                     'price_general' => 'nullable',

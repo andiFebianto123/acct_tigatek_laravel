@@ -105,7 +105,7 @@ class ProfitLostService
                 $new_profit_log->save();
             }
 
-            if ($project_profit_lost->orderable_type === 'App\Models\ClientPo') {
+            if ($project_profit_lost->orderable_type === 'App\\Models\\ClientPo') {
                 $po = ClientPo::find($project_profit_lost->orderable_id);
                 if ($po) {
                     $po->price_after_year = $project_profit_lost->price_after_year;

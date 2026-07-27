@@ -34,23 +34,23 @@ class ProjectProfitLostSaveData
             return (float) $cleaned;
         };
 
-        $orderableType = $request->input('orderable_type');
+        $orderableType = $request->input('orderable_type') ?? 'App\\Models\\ClientPo';
         $orderableId = $request->input('orderable_id');
 
         if (empty($orderableId)) {
-            if ($orderableType === 'App\\Models\\PurchaseOrder' || $request->input('source_type') === 'App\\Models\\PurchaseOrder') {
-                $orderableId = $request->input('purchase_order_id');
+            if ($orderableType === 'App\\Models\\InvoiceClient' || $request->input('source_type') === 'App\\Models\\InvoiceClient') {
+                $orderableId = $request->input('supplier_invoice_id') ?? $request->input('purchase_order_id');
             } else {
                 $orderableId = $request->input('work_code') ?? $request->input('id_client_po') ?? $request->input('client_po_id');
             }
         }
 
-        $orderableType = 'App\\Models\\ClientPo';
+        $clientPoId = ($orderableType === 'App\\Models\\ClientPo') ? ($orderableId ? (int)$orderableId : null) : null;
 
         return new self(
             id: $request->id ? (int) $request->id : null,
             voucher_id: $request->voucher_id ? (int) $request->voucher_id : null,
-            client_po_id: $orderableType === 'App\\Models\\ClientPo' ? (int) $orderableId : null,
+            client_po_id: $clientPoId,
             price_after_year: $cleanPrice($request->price_after_year),
             price_voucher: $cleanPrice($request->price_voucher),
             price_small_cash: $cleanPrice($request->price_small_cash),

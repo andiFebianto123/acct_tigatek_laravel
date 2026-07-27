@@ -75,20 +75,53 @@
                         let type = $(form + ' select[name="orderable_type"]').val();
                         let workCodeWrapper = $(form + ' select[name="work_code"]').closest('.form-group');
                         let purchaseOrderWrapper = $(form + ' select[name="purchase_order_id"]').closest('.form-group');
+                        let supplierInvoiceWrapper = $(form + ' select[name="supplier_invoice_id"]').closest('.form-group');
+
+                        // Field-field yang di-disable saat Supplier dipilih
+                        var supplierDisabledFields = [
+                            'price_after_year',
+                            'price_voucher',
+                            'price_small_cash',
+                            'price_general',
+                            'category'
+                        ];
 
                         if (type === 'App\\Models\\ClientPo') {
+                            // Tampilkan pencarian PO Client (Invoice), sembunyikan PO & Invoice Supplier
                             workCodeWrapper.show();
                             purchaseOrderWrapper.hide();
+                            supplierInvoiceWrapper.hide();
                             $(form + ' select[name="purchase_order_id"]').val(null).trigger('change');
+                            $(form + ' select[name="supplier_invoice_id"]').val(null).trigger('change');
                             $(form + ' input[name="orderable_type"]').val('App\\Models\\ClientPo');
-                        } else if (type === 'App\\Models\\PurchaseOrder') {
-                            purchaseOrderWrapper.show();
+
+                            // Re-enable semua field yang sebelumnya di-disable
+                            supplierDisabledFields.forEach(function(name) {
+                                $(form + ' [name="' + name + '"]').prop('disabled', false);
+                                $(form + ' [name="' + name + '"]').closest('.form-group').find('select').prop('disabled', false);
+                                $(form + ' [name="' + name + '"]').closest('.form-group').css('opacity', '1');
+                            });
+
+                        } else if (type === 'App\\Models\\InvoiceClient') {
+                            // Tampilkan Invoice Supplier, sembunyikan PO Client & PO Supplier
+                            supplierInvoiceWrapper.show();
                             workCodeWrapper.hide();
+                            purchaseOrderWrapper.hide();
                             $(form + ' select[name="work_code"]').val(null).trigger('change');
-                            $(form + ' input[name="orderable_type"]').val('App\\Models\\PurchaseOrder');
+                            $(form + ' select[name="purchase_order_id"]').val(null).trigger('change');
+                            $(form + ' input[name="orderable_type"]').val('App\\Models\\InvoiceClient');
+
+                            // Disable field yang tidak relevan untuk Supplier
+                            supplierDisabledFields.forEach(function(name) {
+                                $(form + ' [name="' + name + '"]').prop('disabled', true);
+                                $(form + ' [name="' + name + '"]').closest('.form-group').find('select').prop('disabled', true);
+                                $(form + ' [name="' + name + '"]').closest('.form-group').css('opacity', '0.5');
+                            });
+
                         } else {
                             workCodeWrapper.hide();
                             purchaseOrderWrapper.hide();
+                            supplierInvoiceWrapper.hide();
                         }
                     }
 
@@ -106,7 +139,7 @@
                         $(form + ' input[name="orderable_id"]').val(sourceId);
                         $(form + ' input[name="orderable_type"]').val(sourceType);
 
-                        var ajaxType = (sourceType === 'App\\Models\\PurchaseOrder' && data_profit_lost.client_po_id) ? 'App\\Models\\ClientPo' : sourceType;
+                        var ajaxType = (sourceType === 'App\\Models\\InvoiceClient' && data_profit_lost.client_po_id) ? 'App\\Models\\ClientPo' : sourceType;
 
                         $.ajax({
                             url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + sourceId + "&type=" + ajaxType,
@@ -149,19 +182,19 @@
                         var id = result.id;
                         $(form+' input[name="po_number"]').val(result.po_number);
                         $(form+' input[name="orderable_id"]').val(id);
-                        $(form+' input[name="orderable_type"]').val('App\\Models\\ClientPo');
+                        $(form+' input[name="orderable_type"]').val('App\\Models\\InvoiceClient');
                         $(form+' input[name="voucher_id"]').val(result.voucher_id);
-                        
-                        $.ajax({
-                            url: "{{ url($crud->route) }}/get_source_selected_ajax?id=" + id + "&type=App\\Models\\ClientPo",
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function (data) {
-                                instance.data = data;
-                                setInputNumber(form+ ' #price_voucher_masked', data.price_voucher);
-                                instance.logicFormula(data);
-                            }
-                        })
+                        // Reset invoice saat PO Supplier berubah
+                        $(form+' select[name="supplier_invoice_id"]').val(null).trigger('change');
+                    });
+
+                    // Handler untuk pencarian Invoice Supplier (berdasarkan kode/no. invoice)
+                    $(form+ ' select[name="supplier_invoice_id"]').off('select2:select').on('select2:select', function (e) {
+                        var result = e.params.data;
+                        var id = result.id;
+                        // Set orderable ke InvoiceClient
+                        $(form+' input[name="orderable_id"]').val(id);
+                        $(form+' input[name="orderable_type"]').val('App\\Models\\InvoiceClient');
                     });
 
                     $(form+' #price_after_year_masked').on('keyup', function(){

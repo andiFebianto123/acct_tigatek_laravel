@@ -7,6 +7,7 @@ use App\Models\Account;
 use App\Models\Setting;
 use App\Models\Voucher;
 use App\Models\ClientPo;
+use App\Models\PurchaseOrder;
 use App\Models\JournalEntry;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Exports\ExportExcel;
@@ -93,134 +94,244 @@ class ProfitLostAccountCrudController extends CrudController
                 'NON RUTIN' => 'NON RUTIN',
             ]);
 
+        // -------------------------------------------------------
+        // Card dengan 2 Tab: Proyek & Supplier
+        // -------------------------------------------------------
         $this->card->addCard([
             'name' => 'project',
             'line' => 'bottom',
-            'view' => 'crud::components.datatable-origin',
+            'view' => 'crud::components.card-tab',
             'params' => [
-                'title' => trans('backpack::crud.profit_lost.project_income_statement'),
-                'crud_custom' => $this->crud,
-                'columns' => [
+                'name' => 'project',
+                'tabs' => [
+                    // Tab 1: Proyek (kolom sama seperti sebelumnya)
                     [
-                        'name'      => 'row_number',
-                        'type'      => 'row_number',
-                        'label'     => 'No',
-                        'orderable' => false,
+                        'name'   => 'project',
+                        'label'  => trans('backpack::crud.profit_lost.project_income_statement'),
+                        'active' => true,
+                        'view'   => 'crud::components.datatable',
+                        'params' => [
+                            'crud_custom'   => $this->crud,
+                            'filter'        => true,
+                            'filter_table'  => collect($this->crud->filters())->slice(0, 2),
+                            'columns'       => [
+                                [
+                                    'name'      => 'row_number',
+                                    'type'      => 'row_number',
+                                    'label'     => 'No',
+                                    'orderable' => false,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.client_po_id'),
+                                    'type'      => 'select',
+                                    'name'      => 'client_po_id',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.client_po.column.reimburse_type'),
+                                    'type'      => 'text',
+                                    'name'      => 'reimburse_type',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.invoice_client.column.invoice_number'),
+                                    'type'      => 'text',
+                                    'name'      => 'invoice_number',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.client_po.column.job_name'),
+                                    'type'      => 'text',
+                                    'name'      => 'job_name',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
+                                    'type'      => 'text',
+                                    'name'      => 'job_value',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.client_po.column.job_value_include_ppn'),
+                                    'type'      => 'text',
+                                    'name'      => 'job_value_include_ppn',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.client_po.column.price_after_year'),
+                                    'type'      => 'text',
+                                    'name'      => 'price_after_year',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.price_voucher'),
+                                    'type'      => 'text',
+                                    'name'      => 'price_voucher',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.price_small_cash'),
+                                    'type'      => 'text',
+                                    'name'      => 'price_small_cash',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.price_total'),
+                                    'type'      => 'text',
+                                    'name'      => 'price_total',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.profit_lost_po'),
+                                    'type'      => 'text',
+                                    'name'      => 'profit_lost_po',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.load_general_value'),
+                                    'type'      => 'text',
+                                    'name'      => 'load_general_value',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.profit_lost_final'),
+                                    'type'      => 'text',
+                                    'name'      => 'profit_lost_final',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.category'),
+                                    'type'      => 'text',
+                                    'name'      => 'category',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.invoice_date'),
+                                    'type'      => 'date-multiple',
+                                    'name'      => 'invoice_date',
+                                    'format'    => 'DD/MM/YYYY',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'name'  => 'action',
+                                    'type'  => 'action',
+                                    'label' => trans('backpack::crud.actions'),
+                                ],
+                            ],
+                            'route'               => url($this->crud->route . '/search?type=project&tab=project'),
+                            'route_export_pdf'    => url($this->crud->route . '/export-pdf?type=project&tab=project'),
+                            'title_export_pdf'    => 'Laporan-Laba-Rugi-Proyek.pdf',
+                            'route_export_excel'  => url($this->crud->route . '/export-excel?type=project&tab=project'),
+                            'title_export_excel'  => 'Laporan-Laba-Rugi-Proyek.xlsx',
+                        ],
                     ],
+
+                    // Tab 2: Supplier (kolom FIFO)
                     [
-                        'label' => trans('backpack::crud.profit_lost.column.client_po_id'),
-                        'type'      => 'select',
-                        'name'      => 'client_po_id',
-                        'orderable' => true,
+                        'name'   => 'supplier',
+                        'label'  => trans('backpack::crud.profit_lost.supplier_income_statement') ?? 'Laporan Laba Rugi Supplier',
+                        'active' => false,
+                        'view'   => 'crud::components.datatable',
+                        'params' => [
+                            'crud_custom' => $this->crud,
+                            'filter'      => false,
+                            'columns'     => [
+                                [
+                                    'name'      => 'row_number',
+                                    'type'      => 'row_number',
+                                    'label'     => 'No',
+                                    'orderable' => false,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
+                                    'type'      => 'text',
+                                    'name'      => 'supplier_invoice_number',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
+                                    'type'      => 'date',
+                                    'name'      => 'supplier_date',
+                                    'format'    => 'DD/MM/YYYY',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.supplier_name') ?? 'Klien / Supplier',
+                                    'type'      => 'text',
+                                    'name'      => 'supplier_name',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Qty Terjual',
+                                    'type'      => 'number',
+                                    'name'      => 'total_qty_sold',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Total Jual (Revenue)',
+                                    'type'      => 'text',
+                                    'name'      => 'sell_value',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Avg Jual Satuan',
+                                    'type'      => 'text',
+                                    'name'      => 'avg_harga_jual_satuan_base',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Total Beli (HPP FIFO)',
+                                    'type'      => 'text',
+                                    'name'      => 'purchase_value',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Avg Beli Satuan',
+                                    'type'      => 'text',
+                                    'name'      => 'avg_harga_beli_satuan_base',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Laba Kotor',
+                                    'type'      => 'text',
+                                    'name'      => 'profit_lost_supplier',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Margin (%)',
+                                    'type'      => 'text',
+                                    'name'      => 'margin_percent',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => 'Status Pengiriman',
+                                    'type'      => 'text',
+                                    'name'      => 'delivery_status',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'name'  => 'action',
+                                    'type'  => 'action',
+                                    'label' => trans('backpack::crud.actions'),
+                                ],
+                            ],
+                            'route'               => url($this->crud->route . '/search?type=supplier&tab=supplier'),
+                            'route_export_pdf'    => url($this->crud->route . '/export-pdf?type=supplier&tab=supplier'),
+                            'title_export_pdf'    => 'Laporan-Laba-Rugi-Supplier.pdf',
+                            'route_export_excel'  => url($this->crud->route . '/export-excel?type=supplier&tab=supplier'),
+                            'title_export_excel'  => 'Laporan-Laba-Rugi-Supplier.xlsx',
+                        ],
                     ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.reimburse_type'),
-                        'type'      => 'text',
-                        'name'      => 'reimburse_type',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.invoice_client.column.invoice_number'),
-                        'type'      => 'text',
-                        'name'      => 'invoice_number',
-                        'orderable' => true,
-                    ],
-                    // [
-                    //     'label'  => trans('backpack::crud.client_po.column.po_number'),
-                    //     'type'      => 'text',
-                    //     'name'      => 'po_number',
-                    //     'orderable' => true,
-                    // ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.job_name'),
-                        'type'      => 'text',
-                        'name'      => 'job_name',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
-                        'type'      => 'text',
-                        'name'      => 'job_value',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.job_value_include_ppn'),
-                        'type'      => 'text',
-                        'name'      => 'job_value_include_ppn',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.client_po.column.price_after_year'),
-                        'type'      => 'text',
-                        'name'      => 'price_after_year',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.price_voucher'),
-                        'type'      => 'text',
-                        'name'      => 'price_voucher',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.price_small_cash'),
-                        'type'      => 'text',
-                        'name'      => 'price_small_cash',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.price_total'),
-                        'type'      => 'text',
-                        'name'      => 'price_total',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.profit_lost_po'),
-                        'type'      => 'text',
-                        'name'      => 'profit_lost_po',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.load_general_value'),
-                        'type'      => 'text',
-                        'name'      => 'load_general_value',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.profit_lost_final'),
-                        'type'      => 'text',
-                        'name'      => 'profit_lost_final',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label'  => trans('backpack::crud.profit_lost.column.category'),
-                        'type'      => 'text',
-                        'name'      => 'category',
-                        'orderable' => true,
-                    ],
-                    [
-                        'label' => trans('backpack::crud.profit_lost.column.invoice_date'),
-                        'type' => 'date-multiple',
-                        'name' => 'invoice_date',
-                        'format' => 'DD/MM/YYYY',
-                        'orderable' => true,
-                    ],
-                    [
-                        'name' => 'action',
-                        'type' => 'action',
-                        'label' =>  trans('backpack::crud.actions'),
-                    ]
                 ],
-                'filter_table' => collect($this->crud->filters())->slice(0, 2),
-                'route' => url($this->crud->route . '/search?type=project'),
-            ]
+            ],
         ]);
 
         $this->card->addCard([
-            'name' => 'profit-lost-plugin',
-            'line' => 'top',
-            'view' => 'crud::components.profit-lost-plugin',
+            'name'        => 'profit-lost-plugin',
+            'line'        => 'top',
+            'view'        => 'crud::components.profit-lost-plugin',
             'parent_view' => 'crud::components.filter-parent',
-            'params' => [],
+            'params'      => [],
         ]);
     }
 
@@ -306,7 +417,7 @@ class ProfitLostAccountCrudController extends CrudController
             'line' => 'top',
             'view' => 'crud::components.detail-project-profit-lost',
             'params' => [
-                'data' => $profitLost,
+                'data'   => $profitLost,
                 'report' => $this->total_detail_project($id),
             ],
             'wrapper' => [
@@ -391,6 +502,16 @@ class ProfitLostAccountCrudController extends CrudController
         return response()->json(['results' => $results]);
     }
 
+    /**
+     * Endpoint baru: pencarian invoice by kode invoice untuk tipe Supplier
+     */
+    public function select2SupplierInvoice()
+    {
+        $q = request()->q;
+        $results = $this->repository->getSelect2SupplierInvoice($q);
+        return response()->json(['results' => $results]);
+    }
+
     public function get_source_selected_ajax()
     {
         $id = request()->id;
@@ -439,133 +560,150 @@ class ProfitLostAccountCrudController extends CrudController
             }
 
             CRUD::addField([
-                'name' => 'orderable_type',
-                'label' => 'Jenis Laba Rugi',
-                'type' => 'select2_array',
-                'options' => [
-                    'App\\Models\\ClientPo' => 'Subkon',
-                    'App\\Models\\PurchaseOrder' => 'Supplier',
+                'name'        => 'orderable_type',
+                'label'       => 'Jenis Laba Rugi',
+                'type'        => 'select2_array',
+                'options'     => [
+                    'App\\Models\\ClientPo'      => 'Subkon',
+                    'App\\Models\\InvoiceClient' => 'Supplier',
                 ],
                 'allows_null' => false,
-                'default' => 'App\\Models\\ClientPo',
-                'wrapper' => ['class' => 'form-group col-md-6'],
-                'attributes' => $category_attribute,
+                'default'     => 'App\\Models\\ClientPo',
+                'wrapper'     => ['class' => 'form-group col-md-6'],
+                'attributes'  => $category_attribute,
             ]);
 
+            // Field PO Client (untuk tipe Subkon)
             CRUD::addField([
-                'name' => 'work_code',
-                'label' => 'Invoice',
-                'type' => 'select2_ajax_custom',
-                'attribute' => 'invoice_number_display',
-                'entity' => 'clientPo',
-                'model' => 'App\\Models\\ClientPo',
-                'data_source' => backpack_url('finance-report/profit-lost/select2-po'),
-                'wrapper' => ['class' => 'form-group col-md-6'],
-                'attributes' => $job_code_prefix_value,
-                'dependencies' => ['company_id'],
+                'name'                  => 'work_code',
+                'label'                 => 'Invoice',
+                'type'                  => 'select2_ajax_custom',
+                'attribute'             => 'invoice_number_display',
+                'entity'                => 'clientPo',
+                'model'                 => 'App\\Models\\ClientPo',
+                'data_source'           => backpack_url('finance-report/profit-lost/select2-po'),
+                'wrapper'               => ['class' => 'form-group col-md-6'],
+                'attributes'            => $job_code_prefix_value,
+                'dependencies'          => ['company_id'],
                 'include_all_form_fields' => true,
             ]);
 
+            // Field PO Supplier (hanya tampil saat orderable_type = PurchaseOrder)
             CRUD::addField([
-                'name' => 'purchase_order_id',
-                'label' => trans('backpack::crud.profit_lost.fields.po_client_supplier.label'),
-                'type' => 'select2_ajax_custom',
-                'attribute' => 'po_number',
-                'entity' => 'clientPo',
+                'name'        => 'purchase_order_id',
+                'label'       => trans('backpack::crud.profit_lost.fields.po_client_supplier.label'),
+                'type'        => 'select2_ajax_custom',
+                'attribute'   => 'po_number',
+                'entity'      => 'clientPo',
                 'data_source' => backpack_url('finance-report/profit-lost/select2-supplier-po'),
-                'wrapper' => ['class' => 'form-group col-md-6'],
-                'attributes' => $job_code_prefix_value,
+                'wrapper'     => ['class' => 'form-group col-md-6'],
+                'attributes'  => $job_code_prefix_value,
                 'dependencies' => ['company_id'],
                 'include_all_form_fields' => true,
             ]);
 
+            // Field Invoice Supplier (hanya tampil saat orderable_type = PurchaseOrder)
+            // Digunakan untuk mencari invoice by kode invoice
             CRUD::addField([
-                'name' => 'price_after_year',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_after_year.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
-                'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => ['placeholder' => '000.000']
+                'name'        => 'supplier_invoice_id',
+                'label'       => trans('backpack::crud.profit_lost.fields.supplier_invoice.label') ?? 'No. Invoice Supplier',
+                'type'        => 'select2_ajax_custom',
+                'attribute'   => 'invoice_number',
+                'entity'      => 'purchaseOrder',
+                'data_source' => backpack_url('finance-report/profit-lost/select2-supplier-invoice'),
+                'wrapper'     => ['class' => 'form-group col-md-6'],
+                'attributes'  => $job_code_prefix_value,
+                'dependencies' => ['company_id', 'purchase_order_id'],
+                'include_all_form_fields' => true,
             ]);
 
             CRUD::addField([
-                'name' => 'price_voucher',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_voucher.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
+                'name'         => 'price_after_year',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_after_year.label'),
+                'type'         => 'mask',
+                'mask'         => '000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => array_merge(['placeholder' => '000.000'], $price_voucher_attribute)
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => ['placeholder' => '000.000']
             ]);
 
             CRUD::addField([
-                'name' => 'price_small_cash',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_small_cash.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
+                'name'         => 'price_voucher',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_voucher.label'),
+                'type'         => 'mask',
+                'mask'         => '000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => array_merge(['placeholder' => '000.000'], $price_small_cash_attribute)
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => array_merge(['placeholder' => '000.000'], $price_voucher_attribute)
             ]);
 
             CRUD::addField([
-                'name' => 'price_total',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_total.label'),
-                'type' => 'text',
-                'mask' => '000.000.000.000.000.000',
+                'name'         => 'price_small_cash',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_small_cash.label'),
+                'type'         => 'mask',
+                'mask'         => '000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => array_merge(['placeholder' => '000.000'], $readonly)
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => array_merge(['placeholder' => '000.000'], $price_small_cash_attribute)
             ]);
 
             CRUD::addField([
-                'name' => 'price_profit_lost_po',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_profit_lost_po.label'),
-                'type' => 'text',
-                'mask' => 'Z000.000.000.000.000.000',
+                'name'         => 'price_total',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_total.label'),
+                'type'         => 'text',
+                'mask'         => '000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => array_merge(['placeholder' => '000.000'], $readonly)
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => array_merge(['placeholder' => '000.000'], $readonly)
             ]);
 
             CRUD::addField([
-                'name' => 'price_general',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_general.label'),
-                'type' => 'mask',
-                'mask' => '000.000.000.000.000.000',
+                'name'         => 'price_profit_lost_po',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_profit_lost_po.label'),
+                'type'         => 'text',
+                'mask'         => 'Z000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => ['placeholder' => '000.000']
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => array_merge(['placeholder' => '000.000'], $readonly)
             ]);
 
             CRUD::addField([
-                'name' => 'price_prift_lost_final',
-                'label' =>  trans('backpack::crud.profit_lost.fields.price_prift_lost_final.label'),
-                'type' => 'text',
-                'mask' => 'Z000.000.000.000.000.000',
+                'name'         => 'price_general',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_general.label'),
+                'type'         => 'mask',
+                'mask'         => '000.000.000.000.000.000',
                 'mask_options' => ['reverse' => true],
-                'prefix' => $settings?->currency_symbol ?: 'Rp.',
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-                'attributes' => array_merge(['placeholder' => '000.000'], $readonly)
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => ['placeholder' => '000.000']
             ]);
 
             CRUD::addField([
-                'label'     => trans('backpack::crud.client_po.column.category'),
-                'type'      => 'select2_array',
-                'name'      => 'category',
-                'options'   => [
-                    '' => trans('backpack::crud.voucher.field.payment_type.placeholder'),
-                    'RUTIN' => 'RUTIN',
-                    'NON RUTIN' => 'NON RUTIN',
+                'name'         => 'price_prift_lost_final',
+                'label'        => trans('backpack::crud.profit_lost.fields.price_prift_lost_final.label'),
+                'type'         => 'text',
+                'mask'         => 'Z000.000.000.000.000.000',
+                'mask_options' => ['reverse' => true],
+                'prefix'       => $settings?->currency_symbol ?: 'Rp.',
+                'wrapper'      => ['class' => 'form-group col-md-6'],
+                'attributes'   => array_merge(['placeholder' => '000.000'], $readonly)
+            ]);
+
+            CRUD::addField([
+                'label'      => trans('backpack::crud.client_po.column.category'),
+                'type'       => 'select2_array',
+                'name'       => 'category',
+                'options'    => [
+                    ''           => trans('backpack::crud.voucher.field.payment_type.placeholder'),
+                    'RUTIN'      => 'RUTIN',
+                    'NON RUTIN'  => 'NON RUTIN',
                 ],
-                'wrapper' => ['class' => 'form-group col-md-6'],
+                'wrapper'    => ['class' => 'form-group col-md-6'],
                 'attributes' => $category_attribute
             ]);
 
@@ -583,10 +721,10 @@ class ProfitLostAccountCrudController extends CrudController
             }
 
             CRUD::addField([
-                'label'     => trans('backpack::crud.profit_lost.fields.header_id.label'),
-                'type'      => 'select2_array',
-                'name'      => 'header_id',
-                'options'   =>  $optionHeader,
+                'label'   => trans('backpack::crud.profit_lost.fields.header_id.label'),
+                'type'    => 'select2_array',
+                'name'    => 'header_id',
+                'options' => $optionHeader,
                 'wrapper' => ['class' => 'form-group col-md-12']
             ]);
 
@@ -598,8 +736,8 @@ class ProfitLostAccountCrudController extends CrudController
                 'model'       => 'App\Models\Account',
                 'attribute'   => "name",
                 'data_source' => backpack_url('finance-report/profit-lost/select2-account'),
-                'wrapper'   => ['class' => 'form-group col-md-12'],
-                'attributes' => ['placeholder' => trans('backpack::crud.voucher.field.account_id.placeholder')]
+                'wrapper'     => ['class' => 'form-group col-md-12'],
+                'attributes'  => ['placeholder' => trans('backpack::crud.voucher.field.account_id.placeholder')]
             ]);
         }
     }
@@ -618,7 +756,11 @@ class ProfitLostAccountCrudController extends CrudController
             if (request('type') == 'project') {
                 $dto = ProjectProfitLostSaveData::fromRequest(request());
                 $item = $this->service->storeProjectProfitLost($dto);
-                $eventName = 'project_create_success';
+                if(request('orderable_type') == "App\\Models\\InvoiceClient"){
+                    $eventName = 'supplier_create_success';
+                }else{
+                    $eventName = 'project_create_success';
+                }
             } else {
                 $dto = ConsolidateItemSaveData::fromRequest(request());
                 $item = $this->service->storeConsolidateItem($dto);
@@ -629,8 +771,8 @@ class ProfitLostAccountCrudController extends CrudController
 
             return response()->json([
                 'success' => true,
-                'data' => $item,
-                'events' => [$eventName => $item]
+                'data'    => $item,
+                'events'  => [$eventName => $item]
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'success' => false, 'error' => $e->getMessage()]);
@@ -666,8 +808,8 @@ class ProfitLostAccountCrudController extends CrudController
 
             return response()->json([
                 'success' => true,
-                'data' => $item,
-                'events' => $events
+                'data'    => $item,
+                'events'  => $events
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => false, 'success' => false, 'error' => $e->getMessage()]);
@@ -716,6 +858,9 @@ class ProfitLostAccountCrudController extends CrudController
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
 
         if ($request->has('type') && $request->type == 'project') {
+            // --------------------------------------------------
+            // Tab: Proyek
+            // --------------------------------------------------
             CRUD::setModel(ProjectProfitLost::class);
             $dto = ProfitLostFilterData::fromRequest($request);
             $this->repository->applyListQuery($this->crud->query, $dto);
@@ -733,11 +878,11 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'      => 'row_number',
                 'label'     => 'No',
                 'orderable' => false,
-                'wrapper' => ['element' => 'strong']
+                'wrapper'   => ['element' => 'strong']
             ])->makeFirstColumn();
 
             CRUD::column([
-                'label' => '',
+                'label'  => '',
                 'type'      => 'closure',
                 'name'      => 'client_po_id',
                 'function' => function ($entry) {
@@ -755,7 +900,6 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::column(['label'  => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
             CRUD::column(['label'  => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
-            // CRUD::column(['label'  => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label'  => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
 
             CRUD::column([
@@ -855,7 +999,160 @@ class ProfitLostAccountCrudController extends CrudController
                 'format' => 'DD/MM/YYYY',
                 'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('client_po.invoice_date', $columnDirection); }
             ]);
+
+        } elseif ($request->has('type') && $request->type == 'supplier') {
+            // --------------------------------------------------
+            // Tab: Supplier (Perhitungan FIFO Lengkap)
+            // --------------------------------------------------
+            CRUD::setModel(ProjectProfitLost::class);
+            $dto = ProfitLostFilterData::fromRequest($request);
+            $this->repository->applySupplierListQuery($this->crud->query, $dto);
+
+            CRUD::removeButton('update');
+            CRUD::removeButton('delete');
+            CRUD::removeButton('show');
+
+            CRUD::addButtonFromView('line', 'delete-profit-lost-project', 'delete-profit-lost-project', 'beginning');
+            CRUD::addButtonFromView('line', 'update-profit-lost', 'update-profit-lost', 'beginning');
+
+            $this->crud->addColumn([
+                'name'      => 'row_number',
+                'type'      => 'row_number',
+                'label'     => 'No',
+                'orderable' => false,
+                'wrapper'   => ['element' => 'strong']
+            ])->makeFirstColumn();
+
+            // No. Invoice Supplier
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
+                'name'  => 'supplier_invoice_number',
+                'type'  => 'text',
+            ]);
+
+            // Tanggal Invoice
+            CRUD::column([
+                'label'  => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
+                'name'   => 'supplier_date',
+                'type'   => 'date',
+                'format' => 'DD/MM/YYYY',
+            ]);
+
+            // Nama Klien / Supplier
+            CRUD::column([
+                'label'  => trans('backpack::crud.profit_lost.column.supplier_name') ?? 'Klien / Supplier',
+                'name'   => 'supplier_name',
+                'type'   => 'closure',
+                'function' => function ($entry) {
+                    return $entry->supplier_name ?? '-';
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('c.name', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+
+            // Total Qty Terjual
+            CRUD::column([
+                'label' => 'Qty Terjual',
+                'name'  => 'total_qty_sold',
+                'type'  => 'number',
+            ]);
+
+            // Total Jual (Revenue - Exclude PPN IDR Base)
+            CRUD::column([
+                'label'    => 'Total Jual (Revenue)',
+                'name'     => 'sell_value',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatRupiahWithCurrency($entry->sell_value ?? 0);
+                },
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.total_harga_jual_base', $columnDirection);
+                }
+            ]);
+
+            // Rata-rata Harga Jual Satuan
+            CRUD::column([
+                'label'    => 'Avg Jual Satuan',
+                'name'     => 'avg_harga_jual_satuan_base',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatRupiahWithCurrency($entry->avg_harga_jual_satuan_base ?? 0);
+                },
+            ]);
+
+            // Total Harga Beli / Modal HPP FIFO
+            CRUD::column([
+                'label'    => 'Total Beli (HPP FIFO)',
+                'name'     => 'purchase_value',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatRupiahWithCurrency($entry->purchase_value ?? 0);
+                },
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.total_harga_beli_base', $columnDirection);
+                }
+            ]);
+
+            // Rata-rata Harga Beli Modal Satuan
+            CRUD::column([
+                'label'    => 'Avg Beli Satuan',
+                'name'     => 'avg_harga_beli_satuan_base',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatRupiahWithCurrency($entry->avg_harga_beli_satuan_base ?? 0);
+                },
+            ]);
+
+            // Laba Kotor (Revenue - HPP FIFO)
+            CRUD::column([
+                'label'    => 'Laba Kotor',
+                'name'     => 'profit_lost_supplier',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    $value = $entry->profit_lost_supplier ?? 0;
+                    $formatted = CustomHelper::formatRupiahWithCurrency(abs($value));
+                    if ($value < 0) {
+                        return '<span class="text-danger">(' . $formatted . ')</span>';
+                    }
+                    return '<span class="text-success">' . $formatted . '</span>';
+                },
+                'escaped' => false,
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.laba_kotor_base', $columnDirection);
+                }
+            ]);
+
+            // Persentase Margin Laba Kotor (%)
+            CRUD::column([
+                'label'    => 'Margin (%)',
+                'name'     => 'margin_percent',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    $margin = $entry->margin_percent ?? 0;
+                    $badgeClass = $margin >= 0 ? 'bg-success' : 'bg-danger';
+                    return '<span class="badge ' . $badgeClass . '">' . number_format($margin, 2, ',', '.') . '%</span>';
+                },
+                'escaped' => false,
+            ]);
+
+            // Status Pengiriman (FIFO Posted)
+            CRUD::column([
+                'label'    => 'Status Pengiriman',
+                'name'     => 'delivery_status',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    $status = $entry->delivery_status ?? '-';
+                    $badge = str_contains($status, 'Dikirim') ? 'bg-info' : 'bg-secondary';
+                    return '<span class="badge ' . $badge . '">' . e($status) . '</span>';
+                },
+                'escaped' => false,
+            ]);
+
         } else {
+            // --------------------------------------------------
+            // Default: Akun Laba Rugi Konsolidasi
+            // --------------------------------------------------
             CRUD::removeButton('create');
             CRUD::removeButton('update');
             CRUD::removeButton('delete');
@@ -944,7 +1241,6 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::column(['label' => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
-            // CRUD::column(['label' => trans('backpack::crud.client_po.column.po_number'), 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
 
             CRUD::column([
@@ -1012,6 +1308,89 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::column(['label' => trans('backpack::crud.profit_lost.column.category'), 'type' => 'text', 'name' => 'category']);
             CRUD::column(['label' => trans('backpack::crud.profit_lost.column.invoice_date'), 'type' => 'text', 'name' => 'invoice_date']);
+
+        } elseif ($request->has('type') && $request->type == 'supplier') {
+            // --------------------------------------------------
+            // Export Tab Supplier (Perhitungan FIFO)
+            // --------------------------------------------------
+            CRUD::setModel(ProjectProfitLost::class);
+            $dto = ProfitLostFilterData::fromRequest($request);
+            $this->repository->applySupplierListQuery($this->crud->query, $dto);
+
+            $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
+
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
+                'name'  => 'supplier_invoice_number',
+                'type'  => 'text',
+            ]);
+
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
+                'name'  => 'supplier_date',
+                'type'  => 'text',
+            ]);
+
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.supplier_name') ?? 'Klien / Supplier',
+                'name'  => 'supplier_name',
+                'type'  => 'closure',
+                'function' => function ($entry) { return $entry->supplier_name ?? '-'; }
+            ]);
+
+            CRUD::column([
+                'label' => 'Qty Terjual',
+                'name'  => 'total_qty_sold',
+                'type'  => 'text',
+            ]);
+
+            CRUD::column([
+                'label' => 'Total Jual (Revenue)',
+                'name'  => 'sell_value',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->sell_value ?? 0); }
+            ]);
+
+            CRUD::column([
+                'label' => 'Avg Jual Satuan',
+                'name'  => 'avg_harga_jual_satuan_base',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->avg_harga_jual_satuan_base ?? 0); }
+            ]);
+
+            CRUD::column([
+                'label' => 'Total Beli (HPP FIFO)',
+                'name'  => 'purchase_value',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->purchase_value ?? 0); }
+            ]);
+
+            CRUD::column([
+                'label' => 'Avg Beli Satuan',
+                'name'  => 'avg_harga_beli_satuan_base',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->avg_harga_beli_satuan_base ?? 0); }
+            ]);
+
+            CRUD::column([
+                'label' => 'Laba Kotor',
+                'name'  => 'profit_lost_supplier',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->profit_lost_supplier ?? 0); }
+            ]);
+
+            CRUD::column([
+                'label' => 'Margin (%)',
+                'name'  => 'margin_percent',
+                'type'  => 'closure',
+                'function' => function ($entry) { return number_format($entry->margin_percent ?? 0, 2, ',', '.') . '%'; }
+            ]);
+
+            CRUD::column([
+                'label' => 'Status Pengiriman',
+                'name'  => 'delivery_status',
+                'type'  => 'text',
+            ]);
         }
     }
 
@@ -1079,14 +1458,14 @@ class ProfitLostAccountCrudController extends CrudController
 
         $pdf = Pdf::loadView('exports.table-pdf', [
             'columns' => $columns,
-            'items' => $all_items,
-            'title' => "DAFTAR LAPORAN LABA RUGI PROYEK"
+            'items'   => $all_items,
+            'title'   => "DAFTAR LAPORAN LABA RUGI PROYEK"
         ])->setPaper('A4', 'landscape');
 
         $fileName = 'laba_rugi_proyek_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) { echo $pdf->output(); }, $fileName, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
     }
@@ -1117,7 +1496,7 @@ class ProfitLostAccountCrudController extends CrudController
         return response()->streamDownload(function () use ($columns, $all_items) {
             echo Excel::raw(new ExportExcel($columns, $all_items), \Maatwebsite\Excel\Excel::XLSX);
         }, $name, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
     }
@@ -1129,13 +1508,13 @@ class ProfitLostAccountCrudController extends CrudController
 
         $pdf = Pdf::loadView('exports.profit-lost-detail', [
             'profit_lost' => $profitLost,
-            'report' => $this->total_detail_project($id)
+            'report'      => $this->total_detail_project($id)
         ])->setPaper('A4', 'portrait');
 
         $fileName = 'laporan-laba-rugi_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) { echo $pdf->output(); }, $fileName, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
     }
@@ -1151,7 +1530,7 @@ class ProfitLostAccountCrudController extends CrudController
         return response()->streamDownload(function () use ($profitLost, $report) {
             echo Excel::raw(new ProfitLostExcel($profitLost, $report), \Maatwebsite\Excel\Excel::XLSX);
         }, $name, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
     }
@@ -1165,7 +1544,7 @@ class ProfitLostAccountCrudController extends CrudController
         $fileName = 'laba-rugi-konsolidasi_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) { echo $pdf->output(); }, $fileName, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
     }
@@ -1189,7 +1568,7 @@ class ProfitLostAccountCrudController extends CrudController
         return response()->streamDownload(function () use ($data) {
             echo Excel::raw(new ExportProfitLostConsolidation($data), \Maatwebsite\Excel\Excel::XLSX);
         }, $name, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $name . '"',
         ]);
     }

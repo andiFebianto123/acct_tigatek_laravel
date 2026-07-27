@@ -255,6 +255,7 @@ Route::group([
         Route::post('select2-account-id', [AssetCrudController::class, 'select2account']);
         Route::post('profit-lost/select2-po', [ProfitLostAccountCrudController::class, 'select2Po']);
         Route::post('profit-lost/select2-supplier-po', [ProfitLostAccountCrudController::class, 'select2SupplierPo']);
+        Route::post('profit-lost/select2-supplier-invoice', [ProfitLostAccountCrudController::class, 'select2SupplierInvoice']);
         Route::post('profit-lost/select2-account', [ProfitLostAccountCrudController::class, 'select2Account']);
         Route::get('profit-lost/get_client_selected_ajax', [ProfitLostAccountCrudController::class, 'get_client_selected_ajax']);
         Route::get('profit-lost/get_source_selected_ajax', [ProfitLostAccountCrudController::class, 'get_source_selected_ajax']);

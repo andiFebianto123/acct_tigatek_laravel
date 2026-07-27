@@ -1279,6 +1279,7 @@ return [
         'empty_account' => 'Belum ada akun',
         'consolidation_income_statement' => 'Laporan Laba Rugi Konsolidasi',
         'project_income_statement' => 'Laporan Laba Rugi Proyek',
+        'supplier_income_statement' => 'Laporan Laba Rugi Supplier',
         'choose_create' => [
             'consolidation_account' => 'Akun Laba Rugi Konsolidasi',
             'project_account' => 'Laba Rugi Proyek Proyek',
@@ -1287,6 +1288,9 @@ return [
         'fields' => [
             'po_client_supplier' => [
                 'label' => 'PO Client Supplier',
+            ],
+            'supplier_invoice' => [
+                'label' => 'No. Invoice Supplier',
             ],
             'no_po' => [
                 'label' => 'No PO',
@@ -1377,6 +1381,12 @@ return [
             'profit_lost_final' => 'Laba/Rugi Akhir',
             'category' => 'Kategori',
             'invoice_date' => 'Tgl Invoice',
+            'supplier_name' => 'Nama Supplier',
+            'supplier_po_number' => 'No. PO Supplier',
+            'supplier_invoice_number' => 'No. Invoice',
+            'purchase_value' => 'Nilai Beli (PO)',
+            'sell_value' => 'Nilai Jual (Invoice)',
+            'profit_lost_supplier' => 'Laba/Rugi',
         ],
         'detail' => [
             'project_profit_and_loss_report' => 'Laporan Laba Rugi Proyek',
