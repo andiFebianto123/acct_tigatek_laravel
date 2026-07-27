@@ -502,6 +502,222 @@
                 }
             }
         });
+        /* =========================================================================
+         * MODUL 5: DYNAMIC DEVICE STOCK SELECT2 MANAGER
+         * Mengubah field `name` pada repeatable invoice item menjadi Select2 AJAX
+         * saat type_device = 'App\Models\DeviceStock' (Persediaan), dan mengembalikan
+         * ke text input saat type_device lainnya dipilih.
+         * ========================================================================= */
+        if (typeof window.InvoiceDeviceStockManager === 'undefined') {
+            window.InvoiceDeviceStockManager = class InvoiceDeviceStockManager {
+                constructor(formSelector) {
+                    this.form = formSelector;
+                    this.ajaxUrl = '{{ backpack_url("invoice-client/select2-device-stock") }}';
+                    this.deviceStockType = 'App\\Models\\DeviceStock';
+                    this._isDeviceStock = false;
+                }
+
+                isDeviceStockMode() {
+                    return $(this.form + ' select[name="type_device"]').val() === this.deviceStockType;
+                }
+
+                getNameLabel(form) {
+                    // Ambil label dari row pertama (jika ada)
+                    var $firstLabel = $(form + ' .repeatable-element:first .form-group:first label');
+                    return ($firstLabel.length && $firstLabel.text().trim())
+                        ? $firstLabel.text().trim()
+                        : '{{ trans("backpack::crud.invoice_client.field.item.items.name.label") ?: "Nama Item" }}';
+                }
+
+                /**
+                 * Konversi semua text input `name` pada repeatable menjadi Select2 AJAX.
+                 */
+                activateDeviceStockMode() {
+                    var self = this;
+                    var form = this.form;
+                    this._isDeviceStock = true;
+
+                    $(form + ' .repeatable-element').each(function() {
+                        self._convertRowToSelect2($(this));
+                    });
+                }
+
+                /**
+                 * Kembalikan semua Select2 AJAX pada repeatable ke text input biasa.
+                 */
+                deactivateDeviceStockMode() {
+                    var self = this;
+                    var form = this.form;
+                    this._isDeviceStock = false;
+
+                    $(form + ' .repeatable-element').each(function() {
+                        self._convertRowToText($(this));
+                    });
+                }
+
+                /**
+                 * Ubah satu baris repeatable: text input → Select2 AJAX.
+                 */
+                _convertRowToSelect2($row) {
+                    var self = this;
+                    var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                    if (!$textInput.length) return;
+
+                    // Jika sudah ada Select2, skip
+                    if ($row.find('.invoice-device-select2').length) return;
+
+                    var currentVal = $textInput.val() || '';
+                    var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+
+                    // Sembunyikan text input asli
+                    $textInput.hide();
+
+                    // Buat elemen Select2
+                    var $select2Container = $('<div class="invoice-device-select2-wrapper" style="flex:1;min-width:0;"></div>');
+                    var $select2 = $('<select class="form-control invoice-device-select2" style="width:100%"></select>');
+
+                    // Jika sudah ada nilai lama (edit form), buat option awal
+                    if (currentVal && $hiddenDeviceStockId.val()) {
+                        var initialOption = new Option(currentVal, $hiddenDeviceStockId.val(), true, true);
+                        $select2.append(initialOption);
+                    }
+
+                    $select2Container.append($select2);
+                    $textInput.closest('.form-group').append($select2Container);
+
+                    // Init Select2 AJAX
+                    $select2.select2({
+                        ajax: {
+                            url: self.ajaxUrl,
+                            dataType: 'json',
+                            delay: 300,
+                            data: function(params) {
+                                return { q: params.term || '' };
+                            },
+                            processResults: function(data) {
+                                return { results: data.results };
+                            },
+                            cache: true
+                        },
+                        placeholder: '{{ trans("backpack::crud.invoice_client.field.item.items.name.placeholder") ?: "Pilih Nama Barang" }}',
+                        minimumInputLength: 0,
+                        allowClear: true,
+                        dropdownParent: $(self.form),
+                        templateResult: function(data) {
+                            if (!data.id) return data.text;
+                            return $('<span><strong>' + data.name + '</strong> <small class="text-muted">(Stok: ' + (data.qty_available || 0) + ')</small></span>');
+                        },
+                        templateSelection: function(data) {
+                            return data.name || data.text;
+                        }
+                    });
+
+                    // Event: saat item dipilih dari Select2
+                    $select2.on('select2:select', function(e) {
+                        var selected = e.params.data;
+
+                        // Update hidden input name dengan nama device terpilih
+                        $textInput.val(selected.name || selected.text);
+
+                        // Update hidden device_stock_id
+                        if ($hiddenDeviceStockId.length) {
+                            $hiddenDeviceStockId.val(selected.id);
+                        }
+
+                        // Auto-prefill harga jual ke kolom price jika ada sell_price
+                        if (selected.sell_price !== undefined) {
+                            var $priceHidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"]').last();
+                            var $priceMasked = $row.find('input[data-alt="price_masked"]');
+                            var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
+
+                            var priceVal = parseFloat(selected.sell_price) || 0;
+                            if ($priceHidden.length) $priceHidden.val(priceVal);
+                            if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                                $priceMasked.val(window.formatCurrency(priceVal, activeCurrency)).trigger('change');
+                            }
+                        }
+                    });
+
+                    // Event: saat dibersihkan (clear)
+                    $select2.on('select2:clear', function() {
+                        $textInput.val('');
+                        if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                    });
+                }
+
+                /**
+                 * Kembalikan satu baris repeatable: Select2 AJAX → text input biasa.
+                 */
+                _convertRowToText($row) {
+                    var $select2Wrapper = $row.find('.invoice-device-select2-wrapper');
+                    var $select2 = $row.find('.invoice-device-select2');
+                    var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                    var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+
+                    // Ambil teks yang dipilih sebelumnya (jika ada)
+                    var selectedText = '';
+                    if ($select2.length) {
+                        try { selectedText = $select2.select2('data')[0]?.text || ''; } catch(e) {}
+                        $select2.select2('destroy');
+                    }
+                    $select2Wrapper.remove();
+
+                    // Kembalikan text input dan reset device_stock_id
+                    $textInput.val(selectedText).show();
+                    if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                }
+
+                /**
+                 * Inisialisasi handler perubahan type_device.
+                 * Dipanggil dari SIAOPS load().
+                 */
+                init() {
+                    var self = this;
+                    var form = this.form;
+
+                    // Jalankan mode awal berdasarkan nilai type_device saat load
+                    setTimeout(function() {
+                        if (self.isDeviceStockMode()) {
+                            self.activateDeviceStockMode();
+                        }
+                    }, 400);
+
+                    // Listener change pada type_device
+                    $(form + ' select[name="type_device"]').on('change', function() {
+                        if (self.isDeviceStockMode()) {
+                            self.activateDeviceStockMode();
+                        } else {
+                            self.deactivateDeviceStockMode();
+                        }
+                    });
+
+                    // Handler untuk baris baru yang ditambah via tombol "Tambah Item"
+                    $(form + ' .add-repeatable-element-button').on('click', function() {
+                        if (self._isDeviceStock) {
+                            setTimeout(function() {
+                                $(form + ' .repeatable-element').each(function() {
+                                    if (!$(this).find('.invoice-device-select2').length) {
+                                        self._convertRowToSelect2($(this));
+                                    }
+                                });
+                            }, 300);
+                        }
+                    });
+                }
+            };
+        }
+
         SIAOPS.getAttribute('logic_invoice_client').load();
+
+        // Init Modul 5 setelah SIAOPS load
+        (function() {
+            var form_type = "{{ $crud->getActionMethod() }}";
+            var form = (form_type == 'create') ? '#form-create' : '#form-edit';
+
+            if (typeof window.InvoiceDeviceStockManager !== 'undefined') {
+                var deviceStockMgr = new window.InvoiceDeviceStockManager(form);
+                deviceStockMgr.init();
+            }
+        })();
     </script>
 @endpush

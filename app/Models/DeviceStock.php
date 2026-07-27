@@ -18,4 +18,14 @@ class DeviceStock extends Model
     {
         return $this->belongsTo(DeviceStockCategory::class, 'category_id');
     }
+
+    public function histories()
+    {
+        return $this->hasMany(DeviceStockHistory::class, 'device_stock_id');
+    }
+
+    public function mutations()
+    {
+        return $this->hasMany(DeviceStockMutation::class, 'device_stock_id');
+    }
 }

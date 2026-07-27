@@ -37,9 +37,16 @@ class InvoiceClientDetail extends Model
     |--------------------------------------------------------------------------
     */
 
-    function invoice_client(){
+    function invoice_client()
+    {
         return $this->belongsTo(InvoiceClient::class, 'invoice_client_id');
     }
+
+    function deviceStock()
+    {
+        return $this->belongsTo(\App\Models\DeviceStock::class, 'device_stock_id');
+    }
+
 
     /*
     |--------------------------------------------------------------------------

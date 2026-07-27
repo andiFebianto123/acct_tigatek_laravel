@@ -273,6 +273,11 @@ class InvoiceClientCrudController extends CrudController
                 'type' => 'text',
             ],
             [
+                'label' => trans('backpack::crud.invoice_client.column.delivery_status'),
+                'name' => 'delivery_status',
+                'type' => 'text',
+            ],
+            [
                 'label' => trans('backpack::crud.invoice_client.column.document_invoice'),
                 'name' => 'invoice_document',
                 'type' => 'text',
@@ -626,6 +631,27 @@ class InvoiceClientCrudController extends CrudController
                 'type' => 'text',
             ]
         );
+
+        CRUD::column([
+            'name'  => 'delivery_status',
+            'label' => 'Status Pengiriman',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                if ($entry->type_device !== \App\Models\DeviceStock::class) {
+                    return $status_file !== null ? '-' : '<span class="badge bg-light text-dark">-</span>';
+                }
+                $hasDelivery = \App\Models\DeliveryNote::where('invoice_client_id', $entry->id)->exists();
+                if ($hasDelivery) {
+                    return $status_file !== null 
+                        ? 'Surat Jalan Terbit (FIFO Posted)' 
+                        : '<span class="badge bg-success text-white" title="Stok sudah dipotong via Surat Jalan"><i class="la la-truck"></i> Dikirim (FIFO)</span>';
+                }
+                return $status_file !== null 
+                    ? 'Draft Stok' 
+                    : '<span class="badge bg-warning text-dark" title="Belum terbit Surat Jalan (Stok belum dipotong)"><i class="la la-clock"></i> Draft Stok</span>';
+            },
+            'escaped' => false,
+        ]);
 
         CRUD::column([
             'name'   => 'invoice_document',
@@ -1197,6 +1223,7 @@ class InvoiceClientCrudController extends CrudController
             'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
             'type'        => 'select_from_array',
             'options'     => [
+                'App\Models\DeviceStock' => 'Persediaan',
                 'App\Models\BillingDevice' => 'Billing Device',
                 'App\Models\BillingSimcard' => 'Billing SIMCARD',
             ],
@@ -1237,6 +1264,13 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
                         'name' => 'qty',
                         'type' => 'number',
                         'label' => 'QTY',
@@ -1275,6 +1309,13 @@ class InvoiceClientCrudController extends CrudController
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
+                    ],
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
                     ],
                     [
                         'name' => 'qty',
@@ -2284,5 +2325,46 @@ class InvoiceClientCrudController extends CrudController
         $this->data['crud'] = $this->crud;
         $this->data['saveAction'] = $this->crud->getSaveAction();
         $this->data['title'] = trans('backpack::crud.payment.title');
+    }
+
+    /**
+     * Endpoint Select2 AJAX untuk daftar Device Stock (Persediaan).
+     * Digunakan pada form Invoice Client saat type_device = DeviceStock.
+     */
+    public function select2DeviceStock()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $search = request()->input('q', '');
+        $companyId = backpack_user()->company_id ?? null;
+
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price', 'qty', 'currency_code']);
+
+        // if ($companyId && !backpack_user()->hasRole('Super Admin')) {
+        //     $query->where('company_id', $companyId);
+        // }
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->where('qty', '>', 0)->paginate(20);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id'            => $item->id,
+                'text'          => $item->name . ' (Stok: ' . $item->qty . ')',
+                'name'          => $item->name,
+                'sell_price'    => (float) $item->sell_price,
+                'qty_available' => (int) $item->qty,
+                'currency_code' => $item->currency_code ?? 'IDR',
+            ];
+        }
+
+        return response()->json(['results' => $results]);
     }
 }

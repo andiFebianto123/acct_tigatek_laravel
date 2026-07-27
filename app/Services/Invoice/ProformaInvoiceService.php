@@ -123,10 +123,22 @@ class ProformaInvoiceService
 
         foreach ($details as $item) {
             $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
-            if ($price > 0 || !empty($item['name'])) {
+            $refId = !empty($item['reference_id']) ? (int) $item['reference_id'] : null;
+            $name = $item['name'] ?? '';
+
+            if ($refId) {
+                $deviceStock = \App\Models\DeviceStock::find($refId);
+                if ($deviceStock) {
+                    $name = $deviceStock->name;
+                }
+            }
+
+            if ($price > 0 || !empty($name) || $refId) {
                 $invoice_item = new ProformaInvoiceDetail();
                 $invoice_item->proforma_invoice_id = $invoice->id;
-                $invoice_item->name = $item['name'] ?? '';
+                $invoice_item->reference_id = $refId;
+                $invoice_item->reference_type = $refId ? \App\Models\DeviceStock::class : null;
+                $invoice_item->name = $name;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;

@@ -48,6 +48,11 @@ class DeliveryNote extends Model
         return $this->belongsTo(Client::class, 'client_id');
     }
 
+    public function invoice_client()
+    {
+        return $this->belongsTo(InvoiceClient::class, 'invoice_client_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

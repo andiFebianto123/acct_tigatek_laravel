@@ -23,12 +23,13 @@ class DeliveryNoteRequest extends FormRequest
 
         $rules = [
             'client_id' => 'required|exists:clients,id',
-            'client_po_id' => 'required|exists:client_po,id',
+            'invoice_client_id' => 'required|exists:invoice_clients,id',
+            'client_po_id' => 'nullable|exists:client_po,id',
             'address' => 'required|string',
             'date' => 'required|date',
             'number' => 'required|string|max:50|unique:delivery_notes,number,' . $id,
             'description' => 'required|string',
-            'qty' => 'required|integer|min:1',
+            'qty' => 'nullable|integer',
             'information' => 'nullable|string',
         ];
 

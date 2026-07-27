@@ -364,6 +364,35 @@ return [
             'document_path' => 'Dokumen PO',
             'additional_info' => 'Keterangan',
         ],
+        'button' => [
+            'post_stock' => 'Post Stok',
+            'post_stock_title' => 'Submit / Posting Stok ke Gudang & History FIFO',
+        ],
+        'badge' => [
+            'stock_posted' => 'Stok Terposting',
+            'stock_posted_title' => 'Stok sudah diposting ke Master Device & History Layer',
+        ],
+        'swal' => [
+            'post_title' => 'Posting Stok PO Supplier?',
+            'post_text' => 'Stok item pada PO ini akan dimasukkan ke Master Device Stock dan Layer History FIFO secara permanen.',
+            'confirm_btn' => 'Ya, Submit Stok!',
+            'cancel_btn' => 'Batal',
+        ],
+        'noty' => [
+            'post_success' => 'Stok PO berhasil diposting ke Master & History Layer FIFO!',
+            'post_failed' => 'Gagal memposting stok.',
+            'post_error' => 'Terjadi kesalahan saat memposting stok.',
+        ],
+        'message' => [
+            'post_stock_success' => 'Stok PO :number berhasil diposting ke Master Device Stock & History Layer FIFO!',
+        ],
+        'error' => [
+            'cannot_delete_stock_used' => 'Penghapusan gagal: Stok barang \':name\' dari PO ini sudah terpakai pada transaksi Invoice/Penjualan.',
+            'only_supplier_po' => 'Hanya Purchase Order bertipe Supplier yang dapat memposting stok.',
+            'stock_already_posted' => 'Stok untuk Purchase Order ini sudah pernah diposting sebelumnya.',
+            'empty_details' => 'Purchase Order tidak memiliki item barang.',
+            'no_valid_stock_items' => 'Tidak ada item barang device stock yang dapat diposting pada PO ini.',
+        ],
         'field' => [
             'po_type' => [
                 'label' => 'Jenis PO',
@@ -595,6 +624,10 @@ return [
             'information' => 'Keterangan',
         ],
         'field' => [
+            'invoice_client_id' => [
+                'label' => 'No. Invoice',
+                'placeholder' => '- PILIH NO. INVOICE',
+            ],
             'client_po_id' => [
                 'label' => 'No. PO',
                 'placeholder' => '- PILIH NO. PO',
@@ -858,6 +891,7 @@ return [
             'price_total_exclude_ppn' => 'Nilai Exclude PPn',
             'price_total_include_ppn' => 'Nilai Include PPn',
             'status' => 'Status',
+            'delivery_status' => 'Status Pengiriman',
             'send_invoice_normal' => "Tgl Pengiriman Invoice - Normal",
             'send_invoice_revision' => "Tgl Pengiriman Invoice - Revisi",
             'document_invoice' => 'Dokumen Invoice',
@@ -865,6 +899,10 @@ return [
             'pph' => 'PPh',
             'discount_pph' => 'Nominal PPh',
             'withholding_agent' => 'Wajib Pungut',
+        ],
+        'error' => [
+            'cannot_edit_delivery_note_exists' => 'Invoice tidak dapat diubah karena Surat Jalan (Delivery Note) sudah diterbitkan.',
+            'cannot_delete_delivery_note_exists' => 'Invoice tidak dapat dihapus karena Surat Jalan (Delivery Note) masih terhubung. Hapus Surat Jalan terlebih dahulu.',
         ],
         'field' => [
             'invoice_number' => [

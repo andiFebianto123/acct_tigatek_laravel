@@ -377,7 +377,10 @@ class PurchaseOrderCrudController extends CrudController
 
         $this->crud->registerFieldEvents();
 
-        $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $entry = $this->crud->getEntryWithLocale($id);
+        $entry->load('purchase_order_details.device_stock');
+        $entry->purchase_order_details_edit = $entry->purchase_order_details;
+        $this->data['entry'] = $entry;
 
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
 
@@ -625,7 +628,7 @@ class PurchaseOrderCrudController extends CrudController
         CRUD::addButtonFromView('top', 'export-excel', 'export-excel', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf', 'export-pdf', 'beginning');
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
-
+        CRUD::addButtonFromView('line', 'post_stock_button', 'post_stock_button', 'beginning');
 
         $type = request()->tab;
         if ($type == 'open') {
@@ -925,15 +928,130 @@ class PurchaseOrderCrudController extends CrudController
             ],
         ]);
 
+        $id = request()->segment(4);
+
+        if ($id && $id != 'create') {
+            CRUD::addField([
+                'name' => 'purchase_order_details_edit',
+                'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
+                'type' => 'repeatable',
+                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'fields' => [
+                    [
+                        'name' => 'reference_id',
+                        'type' => 'select2_ajax_device_stock',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label') ?? 'Nama Barang',
+                        'data_source' => backpack_url('vendor/purchase-order/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 1,
+                        ]
+                    ],
+                    [
+                        'name' => 'price',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label') ?? 'Harga',
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ],
+                    ],
+                ]
+            ]);
+        } else {
+            CRUD::addField([
+                'name' => 'purchase_order_details',
+                'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
+                'type' => 'repeatable',
+                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'fields' => [
+                    [
+                        'name' => 'reference_id',
+                        'type' => 'select2_ajax_device_stock',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label') ?? 'Nama Barang',
+                        'data_source' => backpack_url('vendor/purchase-order/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 1,
+                        ]
+                    ],
+                    [
+                        'name' => 'price',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label') ?? 'Harga',
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper'   => [
+                            'class' => 'form-group col-md-5'
+                        ],
+                    ]
+                ]
+            ]);
+        }
+
         CRUD::addField([
             'name' => 'logic_purchase_order',
             'type' => 'logic_purchase_order',
         ]);
+    }
 
-        /**
-         * Fields can be defined using the fluent syntax:
-         * - CRUD::field('price')->type('number');
-         */
+    public function select2DeviceStock()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $search = request()->input('q');
+
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price']);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->name,
+                'sell_price' => (float) $item->sell_price,
+            ];
+        }
+        return response()->json(['results' => $results]);
     }
 
     public function select2SubkonId()
@@ -1353,8 +1471,7 @@ class PurchaseOrderCrudController extends CrudController
             $this->purchaseOrderService->deletePO($id);
 
             return response()->json([
-                'success' => true,
-                'message' => trans('backpack::crud.delete_confirmation_message'),
+                'success' => [trans('backpack::crud.delete_confirmation_message')],
                 'events' => [
                     'crudTable-list_all_po_create_success' => true,
                     'crudTable-list_open_create_success' => true,
@@ -1374,6 +1491,7 @@ class PurchaseOrderCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
+        $entry->load('purchase_order_details.device_stock');
         $settings = Setting::first();
 
         $pdf = Pdf::loadView('exports.vendor-po-single-pdf', [
@@ -1385,5 +1503,34 @@ class PurchaseOrderCrudController extends CrudController
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
 
         return $pdf->stream($safeFileName);
+    }
+
+    /**
+     * Submit / Post stock for a Supplier Purchase Order.
+     */
+    public function postStock($id)
+    {
+        $this->crud->hasAccessOrFail('update');
+
+        try {
+            $po = $this->purchaseOrderService->postStock((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => trans('backpack::crud.po.message.post_stock_success', ['number' => $po->po_number ?? $po->id]) ?: ('Stok PO ' . e($po->po_number ?? $po->id) . ' berhasil diposting ke Master Device Stock & History Layer FIFO!'),
+                'data' => $po,
+                'events' => [
+                    'crudTable-list_all_po_updated_success' => true,
+                    'crudTable-list_open_updated_success' => true,
+                    'crudTable-list_close_updated_success' => true,
+                    'crudTable-filter-purchase_order_plugin_load' => true
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
     }
 }

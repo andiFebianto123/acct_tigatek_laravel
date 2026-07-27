@@ -245,8 +245,9 @@
         $items = [];
         if (isset($details) && count($details) > 0) {
             foreach ($details as $detail) {
+                $itemName = !empty($detail->name) ? $detail->name : ($detail->device_stock?->name ?? '-');
                 $items[] = (object)[
-                    'name' => $detail->name,
+                    'name' => $itemName,
                     'price' => $detail->price,
                     'qty' => $detail->qty ?? 1
                 ];

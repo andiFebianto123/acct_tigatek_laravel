@@ -9,6 +9,7 @@ class DeliveryNoteData
     public function __construct(
         public readonly ?int $company_id,
         public readonly ?int $client_po_id,
+        public readonly ?int $invoice_client_id,
         public readonly ?int $client_id,
         public readonly ?string $address,
         public readonly ?string $date,
@@ -31,6 +32,7 @@ class DeliveryNoteData
         return new self(
             company_id: $company_id,
             client_po_id: $request->input('client_po_id') ? (int) $request->input('client_po_id') : null,
+            invoice_client_id: $request->input('invoice_client_id') ? (int) $request->input('invoice_client_id') : null,
             client_id: $request->input('client_id') ? (int) $request->input('client_id') : null,
             address: $request->input('address'),
             date: $request->input('date'),
@@ -46,6 +48,7 @@ class DeliveryNoteData
         return [
             'company_id' => $this->company_id,
             'client_po_id' => $this->client_po_id,
+            'invoice_client_id' => $this->invoice_client_id,
             'client_id' => $this->client_id,
             'address' => $this->address,
             'date' => $this->date,

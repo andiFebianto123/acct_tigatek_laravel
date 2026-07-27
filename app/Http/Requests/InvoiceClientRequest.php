@@ -120,7 +120,7 @@ class InvoiceClientRequest extends FormRequest
             'invoice_document' => 'nullable|file|mimes:pdf|max:30720', // 30MB = 30720 KB
             'withholding_agent' => 'required|in:WAPU,NON WAPU',
             'account_source_id' => 'required|exists:cast_accounts,id',
-            'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard',
+            'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',
             'term' => 'nullable|string',
         ];
 

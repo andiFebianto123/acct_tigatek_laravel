@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class ProformaInvoiceDetail extends Model
+class PurchaseOrderDetail extends Model
 {
     use CrudTrait;
     use HasFactory;
@@ -17,7 +17,7 @@ class ProformaInvoiceDetail extends Model
     |--------------------------------------------------------------------------
     */
 
-    protected $table = 'proforma_invoice_details';
+    protected $table = 'purchase_order_details';
     protected $guarded = ['id'];
 
     /*
@@ -26,9 +26,9 @@ class ProformaInvoiceDetail extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function proforma_invoice()
+    public function purchase_order()
     {
-        return $this->belongsTo(ProformaInvoice::class, 'proforma_invoice_id');
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
     public function device_stock()

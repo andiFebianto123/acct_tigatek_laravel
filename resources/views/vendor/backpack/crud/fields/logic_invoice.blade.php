@@ -474,16 +474,67 @@
                         instance.formManager.updateNominalInformationUI(price_between, curr);
                     }
 
+                    function populateDeviceStockSelect2() {
+                        var details = (entry && (entry.proforma_invoice_details_edit || entry.proforma_invoice_details)) ? (entry.proforma_invoice_details_edit || entry.proforma_invoice_details) : null;
+                        if (details && Array.isArray(details)) {
+                            $(form + ' [data-repeatable-holder]').children().each(function(index, el) {
+                                var itemData = details[index];
+                                if (itemData) {
+                                    var $select = $(el).find('select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]');
+                                    if ($select.length) {
+                                        var refId = itemData.reference_id;
+                                        var refName = (itemData.device_stock && itemData.device_stock.name) ? itemData.device_stock.name : itemData.name;
+                                        if (refId && refName) {
+                                            if ($select.find("option[value='" + refId + "']").length === 0) {
+                                                var newOption = new Option(refName, refId, true, true);
+                                                $select.append(newOption).trigger('change');
+                                            }
+                                        } else if (refName) {
+                                            if ($select.find("option[value='" + refName + "']").length === 0) {
+                                                var newOption = new Option(refName, refName, true, true);
+                                                $select.append(newOption).trigger('change');
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    $(form).off('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]')
+                           .on('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]', function(e) {
+                        var data = e.params ? e.params.data : null;
+                        if (data && data.sell_price !== undefined) {
+                            var $row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
+                            var $priceMasked = $row.find('input[data-alt="price_masked"]');
+                            var $priceHidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                            if (!$priceHidden.length) {
+                                $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
+                            }
+                            var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                            var priceVal = data.sell_price;
+                            $priceHidden.val(priceVal);
+                            if (typeof window.formatCurrency === 'function') {
+                                $priceMasked.val(window.formatCurrency(priceVal, activeCurr));
+                            } else {
+                                $priceMasked.val(priceVal);
+                            }
+                            countTotalPrice();
+                        }
+                    });
+
                     // Inisialisasi Repeatable Handlers
                     if (form == '#form-edit' || (form == '#form-create' && hasNotificationId && entry != null)) {
                         countTotalPrice();
                         setTimeout(() => {
                             instance.repeatableManager.initHandlers();
-                        }, 100);
+                            populateDeviceStockSelect2();
+                        }, 150);
                     } else {
                         setTimeout(() => {
                             instance.repeatableManager.initHandlers();
-                        }, 100);
+                            populateDeviceStockSelect2();
+                        }, 150);
                     }
 
                     // Listener Hapus & Tambah Item

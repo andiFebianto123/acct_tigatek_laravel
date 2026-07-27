@@ -23,10 +23,25 @@ class PurchaseOrderData
         public ?string $term = null,
         public ?string $po_type = 'subkon',
         public ?string $currency_code = 'IDR',
+        public array $details = [],
     ) {}
 
     public static function fromRequest(Request $request): self
     {
+        $details = $request->input('purchase_order_details');
+        if (is_string($details)) {
+            $details = json_decode($details, true);
+        }
+        if (empty($details)) {
+            $details = $request->input('purchase_order_details_edit');
+            if (is_string($details)) {
+                $details = json_decode($details, true);
+            }
+        }
+        if (!is_array($details)) {
+            $details = [];
+        }
+
         return new self(
             po_number: $request->input('po_number'),
             date_po: $request->input('date_po'),
@@ -44,6 +59,7 @@ class PurchaseOrderData
             term: $request->input('term'),
             po_type: $request->input('po_type', 'subkon'),
             currency_code: $request->input('currency_code', 'IDR'),
+            details: $details,
         );
     }
 

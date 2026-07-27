@@ -55,6 +55,11 @@ class PurchaseOrder extends Model
         return $this->morphOne(ProjectProfitLost::class, 'orderable');
     }
 
+    public function purchase_order_details()
+    {
+        return $this->hasMany(PurchaseOrderDetail::class, 'purchase_order_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

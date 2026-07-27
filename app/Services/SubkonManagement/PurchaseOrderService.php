@@ -50,7 +50,11 @@ class PurchaseOrderService
                 $payload['document_path'] = 'document_po/' . $filename;
             }
 
-            return PurchaseOrder::create($payload);
+            $po = PurchaseOrder::create($payload);
+            if (!empty($data->details)) {
+                $this->saveDetails($po, $data->details);
+            }
+            return $po;
         });
     }
 
@@ -107,8 +111,87 @@ class PurchaseOrderService
             $po->total_value_with_tax_base = $payload['total_value_with_tax_base'];
             $po->save();
 
+            $deviceStockService = app(\App\Services\SubkonManagement\DeviceStockService::class);
+
+            // Jika PO Supplier yang sudah diposting di-update, revert stok lama dan kembalikan status ke unposted/draft
+            if ($po->po_type === 'supplier' && $po->is_stock_posted) {
+                $deviceStockService->revertIncomingStock($po);
+                $payload['is_stock_posted'] = false;
+                $payload['stock_posted_at'] = null;
+            }
+
+            $po->fill($payload);
+            $po->total_value_with_tax = $payload['total_value_with_tax'];
+            $po->job_value_base = $payload['job_value_base'];
+            $po->total_value_with_tax_base = $payload['total_value_with_tax_base'];
+            $po->save();
+
+            if (!empty($data->details)) {
+                $this->saveDetails($po, $data->details);
+            }
+
             return $po;
         });
+    }
+
+    /**
+     * Post stock for a Supplier Purchase Order.
+     */
+    public function postStock(int $id): PurchaseOrder
+    {
+        return DB::transaction(function () use ($id) {
+            $po = PurchaseOrder::findOrFail($id);
+            $deviceStockService = app(\App\Services\SubkonManagement\DeviceStockService::class);
+
+            $deviceStockService->processSupplierPoItems($po);
+
+            return $po->fresh();
+        });
+    }
+
+    private function parseItemPrice($val, string $currencyCode = 'IDR'): float
+    {
+        if (is_numeric($val)) {
+            return (float) $val;
+        }
+        $str = (string) ($val ?? 0);
+        if (strtoupper($currencyCode) === 'USD') {
+            return (float) str_replace(',', '', $str);
+        }
+        return (float) str_replace('.', '', $str);
+    }
+
+    private function saveDetails(PurchaseOrder $po, array $details): void
+    {
+        $currencyCode = $po->currency_code ?? 'IDR';
+        $exchangeRate = (float) ($po->exchange_rate ?? 1.0);
+
+        \App\Models\PurchaseOrderDetail::where('purchase_order_id', $po->id)->delete();
+
+        foreach ($details as $item) {
+            $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
+            $refId = !empty($item['reference_id']) ? (int) $item['reference_id'] : null;
+            $name = $item['name'] ?? '';
+
+            if ($refId) {
+                $deviceStock = \App\Models\DeviceStock::find($refId);
+                if ($deviceStock) {
+                    $name = $deviceStock->name;
+                }
+            }
+
+            if ($price > 0 || !empty($name) || $refId) {
+                $poItem = new \App\Models\PurchaseOrderDetail();
+                $poItem->purchase_order_id = $po->id;
+                $poItem->reference_id = $refId;
+                $poItem->reference_type = $refId ? \App\Models\DeviceStock::class : null;
+                $poItem->name = $name;
+                $poItem->qty = (int) ($item['qty'] ?? 1);
+                $poItem->price = $price;
+                $poItem->price_base = $price * $exchangeRate;
+                $poItem->save();
+            }
+        }
     }
 
     /**
@@ -140,6 +223,12 @@ class PurchaseOrderService
     {
         return DB::transaction(function () use ($id) {
             $po = PurchaseOrder::findOrFail($id);
+
+            // Revert stok fisik, history layer, dan log mutasi jika PO bertipe supplier dan sudah diposting
+            if ($po->po_type === 'supplier' && $po->is_stock_posted) {
+                $deviceStockService = app(\App\Services\SubkonManagement\DeviceStockService::class);
+                $deviceStockService->revertIncomingStock($po);
+            }
 
             // Hapus file fisik jika ada
             if ($po->document_path) {

@@ -570,19 +570,19 @@ class DeliveryNoteCrudController extends CrudController
         }
 
         CRUD::addField([
-            'label'       => trans('backpack::crud.delivery_note.field.client_po_id.label'),
+            'label'       => trans('backpack::crud.delivery_note.field.invoice_client_id.label') ?? 'No. Invoice',
             'type'        => 'select2_ajax_custom',
-            'name'        => 'client_po_id',
-            'entity'      => 'client_po',
-            'attribute'   => 'po_number',
-            'data_source' => backpack_url('client/delivery-note/select2-po'),
+            'name'        => 'invoice_client_id',
+            'entity'      => 'invoice_client',
+            'attribute'   => 'invoice_number',
+            'data_source' => backpack_url('client/delivery-note/select2-invoice'),
             'dependencies' => ['company_id'],
             'include_all_form_fields' => true,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
             'attributes' => [
-                'placeholder' => trans('backpack::crud.delivery_note.field.client_po_id.placeholder'),
+                'placeholder' => trans('backpack::crud.delivery_note.field.invoice_client_id.placeholder') ?? 'Pilih No. Invoice',
             ]
         ]);
 
@@ -646,24 +646,10 @@ class DeliveryNoteCrudController extends CrudController
             'type'  => 'text',
             'label' => trans('backpack::crud.delivery_note.field.description.label'),
             'wrapper'   => [
-                'class' => 'form-group col-md-6',
+                'class' => 'form-group col-md-12',
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.delivery_note.field.description.placeholder'),
-            ]
-        ]);
-
-        CRUD::addField([
-            'name'  => 'qty',
-            'type'  => 'number',
-            'label' => trans('backpack::crud.delivery_note.field.qty.label'),
-            'default' => 1,
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => '1',
-                'min' => 1,
             ]
         ]);
 
@@ -676,6 +662,15 @@ class DeliveryNoteCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.delivery_note.field.information.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'name'  => 'invoice_items_table',
+            'type'  => 'custom_html',
+            'value' => '<div class="form-group col-md-12"><label>Daftar Barang / Detail Invoice</label><div id="delivery_note_invoice_items_container"><table class="table table-bordered table-striped" id="table-invoice-items"><thead><tr><th>No</th><th>Nama Barang / Deskripsi</th><th class="text-center">QTY</th></tr></thead><tbody><tr><td colspan="3" class="text-center text-muted">Pilih No. Invoice terlebih dahulu</td></tr></tbody></table></div></div>',
+            'wrapper' => [
+                'class' => 'form-group col-md-12',
             ]
         ]);
     }
@@ -817,6 +812,64 @@ class DeliveryNoteCrudController extends CrudController
         $filename = 'SURAT_JALAN-' . str_replace(['/', '\\'], '-', $entry->number ?? $entry->id) . '.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    public function select2Invoice()
+    {
+        $request = request();
+        $search = $request->input('q');
+        $company_id = $request->input('company_id');
+
+        $query = \App\Models\InvoiceClient::select(['id', 'invoice_number', 'description']);
+
+        if ($request->has('company_id') && $company_id !== '') {
+            $query->where('company_id', $company_id);
+        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+            $query->where('company_id', backpack_user()->company_id);
+        }
+
+        $dataset = $query->where('invoice_number', 'LIKE', "%$search%")
+            ->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->invoice_number,
+            ];
+        }
+        return response()->json(['results' => $results]);
+    }
+
+    public function getInvoiceDetails()
+    {
+        $this->crud->hasAccessOrFail('create');
+        $id = request()->input('invoice_id');
+        $invoice = \App\Models\InvoiceClient::with(['invoice_client_details.deviceStock', 'client'])->find((int) $id);
+
+        if (!$invoice) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice tidak ditemukan'
+            ], 444);
+        }
+
+        $items = [];
+        foreach ($invoice->invoice_client_details as $detail) {
+            $items[] = [
+                'name' => $detail->name ?? $detail->deviceStock?->name ?? '-',
+                'qty' => $detail->qty ?? 1,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'client_id' => $invoice->client_id ?? '',
+            'client_name' => $invoice->client?->name ?? '',
+            'address' => $invoice->address_po ?? $invoice->client?->address ?? '',
+            'description' => $invoice->description ?? '',
+            'items' => $items,
+        ]);
     }
 
     public function getPoDetails()

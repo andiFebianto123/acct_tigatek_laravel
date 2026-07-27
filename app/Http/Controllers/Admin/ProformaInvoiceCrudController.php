@@ -122,6 +122,34 @@ class ProformaInvoiceCrudController extends CrudController
         return response()->json(['results' => $results]);
     }
 
+    public function select2DeviceStock()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $search = request()->input('q');
+
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price']);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->paginate(10);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->name,
+                'sell_price' => (float) $item->sell_price,
+            ];
+        }
+        return response()->json(['results' => $results]);
+    }
+
     public function getSubkonDetails()
     {
         $this->crud->hasAccessOrFail('create');
@@ -339,6 +367,7 @@ class ProformaInvoiceCrudController extends CrudController
         $this->crud->registerFieldEvents();
 
         $entry = $this->crud->getEntryWithLocale($id);
+        $entry->load('proforma_invoice_details.device_stock');
         $entry->po_date = $entry->client_po ? Carbon::parse($entry->client_po->date_po)->format('d/m/Y') : null;
         $entry->price_total_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->price_total_include_ppn = $entry->price_total_include_ppn;
@@ -860,9 +889,14 @@ class ProformaInvoiceCrudController extends CrudController
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
                 'fields' => [
                     [
-                        'name' => 'name',
-                        'type' => 'text',
+                        'name' => 'reference_id',
+                        'type' => 'select2_ajax_device_stock',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'data_source' => backpack_url('vendor/proforma-invoice/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
@@ -899,9 +933,14 @@ class ProformaInvoiceCrudController extends CrudController
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
                 'fields' => [
                     [
-                        'name' => 'name',
-                        'type' => 'text',
+                        'name' => 'reference_id',
+                        'type' => 'select2_ajax_device_stock',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'data_source' => backpack_url('vendor/proforma-invoice/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
@@ -1319,7 +1358,7 @@ class ProformaInvoiceCrudController extends CrudController
     {
         $data = [];
         $data['header'] = ProformaInvoice::where('id', $id)->first();
-        $data['details'] = ProformaInvoiceDetail::where('proforma_invoice_id', $id)->get();
+        $data['details'] = ProformaInvoiceDetail::with('device_stock')->where('proforma_invoice_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-proforma-single-pdf', $data);
         $fileName = 'Proforma-Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf';

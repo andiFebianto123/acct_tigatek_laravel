@@ -91,7 +91,8 @@ class ProformaInvoiceRequest extends FormRequest
                         }
                     }
                 ];
-                $rule['proforma_invoice_details_edit.*.name'] = 'required|max:120';
+                $rule['proforma_invoice_details_edit.*.reference_id'] = 'required_without:proforma_invoice_details_edit.*.name';
+                $rule['proforma_invoice_details_edit.*.name'] = 'nullable|max:120';
                 $rule['proforma_invoice_details_edit.*.price'] = "required|numeric|min:{$minPrice}";
             }
         } else {
@@ -136,7 +137,8 @@ class ProformaInvoiceRequest extends FormRequest
                         }
                     }
                 ];
-                $rule['proforma_invoice_details.*.name'] = 'required|max:120';
+                $rule['proforma_invoice_details.*.reference_id'] = 'required_without:proforma_invoice_details.*.name';
+                $rule['proforma_invoice_details.*.name'] = 'nullable|max:120';
                 $rule['proforma_invoice_details.*.price'] = "required|numeric|min:{$minPrice}";
             }
         }

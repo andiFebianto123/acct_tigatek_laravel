@@ -307,6 +307,35 @@ return [
                 'label_supplier' => 'Item Name',
                 'placeholder_supplier' => 'Enter item name',
             ]
+        ],
+        'button' => [
+            'post_stock' => 'Post Stock',
+            'post_stock_title' => 'Submit / Post Stock to Warehouse & FIFO History',
+        ],
+        'badge' => [
+            'stock_posted' => 'Stock Posted',
+            'stock_posted_title' => 'Stock has been posted to Master Device & History Layer',
+        ],
+        'swal' => [
+            'post_title' => 'Post Supplier PO Stock?',
+            'post_text' => 'Item stocks for this PO will be permanently posted to Master Device Stock and Layer History FIFO.',
+            'confirm_btn' => 'Yes, Submit Stock!',
+            'cancel_btn' => 'Cancel',
+        ],
+        'noty' => [
+            'post_success' => 'PO stock successfully posted to Master & History Layer FIFO!',
+            'post_failed' => 'Failed to post stock.',
+            'post_error' => 'An error occurred while posting stock.',
+        ],
+        'message' => [
+            'post_stock_success' => 'PO stock :number successfully posted to Master Device Stock & History Layer FIFO!',
+        ],
+        'error' => [
+            'cannot_delete_stock_used' => 'Deletion failed: Item stock \':name\' from this PO has already been consumed by an Invoice.',
+            'only_supplier_po' => 'Only Supplier type Purchase Orders can post stock.',
+            'stock_already_posted' => 'Stock for this Purchase Order has already been posted.',
+            'empty_details' => 'Purchase Order has no item details.',
+            'no_valid_stock_items' => 'No valid device stock items to post for this PO.',
         ]
     ],
     'spk' => [
@@ -581,7 +610,12 @@ return [
     ],
     'invoice_client' => [
         'column' => [
+            'delivery_status' => 'Delivery Status',
             'withholding_agent' => 'Withholding Agent',
+        ],
+        'error' => [
+            'cannot_edit_delivery_note_exists' => 'Invoice cannot be modified because a Delivery Note has already been issued.',
+            'cannot_delete_delivery_note_exists' => 'Invoice cannot be deleted because an active Delivery Note is associated with it. Please delete the Delivery Note first.',
         ],
         'field' => [
             'withholding_agent' => [

@@ -250,20 +250,42 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td class="text-center">1</td>
-                    <td>
-                        {{ $entry->job_name }}<br>
-                        <span style="font-size: 9pt; color: #555;">{{ $entry->job_description }}</span>
-                    </td>
-                    <td class="text-center">1</td>
-                    <td class="text-right">
-                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
-                    </td>
-                    <td class="text-right">
-                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
-                    </td>
-                </tr>
+                @if(isset($entry->purchase_order_details) && count($entry->purchase_order_details) > 0)
+                    @foreach($entry->purchase_order_details as $index => $detail)
+                        @php
+                            $itemName = !empty($detail->name) ? $detail->name : ($detail->device_stock?->name ?? '-');
+                            $qty = (int)($detail->qty ?? 1);
+                            $price = (float)($detail->price ?? 0);
+                            $amount = $qty * $price;
+                        @endphp
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td style="text-align: left;">{{ $itemName }}</td>
+                            <td class="text-center">{{ $qty }}</td>
+                            <td class="text-right">
+                                {{ \App\Http\Helpers\CustomHelper::formatCurrency($price, $currencyCode) }}
+                            </td>
+                            <td class="text-right">
+                                {{ \App\Http\Helpers\CustomHelper::formatCurrency($amount, $currencyCode) }}
+                            </td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td class="text-center">1</td>
+                        <td style="text-align: left;">
+                            {{ $entry->job_name }}<br>
+                            <span style="font-size: 9pt; color: #555;">{{ $entry->job_description }}</span>
+                        </td>
+                        <td class="text-center">1</td>
+                        <td class="text-right">
+                            {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
+                        </td>
+                        <td class="text-right">
+                            {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
+                        </td>
+                    </tr>
+                @endif
             </tbody>
             <tfoot>
                 <tr class="total-row">

@@ -56,6 +56,26 @@ class PurchaseOrderRequest extends FormRequest
             }
         }
 
+        if (request()->input('po_type') === 'supplier') {
+            if ($id) {
+                $items = json_decode(request()->input('purchase_order_details_edit'), true);
+                if (!empty($items)) {
+                    $this->merge(['purchase_order_details_edit' => $items]);
+                    $rule['purchase_order_details_edit'] = 'nullable|array';
+                    $rule['purchase_order_details_edit.*.reference_id'] = 'required_without:purchase_order_details_edit.*.name';
+                    $rule['purchase_order_details_edit.*.name'] = 'nullable|max:120';
+                }
+            } else {
+                $items = json_decode(request()->input('purchase_order_details'), true);
+                if (!empty($items)) {
+                    $this->merge(['purchase_order_details' => $items]);
+                    $rule['purchase_order_details'] = 'nullable|array';
+                    $rule['purchase_order_details.*.reference_id'] = 'required_without:purchase_order_details.*.name';
+                    $rule['purchase_order_details.*.name'] = 'nullable|max:120';
+                }
+            }
+        }
+
         return $rule;
     }
 
