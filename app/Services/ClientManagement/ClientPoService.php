@@ -38,6 +38,16 @@ class ClientPoService
                     $attributes['document_path'] = $this->handleFileUpload($data->document_path);
                 }
 
+                $usdRate = \App\Models\Setting::first()->usd_rate ?? 16000;
+                $currencyCode = $attributes['currency_code'] ?? 'IDR';
+                $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+                $attributes['exchange_rate'] = $exchangeRate;
+                $attributes['rap_value_base'] = ($attributes['rap_value'] ?? 0) * $exchangeRate;
+                $attributes['job_value_base'] = ($attributes['job_value'] ?? 0) * $exchangeRate;
+                $attributes['job_value_include_ppn'] = ($attributes['job_value'] ?? 0) + (($attributes['job_value'] ?? 0) * (($attributes['tax_ppn'] ?? 0) / 100));
+                $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+
                 $po = ClientPo::create($attributes);
                 $this->linkVoucherToClientPo($po);
                 return $po;
@@ -113,7 +123,15 @@ class ClientPoService
             }
 
             // Re-calculate or ensure values are set correctly
+            $usdRate = \App\Models\Setting::first()->usd_rate ?? 16000;
+            $currencyCode = $attributes['currency_code'] ?? 'IDR';
+            $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
+
+            $attributes['exchange_rate'] = $exchangeRate;
+            $attributes['rap_value_base'] = ($attributes['rap_value'] ?? 0) * $exchangeRate;
+            $attributes['job_value_base'] = ($attributes['job_value'] ?? 0) * $exchangeRate;
             $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
+            $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
 
             if ($data->document_path instanceof UploadedFile) {
                 if ($clientPo->document_path) {

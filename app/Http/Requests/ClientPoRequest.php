@@ -42,6 +42,7 @@ class ClientPoRequest extends FormRequest
             'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
             'po_number' => 'required|max:30|unique:client_po,po_number,' . $id,
             'job_name' => 'required|max:255',
+            'currency_code' => 'nullable|string|max:10',
             'job_value' => 'required|numeric',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',

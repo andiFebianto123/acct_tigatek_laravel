@@ -101,9 +101,9 @@
     @if($permissions->contains('name', 'MENU INDEX INVOICE'))
         <x-menu-group-item-custom title="Invoice Proforma" icon="la la-circle-notch" :link="backpack_url('client/proforma-invoice')" />
     @endif
-    {{-- @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
+    @if($permissions->contains('name', 'MENU INDEX CLIENT PO'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.client_po')}}" icon="la la-circle-notch" :link="backpack_url('client/po')" />
-    @endif --}}
+    @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT SURAT JALAN'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.delivery_note')}}" icon="la la-circle-notch" :link="backpack_url('client/delivery-note')" />
     @endif

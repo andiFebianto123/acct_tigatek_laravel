@@ -15,6 +15,7 @@ class ClientPoRepository
     public function getFilteredData(ClientPoFilterData $filters)
     {
         $query = ClientPo::query()->with(['client', 'company']);
+        $query = $query->where('client_po.category', "!=", "general");
 
         // Filter Sidebar/Plugin
         if ($filters->status_invoice !== null) {
@@ -121,7 +122,8 @@ class ClientPoRepository
     public function getSummaryValues(ClientPoFilterData $filters)
     {
         $query = $this->getFilteredData($filters);
-        $result = $query->select(DB::raw("SUM(job_value) as total_job_value, SUM(job_value_include_ppn) as total_job_value_ppn"))->first();
+        $result = $query->select(DB::raw("SUM(job_value) as total_job_value, SUM(job_value_include_ppn) as total_job_value_ppn"))
+        ->first();
 
         return [
             'total_job_value' => $result->total_job_value ?? 0,

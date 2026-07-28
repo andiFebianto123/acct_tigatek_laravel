@@ -27,6 +27,7 @@ class ClientPoData
         public readonly bool $is_from_quotation = false,
         public readonly ?string $po_type = 'subkon',
         public readonly ?int $purchase_order_id = null,
+        public readonly ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -52,6 +53,7 @@ class ClientPoData
             is_from_quotation: (bool) $request->is_from_quotation,
             po_type: $request->input('po_type', 'subkon'),
             purchase_order_id: $request->purchase_order_id ? (int) $request->purchase_order_id : null,
+            currency_code: $request->input('currency_code', 'IDR'),
         );
     }
 
@@ -76,6 +78,7 @@ class ClientPoData
             'status' => $this->status,
             'po_type' => $this->po_type,
             'purchase_order_id' => $this->purchase_order_id,
+            'currency_code' => $this->currency_code ?? 'IDR',
         ];
     }
 }
