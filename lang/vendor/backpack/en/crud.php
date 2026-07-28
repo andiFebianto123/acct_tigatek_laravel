@@ -292,6 +292,18 @@ return [
         'title_header' => 'Stock Items',
         'export_title' => 'Stock Items Report',
         'placeholder_category' => 'Select/Add New Category',
+        'info_header' => 'Device Stock Information',
+        'modal_title' => 'Device Stock Data',
+        'no_data' => 'No device stock data available.',
+        'source_invoice' => 'Invoice',
+        'source_invoice_title' => 'Price from Latest Sales Invoice',
+        'source_master' => 'Master',
+        'source_master_title' => 'Price from Item Master',
+        'dashboard' => [
+            'total_stok' => 'Total Stock Quantity',
+            'total_barang' => 'Total Item Types',
+            'total_nominal' => 'Total Nominal (Accumulated Selling Price)',
+        ],
         'column' => [
             'name' => 'Item Name',
             'code' => 'Item Code',
@@ -299,6 +311,8 @@ return [
             'qty' => 'Qty',
             'sell_price' => 'Selling Price',
             'buy_price' => 'Buying Price',
+            'latest_sell_price' => 'Latest Selling Price',
+            'total_sell_nominal' => 'Total Nominal Sales',
         ],
     ],
     'subkon' => [

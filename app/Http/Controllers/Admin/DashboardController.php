@@ -9,6 +9,8 @@ use App\Models\ClientPo;
 use App\Models\Quotation;
 use App\Models\InvoiceClient;
 use App\Models\ProjectProfitLost;
+use App\Models\DeviceStock;
+use App\Models\InvoiceClientDetail;
 use App\Http\Helpers\CustomHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
@@ -405,6 +407,46 @@ class DashboardController extends CrudController
         ];
     }
 
+    public function dataDeviceStockSummary()
+    {
+        $latestDetailSubQuery = DB::table('invoice_client_details as icd')
+            ->join('invoice_clients as ic', 'ic.id', '=', 'icd.invoice_client_id')
+            ->whereIn('icd.id', function ($query) {
+                $query->select(DB::raw('MAX(id)'))
+                    ->from('invoice_client_details')
+                    ->whereNotNull('device_stock_id')
+                    ->groupBy('device_stock_id');
+            })
+            ->select('icd.device_stock_id', 'icd.price', 'icd.price_base', 'ic.currency_code');
+
+        $stocks = DeviceStock::from('device_stocks as ds')
+            ->leftJoinSub($latestDetailSubQuery, 'inv_last', function ($join) {
+                $join->on('inv_last.device_stock_id', '=', 'ds.id');
+            })
+            ->leftJoin('device_stock_categories as dsc', 'dsc.id', '=', 'ds.category_id')
+            ->select([
+                'ds.*',
+                'dsc.name as category_name',
+                DB::raw('COALESCE(inv_last.price_base, inv_last.price, ds.sell_price_base, ds.sell_price, 0) as latest_sell_price_base'),
+                DB::raw('COALESCE(inv_last.price, ds.sell_price, 0) as latest_sell_price'),
+                DB::raw("COALESCE(inv_last.currency_code, ds.currency_code, 'IDR') as latest_currency_code"),
+                DB::raw('IF(inv_last.device_stock_id IS NOT NULL, 1, 0) as is_from_invoice'),
+                DB::raw('(ds.qty * COALESCE(inv_last.price_base, inv_last.price, ds.sell_price_base, ds.sell_price, 0)) as total_jual_base'),
+            ])
+            ->get();
+
+        $total_stok = $stocks->sum('qty');
+        $total_barang = $stocks->count();
+        $total_nominal = $stocks->sum('total_jual_base');
+
+        return [
+            'total_stok' => number_format($total_stok, 0, ',', '.'),
+            'total_barang' => number_format($total_barang, 0, ',', '.'),
+            'total_nominal' => CustomHelper::formatRupiah($total_nominal),
+            'list_stocks' => $stocks,
+        ];
+    }
+
     public function totalAlldashboard(Request $request)
     {
         return [
@@ -415,6 +457,7 @@ class DashboardController extends CrudController
             'total_laba_all' => $this->totalLabaAll(),
             'total_job_realisasion' => $this->totalJobRealisasion($request->year),
             'data_monitoring' => $this->dataNonRutinMonitoring($request->year),
+            'data_device_stock' => $this->dataDeviceStockSummary(),
         ];
     }
 
@@ -441,6 +484,7 @@ class DashboardController extends CrudController
             'params' => [
                 'data_laba' => $this->dataLabaCategory($year),
                 'data_monitoring' => $this->dataNonRutinMonitoring($year),
+                'data_device_stock' => $this->dataDeviceStockSummary(),
             ]
         ]);
 

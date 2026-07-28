@@ -344,6 +344,18 @@ return [
         'title_header' => 'Stok Barang',
         'export_title' => 'Laporan Stok Barang',
         'placeholder_category' => 'Pilih/Tambah Kategori Baru',
+        'info_header' => 'Informasi Stok Barang (Device Stocks)',
+        'modal_title' => 'Data Stok Barang (Device Stocks)',
+        'no_data' => 'Belum ada data stok barang.',
+        'source_invoice' => 'Invoice',
+        'source_invoice_title' => 'Harga dari Invoice Penjualan Terakhir',
+        'source_master' => 'Master',
+        'source_master_title' => 'Harga dari Master Barang',
+        'dashboard' => [
+            'total_stok' => 'Jumlah Stok Barang',
+            'total_barang' => 'Jumlah Barang',
+            'total_nominal' => 'Total Nominal (Akumulasi Harga Jual)',
+        ],
         'column' => [
             'name' => 'Nama Barang',
             'code' => 'Kode Barang',
@@ -351,6 +363,8 @@ return [
             'qty' => 'Qty',
             'sell_price' => 'Harga Jual',
             'buy_price' => 'Harga Beli',
+            'latest_sell_price' => 'Harga Jual Terbaru',
+            'total_sell_nominal' => 'Total Nominal Jual',
         ],
     ],
     'subkon' => [

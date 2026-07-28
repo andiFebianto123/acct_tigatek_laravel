@@ -1032,7 +1032,7 @@ class PurchaseOrderCrudController extends CrudController
 
         $search = request()->input('q');
 
-        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price']);
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price', 'code']);
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
@@ -1047,7 +1047,7 @@ class PurchaseOrderCrudController extends CrudController
         foreach ($dataset as $item) {
             $results[] = [
                 'id' => $item->id,
-                'text' => $item->name,
+                'text' => $item->name.' ('. $item->code .')',
                 'sell_price' => (float) $item->sell_price,
             ];
         }

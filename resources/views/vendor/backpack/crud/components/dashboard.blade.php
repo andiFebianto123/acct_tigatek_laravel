@@ -108,6 +108,39 @@
         </div>
         <div class="col-md-12 mb-4">
             <div class="card2">
+                <div class="card2-parent-header d-flex justify-content-between align-items-center pe-3 pb-2">
+                    <div class="card2-header fs-6 mb-0">{{ __('backpack::crud.device_stock.info_header') }}</div>
+                    <button class="btn btn-primary btn-sm" id="btn-device-stock">
+                        <i class="la la-list me-1"></i> {{ __('backpack::crud.details_row') ?: 'Detail' }}
+                    </button>
+                </div>
+                <div class="card2-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <div class="p-3 bg-light rounded">
+                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_stok') }}</div>
+                                <div class="fs-4 fw-bold text-primary" id="ds_total_stok">{{ $data_device_stock['total_stok'] }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <div class="p-3 bg-light rounded">
+                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_barang') }}</div>
+                                <div class="fs-4 fw-bold text-info" id="ds_total_barang">{{ $data_device_stock['total_barang'] }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded">
+                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_nominal') }}</div>
+                                <div class="fs-4 fw-bold text-success" id="ds_total_nominal">Rp{{ $data_device_stock['total_nominal'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12 mb-4">
+            <div class="card2">
                 <div class="card2-parent-header">
                     <div class="card2-header fs-6">Monitoring Biaya Pekerjaan Berjalan (Non Rutin)</div>
                 </div>
@@ -300,6 +333,13 @@
                                 $('#mon_laba_berjalan').html('Rp' + result.data_monitoring.price_profit_lost_str);
                                 $('#mon_jumlah_pekerjaan').html(result.data_monitoring.total_job);
                             }
+
+                            // Update Device Stock Summary
+                            if(result.data_device_stock) {
+                                $('#ds_total_stok').html(result.data_device_stock.total_stok);
+                                $('#ds_total_barang').html(result.data_device_stock.total_barang);
+                                $('#ds_total_nominal').html('Rp' + result.data_device_stock.total_nominal);
+                            }
                         },
                         error: function (xhr, status, error) {
                             console.error(xhr);
@@ -318,9 +358,13 @@
         $('#btn-non-rutin').click(function(){
             $('#modalInfoLabaNonRutin').modal('show');
         });
+        $('#btn-device-stock').click(function(){
+            $('#modalDeviceStock').modal('show');
+        });
         $('.modal .btn-close').click(function(){
             $('#modalInfoLabaRutin').modal('hide');
             $('#modalInfoLabaNonRutin').modal('hide');
+            $('#modalDeviceStock').modal('hide');
         });
 
 
@@ -402,6 +446,59 @@
                                     <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->price_profit_lost_str) }}</td>
                                 </tr>
                             @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalDeviceStock" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalDeviceStockLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <h5 class="modal-title text-center w-100" id="modalDeviceStockLabel">{{ __('backpack::crud.device_stock.modal_title') }}</h5>
+                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="bg-light-actual">
+                            <tr>
+                                <th>No.</th>
+                                <th>{{ __('backpack::crud.device_stock.column.code') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.name') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.category') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.qty') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.buy_price') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.latest_sell_price') }}</th>
+                                <th>{{ __('backpack::crud.device_stock.column.total_sell_nominal') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($data_device_stock['list_stocks'] as $key => $stock)
+                                <tr>
+                                    <td>{{ $key + 1 }}</td>
+                                    <td><span class="badge bg-secondary">{{ $stock->code }}</span></td>
+                                    <td class="fw-bold">{{ $stock->name }}</td>
+                                    <td>{{ $stock->category_name ?? '-' }}</td>
+                                    <td class="text-center">{{ number_format($stock->qty, 0, ',', '.') }}</td>
+                                    <td>{{ \App\Http\Helpers\CustomHelper::formatCurrency($stock->buy_price, $stock->currency_code ?? 'IDR') }}</td>
+                                    <td>
+                                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($stock->latest_sell_price, $stock->latest_currency_code) }}
+                                        @if ($stock->is_from_invoice)
+                                            <span class="badge bg-info ms-1" style="font-size: 10px;" title="{{ __('backpack::crud.device_stock.source_invoice_title') }}">{{ __('backpack::crud.device_stock.source_invoice') }}</span>
+                                        @else
+                                            <span class="badge bg-light text-dark ms-1" style="font-size: 10px;" title="{{ __('backpack::crud.device_stock.source_master_title') }}">{{ __('backpack::crud.device_stock.source_master') }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="fw-bold text-success">Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($stock->total_jual_base) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">{{ __('backpack::crud.device_stock.no_data') }}</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

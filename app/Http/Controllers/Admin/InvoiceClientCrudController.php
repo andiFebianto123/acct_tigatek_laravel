@@ -2338,7 +2338,7 @@ class InvoiceClientCrudController extends CrudController
         $search = request()->input('q', '');
         $companyId = backpack_user()->company_id ?? null;
 
-        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price', 'qty', 'currency_code']);
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price', 'qty', 'currency_code', 'code']);
 
         // if ($companyId && !backpack_user()->hasRole('Super Admin')) {
         //     $query->where('company_id', $companyId);
@@ -2357,8 +2357,8 @@ class InvoiceClientCrudController extends CrudController
         foreach ($dataset as $item) {
             $results[] = [
                 'id'            => $item->id,
-                'text'          => $item->name . ' (Stok: ' . $item->qty . ')',
-                'name'          => $item->name,
+                'text'          => $item->name .' ('. $item->code .')'. ' (Stok: ' . $item->qty . ')',
+                'name'          => $item->name .' ('. $item->code .')',
                 'sell_price'    => (float) $item->sell_price,
                 'qty_available' => (int) $item->qty,
                 'currency_code' => $item->currency_code ?? 'IDR',
