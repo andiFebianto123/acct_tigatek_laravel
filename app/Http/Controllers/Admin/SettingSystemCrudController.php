@@ -168,6 +168,7 @@ class SettingSystemCrudController extends CrudController
         CRUD::setValidation([
             'currency'              => 'required|string|max:10',
             'currency_symbol'       => 'nullable|string|max:10',
+            'usd_rate'              => 'nullable|numeric|min:0',
             'position_currency_symbol' => 'nullable|in:pre,post',
             'format_decimal_number' => 'nullable|integer',
             'po_prefix'             => 'nullable|string|max:10',

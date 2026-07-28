@@ -3,15 +3,15 @@
         <div class="col-md-3">
             <div id="list-account-setting" class="list-group">
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="#list-item-1">
-                    Pengaturan Merk
+                    {{ trans('backpack::crud.setting.brand_setting') }}
                     <i class="la la-angle-right"></i>
                 </a>
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="#list-item-2">
-                    Pengaturan Sistem
+                    {{ trans('backpack::crud.setting.system_setting') }}
                     <i class="la la-angle-right"></i>
                 </a>
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="#list-item-3">
-                    Pengaturan Perusahaan
+                    {{ trans('backpack::crud.setting.company_setting') }}
                     <i class="la la-angle-right"></i>
                 </a>
             </div>
@@ -19,7 +19,7 @@
         <div class="col-md-6" data-bs-spy="scroll" data-bs-target="#list-account-setting" data-bs-offset="0" class="scrollspy-example" tabindex="0">
             <div class="card2 mb-4" id="list-item-1">
                 <div class="card2-parent-header">
-                    <div class="card2-header fs-6">Pengaturan Merk</div>
+                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.brand_setting') }}</div>
                 </div>
                 <div class="card2-body">
                     <form action="{{ url($crud->route.'/updated-logo') }}" id="form-update-logo" method="POST" enctype="multipart/form-data">
@@ -27,7 +27,7 @@
                         <div class="col-md-4">
                             <div class="card2">
                                 <div class="card2-parent-header">
-                                    <div class="card2-header fs-6">Logo Dark</div>
+                                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.logo_dark') }}</div>
                                 </div>
                                 <div class="card2-body">
                                     @if ($setting?->logo_dark != null)
@@ -37,7 +37,7 @@
                                     @endif
                                     <div class="">
                                         <div class="d-flex align-items-center gap-2 form-group">
-                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-logo-dark').click()"><i class="la la-upload"></i> Upload File Here</button>
+                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-logo-dark').click()"><i class="la la-upload"></i> {{ trans('backpack::crud.setting.upload_file_here') }}</button>
                                             <span id="file-name-dark" class=""></span>
                                         </div>
                                         <input type="file" id="upload-input-logo-dark" name="logo_dark" class="d-none" onchange="updateFileName(this, 'file-name-dark')">
@@ -48,7 +48,7 @@
                         <div class="col-md-4">
                             <div class="card2">
                                 <div class="card2-parent-header">
-                                    <div class="card2-header fs-6">Logo Light</div>
+                                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.logo_light') }}</div>
                                 </div>
                                 <div class="card2-body">
                                     @if ($setting?->logo_light != null)
@@ -58,7 +58,7 @@
                                     @endif
                                     <div class="">
                                         <div class="d-flex align-items-center gap-2 form-group">
-                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-logo-light').click()"><i class="la la-upload"></i> Upload File Here</button>
+                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-logo-light').click()"><i class="la la-upload"></i> {{ trans('backpack::crud.setting.upload_file_here') }}</button>
                                             <span id="file-name-light" class=""></span>
                                         </div>
                                         <input type="file" id="upload-input-logo-light" name="logo_light" class="d-none" onchange="updateFileName(this, 'file-name-light')">
@@ -69,7 +69,7 @@
                         <div class="col-md-4 mb-2">
                             <div class="card2">
                                 <div class="card2-parent-header">
-                                    <div class="card2-header fs-6">Favicon</div>
+                                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.favicon') }}</div>
                                 </div>
                                 <div class="card2-body">
                                     @if ($setting?->favicon != null)
@@ -79,7 +79,7 @@
                                     @endif
                                     <div class="">
                                         <div class="d-flex align-items-center gap-2 form-group">
-                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-favicon').click()"><i class="la la-upload"></i> Upload File Here</button>
+                                            <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input-favicon').click()"><i class="la la-upload"></i> {{ trans('backpack::crud.setting.upload_file_here') }}</button>
                                             <span id="file-name-favicon" class=""></span>
                                         </div>
                                         <input type="file" id="upload-input-favicon" name="favicon" class="d-none" onchange="updateFileName(this, 'file-name-favicon')">
@@ -88,53 +88,47 @@
                             </div>
                         </div>
                     </div>
-                    {{-- <div class="mb-3 form-group">
-                        <label class="form-label d-block">Mode Gelap</label>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="dark_mode" role="switch" id="nomorPajakSwitch">
-                        </div>
-                    </div> --}}
                     <div class="text-end">
-                        <button type="submit" id="btn-update-logo" class="btn btn-primary">Simpan Perubahan</button>
+                        <button type="submit" id="btn-update-logo" class="btn btn-primary">{{ trans('backpack::crud.setting.save_changes') }}</button>
                     </div>
                     </form>
                 </div>
             </div>
             <div class="card2 mb-4" id="list-item-2">
                 <div class="card2-parent-header">
-                    <div class="card2-header fs-6">Pengaturan Sistem</div>
+                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.system_setting') }}</div>
                 </div>
                 <div class="card2-body">
                     <form action="{{ url($crud->route.'/updated-system') }}" method="POST" id="form-update-system">
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <div class="mb-3 form-group">
-                                    <label for="mataUang" class="form-label">Mata Uang</label>
+                                    <label for="mataUang" class="form-label">{{ trans('backpack::crud.setting.currency') }}</label>
                                     <input type="text" class="form-control" id="mataUang" name="currency" value="{{$setting?->currency}}">
                                 </div>
                                 <div class="form-group" style="margin-bottom:1.75rem;">
-                                    <label class="form-label">Posisi Simbol Mata Uang</label>
+                                    <label class="form-label">{{ trans('backpack::crud.setting.position_currency_symbol') }}</label>
                                     <div>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="position_currency_symbol" id="posisiPre" value="pre" {{ ($setting?->position_currency_symbol == 'pre') ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="posisiPre">Pre</label>
+                                            <label class="form-check-label" for="posisiPre">{{ trans('backpack::crud.setting.pre') }}</label>
                                         </div>
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="position_currency_symbol" id="posisiPost" value="post" {{ ($setting?->position_currency_symbol == 'post') ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="posisiPost">Post</label>
+                                            <label class="form-check-label" for="posisiPost">{{ trans('backpack::crud.setting.post') }}</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="poPrefix" class="form-label">PO Prefix</label>
+                                    <label for="poPrefix" class="form-label">{{ trans('backpack::crud.setting.po_prefix') }}</label>
                                     <input type="text" class="form-control" id="poPrefix" name="po_prefix" value="{{$setting?->po_prefix}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="kodeKerjaPrefix" class="form-label">Kode Kerja Prefix</label>
+                                    <label for="kodeKerjaPrefix" class="form-label">{{ trans('backpack::crud.setting.work_code_prefix') }}</label>
                                     <input type="text" class="form-control" id="kodeKerjaPrefix" name="work_code_prefix" value="{{$setting?->work_code_prefix}}">
                                 </div>
                                  <div class="mb-3 form-group">
-                                    <label for="fakturPrefix" class="form-label">Faktur Prefix</label>
+                                    <label for="fakturPrefix" class="form-label">{{ trans('backpack::crud.setting.faktur_prefix') }}</label>
                                     <input type="text" class="form-control" id="fakturPrefix" name="faktur_prefix" value="{{$setting?->faktur_prefix}}">
                                 </div>
                                 <div class="mb-3 form-group">
@@ -148,23 +142,31 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3 form-group">
-                                    <label for="simbolMataUang" class="form-label">Simbol Mata Uang</label>
+                                    <label for="simbolMataUang" class="form-label">{{ trans('backpack::crud.setting.currency_symbol') }}</label>
                                     <input type="text" class="form-control" id="simbolMataUang" name="currency_symbol" value="{{$setting?->currency_symbol}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="formatAngkaDesimal" class="form-label">Format Angka Desimal</label>
+                                    <label for="usdRate_masked" class="form-label">{{ trans('backpack::crud.setting.usd_rate') }}</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text fw-bold">Rp</span>
+                                        <input type="text" class="form-control" id="usdRate_masked" value="{{ $setting?->usd_rate ? floatval($setting->usd_rate) : '' }}" placeholder="16.000">
+                                        <input type="hidden" name="usd_rate" id="usdRate" value="{{ $setting?->usd_rate ? floatval($setting->usd_rate) : '' }}">
+                                    </div>
+                                </div>
+                                <div class="mb-3 form-group">
+                                    <label for="formatAngkaDesimal" class="form-label">{{ trans('backpack::crud.setting.format_decimal_number') }}</label>
                                     <input type="number" class="form-control" id="formatAngkaDesimal" name="format_decimal_number" value="{{$setting?->format_decimal_number}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="spkPrefix" class="form-label">SPK Prefix</label>
+                                    <label for="spkPrefix" class="form-label">{{ trans('backpack::crud.setting.spk_prefix') }}</label>
                                     <input type="text" class="form-control" id="spkPrefix" name="spk_prefix" value="{{$setting?->spk_prefix}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="voucherPrefix" class="form-label">Voucher Prefix</label>
+                                    <label for="voucherPrefix" class="form-label">{{ trans('backpack::crud.setting.voucher_prefix') }}</label>
                                     <input type="text" class="form-control" id="voucherPrefix" name="vouhcer_prefix" value="{{$setting?->vouhcer_prefix}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="invoicePrefix" class="form-label">Invoice Prefix</label>
+                                    <label for="invoicePrefix" class="form-label">{{ trans('backpack::crud.setting.invoice_prefix') }}</label>
                                     <input type="text" class="form-control" id="invoicePrefix" name="invoice_prefix" value="{{$setting?->invoice_prefix}}">
                                 </div>
                                 <div class="mb-3 form-group">
@@ -178,41 +180,41 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end">
-                            <button type="submit" id="btn-update-system" class="btn btn-primary">Simpan Perubahan</button>
+                            <button type="submit" id="btn-update-system" class="btn btn-primary">{{ trans('backpack::crud.setting.save_changes') }}</button>
                         </div>
                     </form>
                 </div>
             </div>
             <div class="card2 mb-4" id="list-item-3">
                 <div class="card2-parent-header">
-                    <div class="card2-header fs-6">Pengaturan Perusahaan</div>
+                    <div class="card2-header fs-6">{{ trans('backpack::crud.setting.company_setting') }}</div>
                 </div>
                 <div class="card2-body">
                     <form action="{{ url($crud->route.'/updated-company') }}" method="POST" id="form-update-company">
                         <div class="row mb-2">
                             <div class="col-md-6">
                                 <div class="mb-3 form-group">
-                                    <label for="namaPerusahaan" class="form-label">Nama Perusahaan</label>
+                                    <label for="namaPerusahaan" class="form-label">{{ trans('backpack::crud.setting.company_name') }}</label>
                                     <input type="text" class="form-control" id="namaPerusahaan" name="name_company" value="{{$setting?->name_company}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="kotaKabupaten" class="form-label">Kota/Kabupaten</label>
+                                    <label for="kotaKabupaten" class="form-label">{{ trans('backpack::crud.setting.city') }}</label>
                                     <input type="text" class="form-control" id="kotaKabupaten" name="city" value="{{$setting?->city}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="zipKodePos" class="form-label">ZIP/Kode Pos</label>
+                                    <label for="zipKodePos" class="form-label">{{ trans('backpack::crud.setting.zip_code') }}</label>
                                     <input type="text" class="form-control" id="zipKodePos" name="zip_code" value="{{$setting?->zip_code}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="telepon" class="form-label">Telepon</label>
+                                    <label for="telepon" class="form-label">{{ trans('backpack::crud.setting.phone') }}</label>
                                     <input type="tel" class="form-control" id="telepon" name="telp" value="{{$setting?->telp}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="waktuMulai" class="form-label">Waktu Mulai Perusahaan</label>
+                                    <label for="waktuMulai" class="form-label">{{ trans('backpack::crud.setting.start_time') }}</label>
                                     <input type="time" class="form-control" id="waktuMulai" name="start_time" value="{{$setting?->start_time}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label class="form-label d-block">Nomor Pajak</label>
+                                    <label class="form-label d-block">{{ trans('backpack::crud.setting.tax_number') }}</label>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="nomorPajakSwitch" name="no_fax" value="1" {{ ($setting?->no_fax == 1) ? 'checked' : '' }}>
                                     </div>
@@ -220,29 +222,29 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3 form-group">
-                                    <label for="alamat" class="form-label">Alamat</label>
+                                    <label for="alamat" class="form-label">{{ trans('backpack::crud.setting.address') }}</label>
                                     <input type="text" class="form-control" id="alamat" name="address" value="{{$setting?->address}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="provinsi" class="form-label">Provinsi</label>
+                                    <label for="provinsi" class="form-label">{{ trans('backpack::crud.setting.province') }}</label>
                                     <input type="text" class="form-control" id="provinsi" name="province" value="{{$setting?->province}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="negara" class="form-label">Negara</label>
+                                    <label for="negara" class="form-label">{{ trans('backpack::crud.setting.country') }}</label>
                                     <input type="text" class="form-control" id="negara" name="country" value="{{$setting?->country}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="nomorRegistrasi" class="form-label">Nomor Registrasi Perusahaan</label>
+                                    <label for="nomorRegistrasi" class="form-label">{{ trans('backpack::crud.setting.company_registration_number') }}</label>
                                     <input type="text" class="form-control" id="nomorRegistrasi" name="no_register_company" value="{{$setting?->no_register_company}}">
                                 </div>
                                 <div class="mb-3 form-group">
-                                    <label for="waktuBerakhir" class="form-label">Waktu Berakhir Perusahaan</label>
+                                    <label for="waktuBerakhir" class="form-label">{{ trans('backpack::crud.setting.end_time') }}</label>
                                     <input type="time" class="form-control" id="waktuBerakhir" name="end_time" value="{{$setting?->end_time}}">
                                 </div>
                             </div>
                         </div>
                         <div class="d-flex justify-content-end mt-3">
-                            <button type="submit" id="btn-update-company" class="btn btn-primary">Simpan Perubahan</button>
+                            <button type="submit" id="btn-update-company" class="btn btn-primary">{{ trans('backpack::crud.setting.save_changes') }}</button>
                         </div>
                     </form>
                 </div>
@@ -291,9 +293,51 @@
 @push('after_scripts')
 <script>
     function updateFileName(input, file_name) {
-        const fileName = input.files[0] ? input.files[0].name : 'Belum ada file dipilih';
+        const fileName = input.files[0] ? input.files[0].name : "{!! trans('backpack::crud.setting.no_file_chosen') !!}";
         document.getElementById(file_name).textContent = fileName;
     }
+
+    $(document).ready(function() {
+        var $maskedInput = $('#usdRate_masked');
+        var $hiddenInput = $('#usdRate');
+
+        if ($maskedInput.length) {
+            function getCleanValueIdr(val) {
+                if (!val && val !== 0) return '';
+                return val.toString().replace(/[^\d-]/g, '');
+            }
+
+            function formatIdrMask(val) {
+                if (!val && val !== 0) return '';
+                if (typeof window.formatCurrency === 'function') {
+                    return window.formatCurrency(val, 'IDR');
+                }
+                let digits = val.toString().replace(/[^\d]/g, '');
+                if (!digits) return '';
+                let sisa = digits.length % 3;
+                let rupiah = digits.substr(0, sisa);
+                let ribuan = digits.substr(sisa).match(/\d{3}/g);
+                if (ribuan) {
+                    let separator = sisa ? '.' : '';
+                    rupiah += separator + ribuan.join('.');
+                }
+                return rupiah;
+            }
+
+            // Initial format on load
+            var initialRaw = $hiddenInput.val() || '';
+            if (initialRaw) {
+                $maskedInput.val(formatIdrMask(initialRaw));
+            }
+
+            // Mask input handling
+            $maskedInput.on('input change keyup', function () {
+                var currentRaw = getCleanValueIdr($(this).val());
+                $(this).val(formatIdrMask($(this).val()));
+                $hiddenInput.val(currentRaw);
+            });
+        }
+    });
 </script>
 <script>
 
