@@ -12,6 +12,7 @@ use App\Models\JournalEntry;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Exports\ExportExcel;
 use App\Models\ProjectProfitLost;
+use App\Models\InvoiceClient;
 use App\Http\Helpers\CustomHelper;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;

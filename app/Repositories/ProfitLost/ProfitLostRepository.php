@@ -569,7 +569,6 @@ class ProfitLostRepository
         $supplierSubQuery = DB::table('invoice_clients as ic')
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
-            ->leftJoin('delivery_notes as dn', 'dn.invoice_client_id', '=', 'ic.id')
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',
@@ -584,7 +583,7 @@ class ProfitLostRepository
                 DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(COALESCE(SUM(icd.cogs_amount_base), 0) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
                 DB::raw("(ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) AS laba_kotor_base"),
                 DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
-                DB::raw("CASE WHEN dn.id IS NOT NULL THEN 'Dikirim (FIFO Posted)' ELSE 'Draft Stok (Belum Diterbitkan Surat Jalan)' END AS delivery_status")
+                DB::raw("CASE WHEN ic.delivery_note_id IS NOT NULL OR EXISTS (SELECT 1 FROM delivery_notes dn WHERE dn.invoice_client_id = ic.id) THEN 'Terbit Surat Jalan & FIFO Posted' ELSE 'Invoice Tanpa Surat Jalan' END AS delivery_status")
             ])
             ->groupBy(
                 'ic.id',
@@ -593,7 +592,7 @@ class ProfitLostRepository
                 'c.name',
                 'ic.currency_code',
                 'ic.price_total_exclude_ppn_base',
-                'dn.id'
+                'ic.delivery_note_id'
             );
 
         $query->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')

@@ -620,11 +620,6 @@ class InvoiceClientService
             throw new \Exception(trans('backpack::crud.invoice_client.error.delivery_note_already_billed') ?: 'Surat Jalan terpilih sudah diterbitkan Invoicenya pada transaksi lain.');
         }
 
-        // 2. Validasi kesesuaian client_id jika dua-duanya ada
-        if ($deliveryNote->client_id && $invoice->client_id && (int) $deliveryNote->client_id !== (int) $invoice->client_id) {
-            throw new \Exception(trans('backpack::crud.invoice_client.error.client_mismatch') ?: 'Pelanggan (Client) pada Invoice harus sama dengan Pelanggan pada Surat Jalan terpilih.');
-        }
-
         $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
 
         // 3. Iterasi setiap item pada invoice
