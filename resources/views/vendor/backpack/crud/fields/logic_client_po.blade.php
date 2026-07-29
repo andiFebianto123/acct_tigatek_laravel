@@ -145,9 +145,9 @@
                         workCodeWrapper.hide();
                         workCodeInput.attr('disabled', true);
                         
-                        // Show supplier PO select
-                        purchaseOrderIdWrapper.show();
-                        purchaseOrderIdInput.removeAttr('disabled');
+                        // Hide supplier PO select
+                        purchaseOrderIdWrapper.hide();
+                        purchaseOrderIdInput.attr('disabled', true);
                         
                         // Change job_name label and placeholder
                         jobNameLabel.text("{{ trans('backpack::crud.client_po.field.job_name.label_supplier') }}");
