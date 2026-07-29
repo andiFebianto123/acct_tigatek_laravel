@@ -710,8 +710,8 @@ return [
             ],
             'items' => [
                 'header' => 'Daftar Item Barang / Pekerjaan',
-                'select_stock_placeholder' => '- PILIH BARANG PERSEDIAAN (OPSIONAL) -',
-                'description_placeholder' => 'Deskripsi / Nama Barang',
+                'select_stock_placeholder' => '- PILIH BARANG PERSEDIAAN -',
+                'description_placeholder' => 'Deskripsi',
                 'qty' => 'QTY',
                 'action' => 'Aksi',
                 'add_row' => 'Tambah Baris',
