@@ -431,43 +431,44 @@ class InvoiceClientService
      */
     public function validateStockSufficiency(mixed $invoiceData, ?array $details = null): void
     {
-        $typeDevice = is_a($invoiceData, InvoiceClient::class) ? $invoiceData->type_device : $invoiceData->type_device;
-        if ($typeDevice !== \App\Models\DeviceStock::class) {
-            return;
-        }
+        // $typeDevice = is_a($invoiceData, InvoiceClient::class) ? $invoiceData->type_device : $invoiceData->type_device;
+        // if ($typeDevice !== \App\Models\DeviceStock::class) {
+        //     return;
+        // }
 
-        $items = [];
-        if (is_a($invoiceData, InvoiceClient::class)) {
-            $detailsList = InvoiceClientDetail::where('invoice_client_id', $invoiceData->id)
-                ->whereNotNull('device_stock_id')
-                ->get();
-            foreach ($detailsList as $d) {
-                $items[] = [
-                    'device_stock_id' => $d->device_stock_id,
-                    'qty' => (int) $d->qty,
-                ];
-            }
-        } else if (is_array($details)) {
-            foreach ($details as $d) {
-                if (!empty($d['device_stock_id'])) {
-                    $items[] = [
-                        'device_stock_id' => (int) $d['device_stock_id'],
-                        'qty' => (int) ($d['qty'] ?? 1),
-                    ];
-                }
-            }
-        }
+        // $items = [];
+        // if (is_a($invoiceData, InvoiceClient::class)) {
+        //     $detailsList = InvoiceClientDetail::where('invoice_client_id', $invoiceData->id)
+        //         ->whereNotNull('device_stock_id')
+        //         ->get();
+        //     foreach ($detailsList as $d) {
+        //         $items[] = [
+        //             'device_stock_id' => $d->device_stock_id,
+        //             'qty' => (int) $d->qty,
+        //         ];
+        //     }
+        // } else if (is_array($details)) {
+        //     foreach ($details as $d) {
+        //         if (!empty($d['device_stock_id'])) {
+        //             $items[] = [
+        //                 'device_stock_id' => (int) $d['device_stock_id'],
+        //                 'qty' => (int) ($d['qty'] ?? 1),
+        //             ];
+        //         }
+        //     }
+        // }
 
-        foreach ($items as $item) {
-            $stock = DeviceStock::find($item['device_stock_id']);
-            if ($stock) {
-                $available = (int) $stock->qty;
-                $needed = (int) $item['qty'];
-                if ($available < $needed) {
-                    throw new \Exception("Stok barang '{$stock->name}' tidak mencukupi. (Stok tersedia: {$available}, Dibutuhkan: {$needed}).");
-                }
-            }
-        }
+        // foreach ($items as $item) {
+        //     $stock = DeviceStock::find($item['device_stock_id']);
+        //     if ($stock) {
+        //         $available = (int) $stock->qty;
+        //         $needed = (int) $item['qty'];
+        //         if ($available < $needed) {
+        //             throw new \Exception("Stok barang '{$stock->name}' tidak mencukupi. (Stok tersedia: {$available}, Dibutuhkan: {$needed}).");
+        //         }
+        //     }
+        // }
+        return;
     }
 
     // =========================================================================
