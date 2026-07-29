@@ -128,6 +128,7 @@ Route::group([
         Route::match(['get', 'post', 'put'], 'delivery-note/select2-quotation', [DeliveryNoteCrudController::class, 'select2Quotation']);
         Route::match(['get', 'post', 'put'], 'delivery-note/select2-proforma-invoice', [DeliveryNoteCrudController::class, 'select2ProformaInvoice']);
         Route::match(['get', 'post', 'put'], 'delivery-note/select2-po', [DeliveryNoteCrudController::class, 'select2ClientPo']);
+        Route::match(['get', 'post', 'put'], 'delivery-note/select2-device-stock', [DeliveryNoteCrudController::class, 'select2DeviceStock']);
         Route::match(['get', 'post', 'put'], 'delivery-note/client-address', [DeliveryNoteCrudController::class, 'getClientAddress']);
         Route::crud('delivery-note', 'DeliveryNoteCrudController');
         Route::post('delivery-note/export-pdf', [DeliveryNoteCrudController::class, 'exportPdf']);
@@ -198,6 +199,10 @@ Route::group([
     Route::get('invoice-client/total', [InvoiceClientCrudController::class, 'total_price']);
     Route::delete('invoice-client/void-payment/{id}', [InvoiceClientCrudController::class, 'voidPayment']);
     Route::post('invoice-client/payment', [InvoiceClientCrudController::class, 'storePayment']);
+    Route::match(['get', 'post', 'put'], 'invoice-client/select2-delivery-note', [InvoiceClientCrudController::class, 'select2DeliveryNote']);
+    Route::match(['get', 'post', 'put'], 'client/invoice-client/select2-delivery-note', [InvoiceClientCrudController::class, 'select2DeliveryNote']);
+    Route::get('invoice-client/get-delivery-note-details', [InvoiceClientCrudController::class, 'getDeliveryNoteDetails']);
+    Route::get('client/invoice-client/get-delivery-note-details', [InvoiceClientCrudController::class, 'getDeliveryNoteDetails']);
     Route::get('invoice-client/select2-device-stock', [InvoiceClientCrudController::class, 'select2DeviceStock']);
     Route::crud('invoice-client', 'InvoiceClientCrudController');
 

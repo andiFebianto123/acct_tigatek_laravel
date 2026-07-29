@@ -33,6 +33,10 @@ class DeliveryNoteRequest extends FormRequest
             'description'       => 'nullable|string',
             'qty'               => 'nullable|integer',
             'information'       => 'nullable|string',
+            'delivery_note_details' => 'nullable|array',
+            'delivery_note_details.*.device_stock_id' => 'nullable|exists:device_stocks,id',
+            'delivery_note_details.*.description' => 'nullable|string',
+            'delivery_note_details.*.qty' => 'required_with:delivery_note_details|integer|min:1',
         ];
 
         if (backpack_user() && backpack_user()->hasRole('Super Admin')) {

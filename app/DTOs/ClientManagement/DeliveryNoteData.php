@@ -19,6 +19,7 @@ class DeliveryNoteData
         public readonly ?string $information,
         public readonly ?string $reference_type,
         public readonly ?int $reference_id,
+        public readonly array $delivery_note_details = [],
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -40,6 +41,24 @@ class DeliveryNoteData
             $invoiceClientId = $referenceId;
         }
 
+        $details = [];
+        $rawDetails = $request->input('delivery_note_details') ?? $request->input('items') ?? [];
+        if (is_string($rawDetails)) {
+            $rawDetails = json_decode($rawDetails, true) ?? [];
+        }
+        if (is_array($rawDetails)) {
+            foreach ($rawDetails as $d) {
+                if (empty($d['device_stock_id']) && empty($d['description'])) {
+                    continue;
+                }
+                $details[] = [
+                    'device_stock_id' => !empty($d['device_stock_id']) ? (int) $d['device_stock_id'] : null,
+                    'description'     => $d['description'] ?? null,
+                    'qty'             => max(1, (int) ($d['qty'] ?? 1)),
+                ];
+            }
+        }
+
         return new self(
             company_id: $company_id,
             client_po_id: $request->input('client_po_id') ? (int) $request->input('client_po_id') : null,
@@ -53,6 +72,7 @@ class DeliveryNoteData
             information: $request->input('information'),
             reference_type: $referenceType,
             reference_id: $referenceId,
+            delivery_note_details: $details,
         );
     }
 

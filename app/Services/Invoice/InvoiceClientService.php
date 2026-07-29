@@ -103,6 +103,7 @@ class InvoiceClientService
                     term: $dto->term,
                     client_id: $clientId,
                     currency_code: $dto->currency_code,
+                    delivery_note_id: $dto->delivery_note_id,
                 );
             }
 
@@ -129,11 +130,10 @@ class InvoiceClientService
 
             $this->saveDetails($invoice, $dto->invoice_client_details);
 
-            // Note: FIFO tidak langsung dieksekusi saat Invoice dibuat/diedit (masih berupa draft stok), 
-            // melainkan akan dieksekusi saat Surat Jalan (DeliveryNote) dibuat.
-            // if ($dto->type_device === \App\Models\DeviceStock::class) {
-            //     $this->consumeFifoStock($invoice);
-            // }
+            // Rekonsiliasi FIFO & HPP dengan Surat Jalan jika ada
+            if ($dto->delivery_note_id) {
+                $this->processDeliveryNoteReconciliation($invoice, $dto);
+            }
 
             CustomVoid::invoiceMakeVoucherMoveAccount($invoice);
             CustomVoid::invoiceCreate($invoice);
@@ -147,6 +147,7 @@ class InvoiceClientService
         return DB::transaction(function () use ($id, $dto) {
             $invoice = InvoiceClient::findOrFail($id);
             $old_client_po_id = $invoice->client_po_id;
+            $oldDeliveryNoteId = $invoice->delivery_note_id;
 
             // Update the associated Client PO if it exists
             $po = $dto->client_po_id ? \App\Models\ClientPo::find($dto->client_po_id) : null;
@@ -212,14 +213,14 @@ class InvoiceClientService
                         term: $dto->term,
                         client_id: $client->id,
                         currency_code: $dto->currency_code,
+                        delivery_note_id: $dto->delivery_note_id,
                     );
                 }
             }
 
-            // Proteksi Edit: Jika Invoice sudah terbit Surat Jalan (DeliveryNote), cegah pengeditan invoice
-            $hasDeliveryNote = \App\Models\DeliveryNote::where('invoice_client_id', $id)->exists();
-            if ($hasDeliveryNote) {
-                throw new \Exception(trans('backpack::crud.invoice_client.error.cannot_edit_delivery_note_exists') ?: 'Invoice tidak dapat diubah karena Surat Jalan (Delivery Note) sudah diterbitkan.');
+            // Jika Surat Jalan diganti, buka kunci Surat Jalan lama
+            if ($oldDeliveryNoteId && (int)$oldDeliveryNoteId !== (int)$dto->delivery_note_id) {
+                \App\Models\DeliveryNote::where('id', $oldDeliveryNoteId)->update(['invoice_client_id' => null]);
             }
 
             $this->validateStockSufficiency($dto, $dto->invoice_client_details);
@@ -243,18 +244,16 @@ class InvoiceClientService
 
             $invoice->save();
 
-            // Revert stok FIFO lama sebelum hapus detail
-            if ($invoice->type_device === \App\Models\DeviceStock::class) {
-                $this->revertFifoStock($invoice);
-            }
+            // Revert mutasi stok FIFO invoice lama sebelum simpan detail baru
+            $this->revertFifoStock($invoice);
 
             InvoiceClientDetail::where('invoice_client_id', $id)->delete();
             $this->saveDetails($invoice, $dto->invoice_client_details);
 
-            // Konsumsi stok FIFO baru setelah detail tersimpan (dinonaktifkan - diproses via Surat Jalan)
-            // if ($dto->type_device === \App\Models\DeviceStock::class) {
-            //     $this->consumeFifoStock($invoice);
-            // }
+            // Rekonsiliasi FIFO & HPP dengan Surat Jalan jika ada
+            if ($dto->delivery_note_id) {
+                $this->processDeliveryNoteReconciliation($invoice, $dto);
+            }
 
             if ($invoice->wasChanged([
                 'price_total_exclude_ppn',
@@ -277,11 +276,13 @@ class InvoiceClientService
         DB::transaction(function () use ($id) {
             $invoice = InvoiceClient::findOrFail($id);
 
-            // Proteksi Hapus: Tolak penghapusan jika Invoice masih terhubung ke Surat Jalan
-            $hasDeliveryNote = \App\Models\DeliveryNote::where('invoice_client_id', $id)->exists();
-            if ($hasDeliveryNote) {
-                throw new \Exception(trans('backpack::crud.invoice_client.error.cannot_delete_delivery_note_exists') ?: 'Invoice tidak dapat dihapus karena Surat Jalan (Delivery Note) masih terhubung. Hapus Surat Jalan terlebih dahulu.');
-            }
+            // Revert stok FIFO / mutasi invoice jika ada
+            $this->revertFifoStock($invoice);
+
+            // Lepas penguncian Surat Jalan jika terhubung
+            \App\Models\DeliveryNote::where('invoice_client_id', $id)
+                ->orWhere('id', $invoice->delivery_note_id)
+                ->update(['invoice_client_id' => null]);
 
             // Revert stok FIFO jika invoice menggunakan Persediaan
             if ($invoice->type_device === \App\Models\DeviceStock::class) {
@@ -348,6 +349,7 @@ class InvoiceClientService
         $invoice->account_source_id = $dto->account_source_id;
         $invoice->type_device = $dto->type_device;
         $invoice->term = $dto->term;
+        $invoice->delivery_note_id = $dto->delivery_note_id;
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float
@@ -382,6 +384,12 @@ class InvoiceClientService
                     ? (int) $item['device_stock_id']
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
+
+                // Simpan delivery_note_detail_id jika ada
+                $dnDetailId = isset($item['delivery_note_detail_id']) && !empty($item['delivery_note_detail_id'])
+                    ? (int) $item['delivery_note_detail_id']
+                    : null;
+                $invoice_item->delivery_note_detail_id = $dnDetailId;
 
                 $invoice_item->save();
             }
@@ -590,5 +598,234 @@ class InvoiceClientService
         InvoiceClientDetail::where('invoice_client_id', $invoice->id)
             ->whereNotNull('device_stock_id')
             ->update(['cogs_amount' => 0, 'cogs_amount_base' => 0]);
+    }
+
+    /**
+     * Memproses rekonsiliasi Invoice Client dengan Surat Jalan (DeliveryNote).
+     */
+    private function processDeliveryNoteReconciliation(InvoiceClient $invoice, InvoiceClientSaveData $dto): void
+    {
+        if (!$dto->delivery_note_id) {
+            return;
+        }
+
+        $deliveryNote = \App\Models\DeliveryNote::with('details')->find($dto->delivery_note_id);
+        if (!$deliveryNote) {
+            return;
+        }
+
+        // 1. Validasi status Surat Jalan (belum di-lock oleh invoice lain)
+        if ($deliveryNote->invoice_client_id && (int) $deliveryNote->invoice_client_id !== (int) $invoice->id) {
+            throw new \Exception(trans('backpack::crud.invoice_client.error.delivery_note_already_billed') ?: 'Surat Jalan terpilih sudah diterbitkan Invoicenya pada transaksi lain.');
+        }
+
+        // 2. Validasi kesesuaian client_id jika dua-duanya ada
+        if ($deliveryNote->client_id && $invoice->client_id && (int) $deliveryNote->client_id !== (int) $invoice->client_id) {
+            throw new \Exception(trans('backpack::crud.invoice_client.error.client_mismatch') ?: 'Pelanggan (Client) pada Invoice harus sama dengan Pelanggan pada Surat Jalan terpilih.');
+        }
+
+        $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
+
+        // 3. Iterasi setiap item pada invoice
+        $invoiceDetails = InvoiceClientDetail::where('invoice_client_id', $invoice->id)->get();
+        foreach ($invoiceDetails as $invDetail) {
+            if (!$invDetail->device_stock_id) {
+                continue;
+            }
+
+            // Update harga jual master (sell_price) dari input invoice
+            if ($invDetail->price > 0) {
+                DeviceStock::where('id', $invDetail->device_stock_id)->update(['sell_price' => $invDetail->price]);
+            }
+
+            // Cari detail Surat Jalan yang selaras
+            $dnDetail = $deliveryNote->details->first(function ($d) use ($invDetail) {
+                if (!empty($invDetail->delivery_note_detail_id)) {
+                    return (int) $d->id === (int) $invDetail->delivery_note_detail_id;
+                }
+                return (int) $d->device_stock_id === (int) $invDetail->device_stock_id;
+            });
+
+            if ($dnDetail) {
+                $dnQty      = (int) $dnDetail->qty;
+                $dnCogsBase = (float) $dnDetail->cogs_amount_base;
+                $invQty     = (int) $invDetail->qty;
+
+                if ($invQty === $dnQty) {
+                    $cogsBase = $dnCogsBase;
+                } else if ($invQty < $dnQty) {
+                    // Qty Invoice lebih kecil dari Surat Jalan -> Revert layer FIFO terurai dari mutasi Surat Jalan
+                    $diffQty = $dnQty - $invQty;
+                    $revertedCogsBase = $this->revertExcessFifoStock($invoice, $deliveryNote->id, $invDetail->device_stock_id, $diffQty);
+                    $cogsBase = max(0, $dnCogsBase - $revertedCogsBase);
+                } else {
+                    // Qty Invoice lebih besar dari Surat Jalan -> Ambil HPP Surat Jalan + Konsumsi FIFO tambahan
+                    $cogsBase = $dnCogsBase;
+                    $diffQty  = $invQty - $dnQty;
+
+                    // Validasi stok fisik tambahan
+                    $masterStock = DeviceStock::find($invDetail->device_stock_id);
+                    if (!$masterStock || $masterStock->qty < $diffQty) {
+                        $stockName = $masterStock ? $masterStock->name : 'Item';
+                        $avail = $masterStock ? $masterStock->qty : 0;
+                        throw new \Exception(trans('backpack::crud.invoice_client.error.stock_insufficient_delta', [
+                            'name'      => $stockName,
+                            'available' => $avail,
+                            'needed'    => $diffQty,
+                        ]) ?: "Stok barang '{$stockName}' tidak mencukupi untuk penambahan kuantitas di Invoice. (Stok tersedia: {$avail}, Dibutuhkan tambahan: {$diffQty}).");
+                    }
+
+                    $extraCogsBase = $this->consumeExtraFifoStock($masterStock, $diffQty, $invoice);
+                    $cogsBase += $extraCogsBase;
+                }
+
+                $invDetail->delivery_note_detail_id = $dnDetail->id;
+                $invDetail->cogs_amount_base        = round($cogsBase, 4);
+                $invDetail->cogs_amount             = round($cogsBase / max($exchangeRate, 1.0), 4);
+                $invDetail->save();
+            }
+        }
+
+        // 4. Kunci Surat Jalan (Locking)
+        $deliveryNote->invoice_client_id = $invoice->id;
+        $deliveryNote->save();
+    }
+
+    /**
+     * Revert selisih stok lebih kembali ke gudang dengan menelusuri layer mutasi FIFO Surat Jalan.
+     */
+    private function revertExcessFifoStock(InvoiceClient $invoice, int $deliveryNoteId, int $deviceStockId, int $qtyToReturn): float
+    {
+        if ($qtyToReturn <= 0) return 0.0;
+
+        $mutations = DeviceStockMutation::where('reference_type', \App\Models\DeliveryNote::class)
+            ->where('reference_id', $deliveryNoteId)
+            ->where('device_stock_id', $deviceStockId)
+            ->where('type', 'OUT')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $revertedCogsBase = 0.0;
+        $remainingToReturn = $qtyToReturn;
+
+        foreach ($mutations as $mutation) {
+            if ($remainingToReturn <= 0) break;
+
+            $layer  = DeviceStockHistory::find($mutation->device_stock_history_id);
+            $master = DeviceStock::find($mutation->device_stock_id);
+
+            $portion = min(abs($mutation->qty_change), $remainingToReturn);
+            $cogsPortion = $portion * (float) $mutation->buy_price_base;
+            $revertedCogsBase += $cogsPortion;
+
+            if ($layer) {
+                $qtyBefore = $layer->qty;
+                $layer->qty += $portion;
+                $layer->save();
+
+                // Catat log mutasi IN pengembalian selisih Invoice
+                DeviceStockMutation::create([
+                    'device_stock_id'         => $master->id ?? $deviceStockId,
+                    'device_stock_history_id' => $layer->id,
+                    'reference_type'          => InvoiceClient::class,
+                    'reference_id'            => $invoice->id,
+                    'type'                    => 'IN',
+                    'qty_before'              => $qtyBefore,
+                    'qty_change'              => $portion,
+                    'qty_after'               => $layer->qty,
+                    'buy_price_base'          => $mutation->buy_price_base,
+                    'note'                    => 'Reversi Selisih Qty Invoice #' . $invoice->invoice_number,
+                ]);
+            }
+
+            if ($master) {
+                $master->qty += $portion;
+                $master->save();
+            }
+
+            $remainingToReturn -= $portion;
+        }
+
+        // Fallback jika tidak ada mutasi spesifik ditemukan
+        if ($remainingToReturn > 0) {
+            $master = DeviceStock::find($deviceStockId);
+            if ($master) {
+                $master->qty += $remainingToReturn;
+                $master->save();
+            }
+
+            $layer = DeviceStockHistory::where('device_stock_id', $deviceStockId)
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($layer) {
+                $qtyBefore = $layer->qty;
+                $layer->qty += $remainingToReturn;
+                $layer->save();
+
+                DeviceStockMutation::create([
+                    'device_stock_id'         => $deviceStockId,
+                    'device_stock_history_id' => $layer->id,
+                    'reference_type'          => InvoiceClient::class,
+                    'reference_id'            => $invoice->id,
+                    'type'                    => 'IN',
+                    'qty_before'              => $qtyBefore,
+                    'qty_change'              => $remainingToReturn,
+                    'qty_after'               => $layer->qty,
+                    'buy_price_base'          => $layer->buy_price_base,
+                    'note'                    => 'Reversi Selisih Qty Invoice #' . $invoice->invoice_number,
+                ]);
+
+                $revertedCogsBase += ($remainingToReturn * (float) $layer->buy_price_base);
+            }
+        }
+
+        return $revertedCogsBase;
+    }
+
+    /**
+     * Konsumsi stok FIFO tambahan saat Qty Invoice > Qty Surat Jalan.
+     */
+    private function consumeExtraFifoStock(DeviceStock $masterStock, int $qtyNeeded, InvoiceClient $invoice): float
+    {
+        $layers = DeviceStockHistory::where('device_stock_id', $masterStock->id)
+            ->where('qty', '>', 0)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $totalCogsBase = 0.0;
+        $qtyRemaining  = $qtyNeeded;
+
+        foreach ($layers as $layer) {
+            if ($qtyRemaining <= 0) break;
+
+            $qtyFromLayer      = min($layer->qty, $qtyRemaining);
+            $cogsBaseFromLayer = $qtyFromLayer * (float) $layer->buy_price_base;
+            $totalCogsBase    += $cogsBaseFromLayer;
+
+            $qtyBefore  = $layer->qty;
+            $layer->qty -= $qtyFromLayer;
+            $layer->save();
+
+            DeviceStockMutation::create([
+                'device_stock_id'         => $masterStock->id,
+                'device_stock_history_id' => $layer->id,
+                'reference_type'          => InvoiceClient::class,
+                'reference_id'            => $invoice->id,
+                'type'                    => 'OUT',
+                'qty_before'              => $qtyBefore,
+                'qty_change'              => -$qtyFromLayer,
+                'qty_after'               => $layer->qty,
+                'buy_price_base'          => $layer->buy_price_base,
+                'note'                    => 'FIFO OUT Tambahan - Invoice #' . $invoice->invoice_number,
+            ]);
+
+            $qtyRemaining -= $qtyFromLayer;
+        }
+
+        $masterStock->qty = max(0, $masterStock->qty - $qtyNeeded);
+        $masterStock->save();
+
+        return $totalCogsBase;
     }
 }

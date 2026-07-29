@@ -588,7 +588,7 @@ class DeliveryNoteCrudController extends CrudController
                 'quotation'        => trans('backpack::crud.delivery_note.field.reference_type.options.quotation'),
                 'proforma_invoice' => trans('backpack::crud.delivery_note.field.reference_type.options.proforma_invoice'),
                 'client_po'        => trans('backpack::crud.delivery_note.field.reference_type.options.client_po'),
-                'invoice_client'   => trans('backpack::crud.delivery_note.field.reference_type.options.invoice_client'),
+                // 'invoice_client'   => trans('backpack::crud.delivery_note.field.reference_type.options.invoice_client'),
             ],
             'allows_null' => true,
             'wrapper'     => ['class' => 'form-group col-md-6'],
@@ -678,7 +678,7 @@ class DeliveryNoteCrudController extends CrudController
         CRUD::addField([
             'name'  => 'invoice_items_table',
             'type'  => 'custom_html',
-            'value' => '<div class="form-group col-md-12"><label>' . trans('backpack::crud.delivery_note.field.reference_id.label') . ' — Daftar Barang</label><div id="delivery_note_invoice_items_container"><table class="table table-bordered table-sm" id="table-invoice-items"><thead class="table-dark"><tr><th style="width:40px">No</th><th>Nama Barang / Deskripsi</th><th class="text-center" style="width:80px">QTY</th></tr></thead><tbody><tr><td colspan="3" class="text-center text-muted py-3"><i class="la la-info-circle"></i> Pilih Jenis Referensi dan No. Dokumen terlebih dahulu</td></tr></tbody></table></div></div>',
+            'value' => '<div class="form-group col-md-12"><label class="font-weight-bold">' . trans('backpack::crud.delivery_note.field.items.header') . '</label><div id="delivery_note_invoice_items_container"><table class="table table-bordered table-sm align-middle" id="table-invoice-items"><thead class="table-dark"><tr><th class="text-center" style="width:40px">#</th><th style="width:35%">' . trans('backpack::crud.delivery_note.field.items.select_stock_placeholder') . '</th><th>' . trans('backpack::crud.delivery_note.field.items.description_placeholder') . '</th><th class="text-center" style="width:100px">' . trans('backpack::crud.delivery_note.field.items.qty') . '</th><th class="text-center" style="width:60px">' . trans('backpack::crud.delivery_note.field.items.action') . '</th></tr></thead><tbody></tbody></table><div class="mt-2"><button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-dn-item"><i class="la la-plus"></i> ' . trans('backpack::crud.delivery_note.field.items.add_row') . '</button></div></div></div>',
             'wrapper' => ['class' => 'form-group col-md-12'],
         ]);
     }
@@ -815,6 +815,26 @@ class DeliveryNoteCrudController extends CrudController
             'name'      => 'information',
             'width_box' => '100%',
             'type'      => 'wrap_text',
+        ]);
+
+        CRUD::column([
+            'name'      => 'details_table',
+            'label'     => trans('backpack::crud.delivery_note.field.items.header'),
+            'width_box' => '100%',
+            'type'      => 'custom_html',
+            'value'     => function ($entry) {
+                if (!$entry->details || $entry->details->count() === 0) {
+                    return '<span class="text-muted">' . trans('backpack::crud.delivery_note.field.items.empty') . '</span>';
+                }
+                $html = '<table class="table table-bordered table-sm m-0"><thead class="table-dark"><tr><th class="text-center" style="width:40px">#</th><th>Nama Barang / Deskripsi</th><th class="text-center" style="width:80px">QTY</th></tr></thead><tbody>';
+                foreach ($entry->details as $idx => $detail) {
+                    $name = e($detail->device_stock?->name ? ($detail->device_stock->name . ($detail->description && $detail->description !== $detail->device_stock->name ? ' - ' . $detail->description : '')) : ($detail->description ?? '-'));
+                    $qty  = (int) $detail->qty;
+                    $html .= '<tr><td class="text-center">' . ($idx + 1) . '</td><td>' . $name . '</td><td class="text-center"><strong>' . $qty . '</strong></td></tr>';
+                }
+                $html .= '</tbody></table>';
+                return $html;
+            },
         ]);
     }
 
@@ -988,8 +1008,9 @@ class DeliveryNoteCrudController extends CrudController
         $items = [];
         foreach ($invoice->invoice_client_details as $detail) {
             $items[] = [
-                'name' => $detail->name ?? $detail->deviceStock?->name ?? '-',
-                'qty'  => $detail->qty ?? 1,
+                'device_stock_id' => $detail->device_stock_id ?? null,
+                'name'            => $detail->name ?? $detail->deviceStock?->name ?? '-',
+                'qty'             => $detail->qty ?? 1,
             ];
         }
 
@@ -1043,5 +1064,39 @@ class DeliveryNoteCrudController extends CrudController
             'address'     => $po?->client?->address ?? '',
             'job_name'    => $po?->job_name ?? '',
         ]);
+    }
+
+    /**
+     * Endpoint Select2 AJAX untuk daftar Device Stock (Persediaan) pada Surat Jalan.
+     */
+    public function select2DeviceStock()
+    {
+        if (!$this->crud->hasAccess('create') && !$this->crud->hasAccess('update') && !$this->crud->hasAccess('list')) {
+            abort(403);
+        }
+
+        $search = request()->input('q', '');
+
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'code', 'qty', 'sell_price']);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->where('qty', '>', 0)->paginate(20);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id'    => $item->id,
+                'text'  => $item->name . ' (' . $item->code . ') (Stok: ' . $item->qty . ')',
+                'name'  => $item->name,
+                'qty'   => $item->qty,
+            ];
+        }
+        return response()->json(['results' => $results]);
     }
 }

@@ -1234,6 +1234,21 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'label'       => trans('backpack::crud.invoice_client.field.delivery_note_id.label'),
+            'type'        => 'select2_ajax_custom',
+            'name'        => 'delivery_note_id',
+            'entity'      => false,
+            'attribute'   => 'text',
+            'data_source' => backpack_url('invoice-client/select2-delivery-note'),
+            'dependencies' => ['company_id', 'client_id'],
+            'include_all_form_fields' => true,
+            'wrapper'     => ['class' => 'form-group col-md-6'],
+            'attributes'  => [
+                'placeholder' => trans('backpack::crud.invoice_client.field.delivery_note_id.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'term',
             'label' => trans('backpack::crud.proforma_invoice.field.term.label'),
             'type' => 'tinymce_8',
@@ -1265,6 +1280,13 @@ class InvoiceClientCrudController extends CrudController
                     ],
                     [
                         'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name' => 'delivery_note_detail_id',
                         'type' => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
@@ -1312,6 +1334,13 @@ class InvoiceClientCrudController extends CrudController
                     ],
                     [
                         'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name' => 'delivery_note_detail_id',
                         'type' => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
@@ -2366,5 +2395,99 @@ class InvoiceClientCrudController extends CrudController
         }
 
         return response()->json(['results' => $results]);
+    }
+
+    /**
+     * Endpoint Select2 AJAX untuk daftar Surat Jalan (Delivery Note) yang tersedia.
+     */
+    public function select2DeliveryNote()
+    {
+        if (!$this->crud->hasAccess('create') && !$this->crud->hasAccess('update') && !$this->crud->hasAccess('list')) {
+            abort(403);
+        }
+
+        $search           = request()->input('q', '');
+        $companyId        = request()->input('company_id');
+        $clientId         = request()->input('client_id');
+        $currentInvoiceId = request()->input('id') ?? request()->segment(4);
+
+        $query = \App\Models\DeliveryNote::select(['id', 'number', 'date', 'client_id', 'description']);
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+            $query->where('company_id', backpack_user()->company_id);
+        }
+
+        if ($clientId) {
+            $query->where('client_id', $clientId);
+        }
+
+        // Ambil Surat Jalan yang belum di-invoice atau milik invoice ini sendiri
+        $query->where(function ($q) use ($currentInvoiceId) {
+            $q->whereNull('invoice_client_id');
+            if ($currentInvoiceId) {
+                $q->orWhere('invoice_client_id', $currentInvoiceId);
+            }
+        });
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('number', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->orderBy('id', 'desc')->paginate(15);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id'   => $item->id,
+                'text' => $item->number . ($item->date ? ' (' . \Carbon\Carbon::parse($item->date)->format('d/m/Y') . ')' : ''),
+            ];
+        }
+
+        return response()->json(['results' => $results]);
+    }
+
+    /**
+     * Ambil rincian detail Surat Jalan untuk prefill form Invoice Client.
+     */
+    public function getDeliveryNoteDetails()
+    {
+        if (!$this->crud->hasAccess('create') && !$this->crud->hasAccess('update') && !$this->crud->hasAccess('list')) {
+            abort(403);
+        }
+
+        $deliveryNoteId = (int) request()->input('delivery_note_id');
+        $deliveryNote   = \App\Models\DeliveryNote::with(['details.device_stock', 'client'])->find($deliveryNoteId);
+
+        if (!$deliveryNote) {
+            return response()->json(['success' => false, 'message' => 'Surat Jalan tidak ditemukan'], 404);
+        }
+
+        $items = [];
+        foreach ($deliveryNote->details as $detail) {
+            $items[] = [
+                'delivery_note_detail_id' => $detail->id,
+                'device_stock_id'         => $detail->device_stock_id,
+                'device_stock_name'       => $detail->device_stock ? ($detail->device_stock->name . ' (' . $detail->device_stock->code . ') (Stok: ' . $detail->device_stock->qty . ')') : null,
+                'description'             => $detail->description ?? $detail->device_stock?->name ?? '',
+                'name'                    => $detail->description ?? $detail->device_stock?->name ?? '',
+                'qty'                     => (int) $detail->qty,
+                'price'                   => (float) ($detail->device_stock?->sell_price ?? 0),
+                'cogs_amount_base'        => (float) $detail->cogs_amount_base,
+            ];
+        }
+
+        return response()->json([
+            'success'     => true,
+            'client_id'   => $deliveryNote->client_id ?? '',
+            'client_name' => $deliveryNote->client?->name ?? '',
+            'address'     => $deliveryNote->address ?? $deliveryNote->client?->address ?? '',
+            'description' => $deliveryNote->description ?? '',
+            'items'       => $items,
+        ]);
     }
 }

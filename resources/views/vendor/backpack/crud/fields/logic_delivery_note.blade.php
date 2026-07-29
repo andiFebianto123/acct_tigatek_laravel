@@ -2,6 +2,18 @@
     $field['wrapper'] = $field['wrapper'] ?? $field['wrapperAttributes'] ?? [];
     $field['wrapper']['class'] = $field['wrapper']['class'] ?? "hidden";
     $set_value = (isset($entry)) ? $entry : null;
+
+    $existingDetails = [];
+    if (isset($entry) && $entry->details && $entry->details->count() > 0) {
+        foreach ($entry->details as $d) {
+            $existingDetails[] = [
+                'device_stock_id'   => $d->device_stock_id,
+                'device_stock_text' => $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ') (Stok: ' . $d->device_stock->qty . ')') : null,
+                'description'       => $d->description,
+                'qty'               => (int) $d->qty,
+            ];
+        }
+    }
 @endphp
 
 {{-- hidden input --}}
@@ -22,6 +34,7 @@
                     this.form = formSelector;
                     this.baseUrl = '{{ backpack_url("client/delivery-note") }}';
                     this.getClientAddressUrl = '{{ backpack_url("client/delivery-note/client-address") }}';
+                    this.select2StockUrl = '{{ backpack_url("client/delivery-note/select2-device-stock") }}';
 
                     // Map tipe referensi ke endpoint AJAX select2 dan detail
                     this.referenceConfig = {
@@ -42,11 +55,26 @@
                             detailsUrl:  this.baseUrl + '/get-invoice-details',
                         },
                     };
+
+                    this.itemRowIndex = 0;
                 }
 
                 init() {
                     var self = this;
                     var form = this.form;
+
+                    // --- Event: Tombol Tambah Baris ---
+                    $(form).off('click.dn_add_item', '#btn-add-dn-item').on('click.dn_add_item', '#btn-add-dn-item', function (e) {
+                        e.preventDefault();
+                        self.addItemRow({});
+                    });
+
+                    // --- Event: Tombol Hapus Baris ---
+                    $(form).off('click.dn_remove_item', '.btn-remove-dn-row').on('click.dn_remove_item', '.btn-remove-dn-row', function (e) {
+                        e.preventDefault();
+                        $(this).closest('tr').remove();
+                        self.reindexRows();
+                    });
 
                     // --- Event: Jenis Referensi berubah ---
                     $(form + ' select[name="reference_type"]').off('change.dn_reftype').on('change.dn_reftype', function () {
@@ -58,8 +86,6 @@
                         if ($refSelect.hasClass('select2-hidden-accessible')) {
                             $refSelect.select2('destroy');
                         }
-
-                        self.resetInvoiceItemsTable();
 
                         if (!type || !self.referenceConfig[type]) return;
 
@@ -95,7 +121,18 @@
                         }
                     });
 
-                    // --- Prefill saat Edit dibuka: restore reference_id select2 & tabel items ---
+                    // --- Prefill saat Edit atau awal dibuka ---
+                    var existing = {!! json_encode($existingDetails) !!};
+                    if (existing && existing.length > 0) {
+                        self.renderInvoiceItemsTable(existing);
+                    } else {
+                        // Jika tidak ada item awal, tambahkan 1 baris kosong
+                        if ($('#table-invoice-items tbody tr').length === 0) {
+                            self.addItemRow({});
+                        }
+                    }
+
+                    // Restore Select2 reference_id jika ada nilai awal
                     var currentType = $(form + ' select[name="reference_type"]').val();
                     var currentRefId = '{{ $entry?->reference_id ?? "" }}';
                     var currentRefNum = '{!! $entry?->reference_number ?? "" !!}';
@@ -105,21 +142,119 @@
                         self._reinitSelect2ReferenceId($refSelect, self.referenceConfig[currentType].select2Url);
 
                         if (currentRefId) {
-                            // Prefill opsi teks awal untuk Select2 agar tidak kosong saat baru dibuka
                             var textToShow = currentRefNum ? currentRefNum : ('ID: ' + currentRefId);
                             var newOption = new Option(textToShow, currentRefId, true, true);
                             $refSelect.append(newOption).trigger('change.select2');
-
-                            setTimeout(function () {
-                                self.fetchReferenceDetails(currentType, currentRefId);
-                            }, 400);
                         }
                     }
                 }
 
                 /**
+                 * Tambah 1 baris item ke tabel.
+                 */
+                addItemRow(itemData) {
+                    itemData = itemData || {};
+                    var idx = this.itemRowIndex++;
+                    var form = this.form;
+                    var $tbody = $('#table-invoice-items tbody');
+                    if (!$tbody.length) return;
+
+                    var selectStockName = 'delivery_note_details[' + idx + '][device_stock_id]';
+                    var descName        = 'delivery_note_details[' + idx + '][description]';
+                    var qtyName         = 'delivery_note_details[' + idx + '][qty]';
+
+                    var descVal = itemData.description || itemData.name || '';
+                    var qtyVal  = itemData.qty || 1;
+
+                    var rowHtml = '<tr data-row-index="' + idx + '">' +
+                        '<td class="text-center row-number-cell" style="vertical-align:middle; width:40px;">' + ($tbody.find('tr').length + 1) + '</td>' +
+                        '<td style="width:35%;">' +
+                            '<select name="' + selectStockName + '" class="form-control select2-stock-item" style="width:100%;">' +
+                                '<option></option>' +
+                            '</select>' +
+                        '</td>' +
+                        '<td>' +
+                            '<input type="text" name="' + descName + '" class="form-control form-control-sm" value="' + ($('<div>').text(descVal).html()) + '" placeholder="' + '{{ trans("backpack::crud.delivery_note.field.items.description_placeholder") }}' + '">' +
+                        '</td>' +
+                        '<td class="text-center" style="width:100px;">' +
+                            '<input type="number" name="' + qtyName + '" class="form-control form-control-sm text-center" value="' + qtyVal + '" min="1">' +
+                        '</td>' +
+                        '<td class="text-center" style="vertical-align:middle; width:60px;">' +
+                            '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-dn-row" title="Hapus"><i class="la la-trash"></i></button>' +
+                        '</td>' +
+                    '</tr>';
+
+                    var $row = $(rowHtml);
+                    $tbody.append($row);
+
+                    // Inisialisasi Select2 AJAX untuk barang persediaan pada baris ini
+                    var $selectStock = $row.find('select.select2-stock-item');
+                    this._initSelect2Stock($selectStock);
+
+                    // Prefill pilihan barang persediaan jika ada
+                    if (itemData.device_stock_id) {
+                        var optionText = itemData.device_stock_text || itemData.name || ('ID: ' + itemData.device_stock_id);
+                        var newOption = new Option(optionText, itemData.device_stock_id, true, true);
+                        $selectStock.append(newOption).trigger('change.select2');
+                    } else {
+                        $selectStock.val(null).trigger('change.select2');
+                    }
+
+                    // Auto-fill deskripsi saat barang persediaan dipilih
+                    $selectStock.on('select2:select', function (e) {
+                        var selectedData = e.params.data;
+                        var $descInput = $row.find('input[name="' + descName + '"]');
+                        if (selectedData && selectedData.name && !$descInput.val()) {
+                            $descInput.val(selectedData.name);
+                        }
+                    });
+
+                    this.reindexRows();
+                }
+
+                _initSelect2Stock($select) {
+                    var form = this.form;
+                    var $modal = $select.closest('.modal');
+                    var dropdownParent = $modal.find('.modal-body').length ? $modal.find('.modal-body') : ($modal.length ? $modal : $(document.body));
+
+                    try {
+                        if ($select.hasClass('select2-hidden-accessible')) {
+                            $select.select2('destroy');
+                        }
+
+                        $select.select2({
+                            ajax: {
+                                url: this.select2StockUrl,
+                                dataType: 'json',
+                                delay: 250,
+                                data: function (params) {
+                                    return {
+                                        q: params.term || '',
+                                    };
+                                },
+                                processResults: function (data) {
+                                    return { results: data.results || [] };
+                                },
+                                cache: true,
+                            },
+                            placeholder: '{{ trans("backpack::crud.delivery_note.field.items.select_stock_placeholder") }}',
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: dropdownParent,
+                        });
+                    } catch (e) {
+                        console.warn('[DeliveryNote] stock select2 init error:', e);
+                    }
+                }
+
+                reindexRows() {
+                    $('#table-invoice-items tbody tr').each(function (i) {
+                        $(this).find('.row-number-cell').text(i + 1);
+                    });
+                }
+
+                /**
                  * Fetch detail dokumen referensi (client, address, description, items).
-                 * Endpoint menerima parameter reference_id.
                  */
                 fetchReferenceDetails(refType, refId) {
                     var self = this;
@@ -150,19 +285,14 @@
                                     $(form + ' textarea[name="address"]').val(res.address);
                                 }
 
-                                // Prefill Deskripsi (hanya jika kosong)
+                                // Prefill Deskripsi Header (hanya jika kosong)
                                 if (res.description && !$(form + ' input[name="description"]').val()) {
                                     $(form + ' input[name="description"]').val(res.description);
                                 }
 
-                                // Render tabel items
+                                // Render tabel items (editable)
                                 self.renderInvoiceItemsTable(res.items || []);
-                            } else {
-                                self.resetInvoiceItemsTable();
                             }
-                        },
-                        error: function () {
-                            self.resetInvoiceItemsTable();
                         }
                     });
                 }
@@ -177,7 +307,6 @@
                     var companyId     = $(form + ' select[name="company_id"]').val() || '';
                     var referenceType = $(form + ' select[name="reference_type"]').val() || '';
 
-                    // Tentukan dropdownParent: cari modal terdekat agar dropdown tidak keluar modal
                     var $modal = $select.closest('.modal');
                     var dropdownParent = $modal.length ? $modal : $(document.body);
 
@@ -214,34 +343,20 @@
                 }
 
                 renderInvoiceItemsTable(items) {
+                    var self = this;
                     var $tbody = $('#table-invoice-items tbody');
-                    if (!$tbody.length) {
-                        $tbody = $('#delivery_note_invoice_items_container table tbody');
-                    }
                     if (!$tbody.length) return;
 
                     $tbody.empty();
 
                     if (!items || items.length === 0) {
-                        $tbody.append('<tr><td colspan="3" class="text-center text-muted py-3">Tidak ada detail barang pada dokumen ini</td></tr>');
+                        self.addItemRow({});
                         return;
                     }
 
                     $.each(items, function (index, item) {
-                        var rowHtml = '<tr>' +
-                            '<td class="text-center" style="width:40px;">' + (index + 1) + '</td>' +
-                            '<td>' + ($('<div>').text(item.name || '-').html()) + '</td>' +
-                            '<td class="text-center" style="width:80px;"><strong>' + (item.qty || 1) + '</strong></td>' +
-                            '</tr>';
-                        $tbody.append(rowHtml);
+                        self.addItemRow(item);
                     });
-                }
-
-                resetInvoiceItemsTable() {
-                    var $tbody = $('#table-invoice-items tbody');
-                    if ($tbody.length) {
-                        $tbody.html('<tr><td colspan="3" class="text-center text-muted py-3"><i class="la la-info-circle"></i> Pilih Jenis Referensi dan No. Dokumen terlebih dahulu</td></tr>');
-                    }
                 }
             };
         }

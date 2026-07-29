@@ -122,6 +122,7 @@ class InvoiceClientRequest extends FormRequest
             'account_source_id' => 'required|exists:cast_accounts,id',
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',
             'term' => 'nullable|string',
+            'delivery_note_id' => 'nullable|exists:delivery_notes,id',
         ];
 
         if ($id) {

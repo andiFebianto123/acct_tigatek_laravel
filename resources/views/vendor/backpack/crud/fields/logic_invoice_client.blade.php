@@ -707,16 +707,156 @@
             };
         }
 
+        /* =========================================================================
+         * MODUL 6: DYNAMIC DELIVERY NOTE MANAGER
+         * Mengisi form client, alamat, dan item barang secara otomatis
+         * saat Surat Jalan (delivery_note_id) dipilih.
+         * ========================================================================= */
+        if (typeof window.InvoiceDeliveryNoteManager === 'undefined') {
+            window.InvoiceDeliveryNoteManager = class InvoiceDeliveryNoteManager {
+                constructor(formSelector, logicInstance) {
+                    this.form = formSelector;
+                    this.logicInstance = logicInstance;
+                    this.detailsUrl = '{{ backpack_url("invoice-client/get-delivery-note-details") }}';
+                }
+
+                init() {
+                    var self = this;
+                    var form = this.form;
+
+                    $(form).off('change.dn_select select2:select.dn_select', 'select[name="delivery_note_id"]')
+                           .on('change.dn_select select2:select.dn_select', 'select[name="delivery_note_id"]', function() {
+                        var deliveryNoteId = $(this).val();
+                        if (!deliveryNoteId) return;
+
+                        $.ajax({
+                            url: self.detailsUrl,
+                            type: 'GET',
+                            data: { delivery_note_id: deliveryNoteId },
+                            success: function(res) {
+                                if (!res || !res.success) return;
+
+                                // 1. Prefill Client
+                                if (res.client_id) {
+                                    var $clientSelect = $(form + ' select[name="client_id"]');
+                                    if ($clientSelect.length) {
+                                        if ($clientSelect.find('option[value="' + res.client_id + '"]').length) {
+                                            $clientSelect.val(res.client_id).trigger('change');
+                                        } else if (res.client_name) {
+                                            var opt = new Option(res.client_name, res.client_id, true, true);
+                                            $clientSelect.append(opt).trigger('change');
+                                        }
+                                    }
+                                }
+
+                                // 2. Prefill Alamat & Deskripsi
+                                if (res.address) {
+                                    $(form + ' input[name="address_po"]').val(res.address);
+                                }
+                                if (res.description) {
+                                    var $desc = $(form + ' textarea[name="description"], ' + form + ' input[name="description"]');
+                                    if ($desc.length && !$desc.val()) {
+                                        $desc.val(res.description);
+                                    }
+                                }
+
+                                // 3. Set Tipe Barang -> DeviceStock (Persediaan)
+                                var $typeDevice = $(form + ' select[name="type_device"]');
+                                if ($typeDevice.length && $typeDevice.val() !== 'App\\Models\\DeviceStock') {
+                                    $typeDevice.val('App\\Models\\DeviceStock').trigger('change');
+                                }
+
+                                // 4. Prefill items ke form repeatable
+                                if (res.items && res.items.length) {
+                                    self.populateItems(res.items);
+                                }
+                            },
+                            error: function(xhr) {
+                                console.warn('[InvoiceClient] Error fetching DeliveryNote details:', xhr);
+                            }
+                        });
+                    });
+                }
+
+                populateItems(items) {
+                    var self = this;
+                    var form = this.form;
+
+                    items.forEach(function(item, idx) {
+                        var $rows = $(form + ' .repeatable-element');
+                        var $targetRow = $rows.eq(idx);
+
+                        if (!$targetRow.length) {
+                            $(form + ' .add-repeatable-element-button').trigger('click');
+                            $rows = $(form + ' .repeatable-element');
+                            $targetRow = $rows.eq(idx);
+                        }
+
+                        var $nameInput = $targetRow.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                        var $stockIdInput = $targetRow.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+                        var $dnDetailIdInput = $targetRow.find('input[data-repeatable-input-name="delivery_note_detail_id"], input[name*="[delivery_note_detail_id]"], input[name="delivery_note_detail_id"]');
+                        var $qtyInput = $targetRow.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name="qty"]');
+                        var $priceMasked = $targetRow.find('input[data-alt="price_masked"]');
+                        var $priceHidden = $targetRow.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+
+                        if ($nameInput.length) $nameInput.val(item.name || item.description || '');
+                        if ($stockIdInput.length) $stockIdInput.val(item.device_stock_id || '');
+                        if ($dnDetailIdInput.length) $dnDetailIdInput.val(item.delivery_note_detail_id || '');
+                        if ($qtyInput.length) $qtyInput.val(item.qty || 1);
+
+                        var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                        var priceVal = parseFloat(item.price || 0);
+                        if ($priceHidden.length) $priceHidden.val(priceVal);
+                        if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                            $priceMasked.val(window.formatCurrency(priceVal, activeCurr));
+                        }
+
+                        var $select2 = $targetRow.find('.invoice-device-select2');
+                        if ($select2.length && item.device_stock_id) {
+                            var stockText = item.device_stock_name || item.name || ('ID: ' + item.device_stock_id);
+                            var opt = new Option(stockText, item.device_stock_id, true, true);
+                            $select2.empty().append(opt).trigger('change.select2');
+                        }
+                    });
+
+                    setTimeout(function() {
+                        if (self.logicInstance && self.logicInstance.repeatableManager) {
+                            var totalItems = self.logicInstance.repeatableManager.calculateTotalItems();
+                            var $nominalExcHidden = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+                            var $nominalExcMasked = $(form + ' #nominal_exclude_ppn_masked');
+                            var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+
+                            if (totalItems > 0) {
+                                if ($nominalExcHidden.length) $nominalExcHidden.val(totalItems);
+                                if ($nominalExcMasked.length && typeof window.formatCurrency === 'function') {
+                                    $nominalExcMasked.val(window.formatCurrency(totalItems, activeCurr));
+                                }
+                            }
+                            if (typeof self.logicInstance.logicFormulaNoPO === 'function') {
+                                self.logicInstance.logicFormulaNoPO();
+                            }
+                        }
+                    }, 300);
+                }
+            };
+        }
+
         SIAOPS.getAttribute('logic_invoice_client').load();
 
-        // Init Modul 5 setelah SIAOPS load
+        // Init Modul 5 & 6 setelah SIAOPS load
         (function() {
             var form_type = "{{ $crud->getActionMethod() }}";
             var form = (form_type == 'create') ? '#form-create' : '#form-edit';
+            var logicAttr = SIAOPS.getAttribute('logic_invoice_client');
 
             if (typeof window.InvoiceDeviceStockManager !== 'undefined') {
                 var deviceStockMgr = new window.InvoiceDeviceStockManager(form);
                 deviceStockMgr.init();
+            }
+
+            if (typeof window.InvoiceDeliveryNoteManager !== 'undefined') {
+                var dnMgr = new window.InvoiceDeliveryNoteManager(form, logicAttr);
+                dnMgr.init();
             }
         })();
     </script>

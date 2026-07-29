@@ -708,6 +708,20 @@ return [
                 'label' => 'No. Surat Jalan',
                 'placeholder' => 'Masukkan nomor surat jalan',
             ],
+            'items' => [
+                'header' => 'Daftar Item Barang / Pekerjaan',
+                'select_stock_placeholder' => '- PILIH BARANG PERSEDIAAN (OPSIONAL) -',
+                'description_placeholder' => 'Deskripsi / Nama Barang',
+                'qty' => 'QTY',
+                'action' => 'Aksi',
+                'add_row' => 'Tambah Baris',
+                'select_ref_first' => 'Pilih Jenis Referensi dan No. Dokumen terlebih dahulu, atau isi item secara manual.',
+                'empty' => 'Belum ada item barang yang ditambahkan.',
+            ],
+            'stock_insufficient' => 'Stok barang \':name\' tidak mencukupi. (Stok tersedia: :available, Dibutuhkan: :needed).',
+            'at_least_one_item' => 'Minimal 1 item barang harus diisi.',
+            'cannot_edit_billed' => 'Surat Jalan tidak dapat diubah karena sudah diterbitkan Invoice Client-nya.',
+            'cannot_delete_billed' => 'Surat Jalan tidak dapat dihapus karena sudah terhubung ke Invoice Client. Hapus Invoice Client terkait terlebih dahulu.',
             'description' => [
                 'label' => 'Deskripsi / Item',
                 'placeholder' => 'Masukkan deskripsi item barang',
@@ -964,8 +978,15 @@ return [
         'error' => [
             'cannot_edit_delivery_note_exists' => 'Invoice tidak dapat diubah karena Surat Jalan (Delivery Note) sudah diterbitkan.',
             'cannot_delete_delivery_note_exists' => 'Invoice tidak dapat dihapus karena Surat Jalan (Delivery Note) masih terhubung. Hapus Surat Jalan terlebih dahulu.',
+            'delivery_note_already_billed' => 'Surat Jalan terpilih sudah diterbitkan Invoicenya pada transaksi lain.',
+            'client_mismatch' => 'Pelanggan (Client) pada Invoice harus sama dengan Pelanggan pada Surat Jalan terpilih.',
+            'stock_insufficient_delta' => 'Stok barang \':name\' tidak mencukupi untuk penambahan kuantitas di Invoice. (Stok tersedia: :available, Dibutuhkan tambahan: :needed).',
         ],
         'field' => [
+            'delivery_note_id' => [
+                'label' => 'No. Surat Jalan',
+                'placeholder' => '- PILIH SURAT JALAN (OPSIONAL) -',
+            ],
             'invoice_number' => [
                 'label' => 'No. Invoice',
                 'placeholder' => 'Masukan nomor invoice',

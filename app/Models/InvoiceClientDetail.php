@@ -47,6 +47,11 @@ class InvoiceClientDetail extends Model
         return $this->belongsTo(\App\Models\DeviceStock::class, 'device_stock_id');
     }
 
+    function deliveryNoteDetail()
+    {
+        return $this->belongsTo(\App\Models\DeliveryNoteDetail::class, 'delivery_note_detail_id');
+    }
+
 
     /*
     |--------------------------------------------------------------------------
