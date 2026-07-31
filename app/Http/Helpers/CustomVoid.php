@@ -479,28 +479,44 @@ class CustomVoid
         $cast_account = CastAccount::where('id', $voucher->account_source_id)->first();
         $log_payment = [];
 
-        // kurangi hutang
-        $hutang = Account::where('code', CustomHelper::getAccountMapping('DEBT_VOUCHER'))->first();
+        // Kurangi hutang (Debit pada akun 20102 untuk Supplier PO, atau 20101 untuk Voucher umum)
+        $isSupplierPo = ($voucher->po_type === 'supplier' || $voucher->reference_type === \App\Models\PurchaseOrder::class);
+        $accountCode = $isSupplierPo
+            ? (CustomHelper::getAccountMapping('PO_VENDOR') ?? '20102')
+            : (CustomHelper::getAccountMapping('DEBT_VOUCHER') ?? '20101');
+
+        $hutang = Account::where('code', $accountCode)->first();
         if ($hutang) {
+            $currency_code = $voucher->currency_code ?? 'IDR';
+            $exchange_rate = (float) ($voucher->exchange_rate ?? 1.0);
+            $bill_val = (float) $voucher->bill_value;
+            $bill_val_base = (float) ($voucher->bill_value_base ?? ($bill_val * $exchange_rate));
+
             $trans_1 = CustomHelper::insertJournalEntry([
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'description' => "Pelunasan " . ($isSupplierPo ? "Hutang Vendor PO " : "Hutang voucher ") . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => 0,
-                'credit' => $voucher->bill_value,
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $bill_val,
+                'credit' => 0,
+                'debit_base' => $bill_val_base,
+                'credit_base' => 0,
             ]);
             $log_payment[] = [
                 'id' => $trans_1->id,
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'description' => "Pelunasan " . ($isSupplierPo ? "Hutang Vendor PO " : "Hutang voucher ") . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'type' => JournalEntry::class,
-                'debit' => 0,
-                'credit' => $voucher->bill_value,
+                'debit' => $bill_val,
+                'debit_base' => $bill_val_base,
+                'credit' => 0,
+                'credit_base' => 0,
             ];
         }
 

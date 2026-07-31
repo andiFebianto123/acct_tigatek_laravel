@@ -22,6 +22,16 @@ class VoucherPaymentService
             $voucherItem = Voucher::find($id_v);
             if (!$voucherItem) continue;
 
+            // Pengecekan validasi: PO Supplier wajib di-Post Stok sebelum dilakukan pembayaran
+            if ($voucherItem->po_type === 'supplier' || $voucherItem->reference_type === \App\Models\PurchaseOrder::class) {
+                if ($voucherItem->reference_id) {
+                    $po = \App\Models\PurchaseOrder::find($voucherItem->reference_id);
+                    if ($po && $po->po_type === 'supplier' && !$po->is_stock_posted) {
+                        throw new \Exception("Voucher {$voucherItem->no_voucher} gagal dibayar: Purchase Order ({$po->po_number}) belum di-Post Stok.");
+                    }
+                }
+            }
+
             $newVoucherPayment = new PaymentVoucher;
             $newVoucherPayment->voucher_id = $voucherItem->id;
             $newVoucherPayment->payment_type = $voucherItem->payment_type;
@@ -55,6 +65,17 @@ class VoucherPaymentService
         if (!$voucher) {
             throw new \Exception('Voucher tidak ditemukan');
         }
+
+        // Pengecekan validasi: PO Supplier wajib di-Post Stok sebelum dilakukan pembayaran
+        if ($voucher->po_type === 'supplier' || $voucher->reference_type === \App\Models\PurchaseOrder::class) {
+            if ($voucher->reference_id) {
+                $po = \App\Models\PurchaseOrder::find($voucher->reference_id);
+                if ($po && $po->po_type === 'supplier' && !$po->is_stock_posted) {
+                    throw new \Exception("Voucher {$voucher->no_voucher} gagal dibayar: Purchase Order ({$po->po_number}) belum di-Post Stok.");
+                }
+            }
+        }
+
         $newVoucherPayment = new PaymentVoucher;
         $newVoucherPayment->voucher_id = $voucher->id;
         $newVoucherPayment->payment_type = $voucher->payment_type;
