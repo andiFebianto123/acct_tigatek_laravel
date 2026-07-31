@@ -82,7 +82,6 @@ class ClientPoRequest extends FormRequest
         }
 
         $rule['po_type'] = 'required|in:subkon,supplier';
-        $rule['purchase_order_id'] = 'nullable|exists:purchase_orders,id';
 
         if (request()->input('po_type') === 'supplier') {
             $rule['work_code'] = 'nullable|max:30';
@@ -119,7 +118,7 @@ class ClientPoRequest extends FormRequest
     public function messages()
     {
         return [
-            'purchase_order_id.unique' => trans('backpack::crud.client_po.field.purchase_order_id_unique'),
+            //
         ];
     }
 }

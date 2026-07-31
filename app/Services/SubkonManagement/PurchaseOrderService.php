@@ -54,6 +54,12 @@ class PurchaseOrderService
             if (!empty($data->details)) {
                 $this->saveDetails($po, $data->details);
             }
+
+            // Untuk PO Subkon langsung sync jurnal, untuk PO Supplier menunggu post_stock_button diklik
+            if ($po->po_type !== 'supplier') {
+                $this->syncJournalEntry($po);
+            }
+
             return $po;
         });
     }
@@ -113,11 +119,12 @@ class PurchaseOrderService
 
             $deviceStockService = app(\App\Services\SubkonManagement\DeviceStockService::class);
 
-            // Jika PO Supplier yang sudah diposting di-update, revert stok lama dan kembalikan status ke unposted/draft
+            // Jika PO Supplier yang sudah diposting di-update, revert stok lama dan hapus jurnal lama
             if ($po->po_type === 'supplier' && $po->is_stock_posted) {
                 $deviceStockService->revertIncomingStock($po);
                 $payload['is_stock_posted'] = false;
                 $payload['stock_posted_at'] = null;
+                \App\Http\Helpers\CustomHelper::rollbackPayment(PurchaseOrder::class, $po->id);
             }
 
             $po->fill($payload);
@@ -128,6 +135,17 @@ class PurchaseOrderService
 
             if (!empty($data->details)) {
                 $this->saveDetails($po, $data->details);
+            }
+
+            if ($po->po_type === 'supplier') {
+                // PO Supplier yang dipost ulang akan di-sync saat post_stock_button diklik
+                if ($po->is_stock_posted) {
+                    $this->syncJournalEntry($po);
+                }
+            } else {
+                // PO Subkon selalu disync ulang jurnalnya saat update
+                \App\Http\Helpers\CustomHelper::rollbackPayment(PurchaseOrder::class, $po->id);
+                $this->syncJournalEntry($po);
             }
 
             return $po;
@@ -144,6 +162,10 @@ class PurchaseOrderService
             $deviceStockService = app(\App\Services\SubkonManagement\DeviceStockService::class);
 
             $deviceStockService->processSupplierPoItems($po);
+
+            // Buat & sync entri jurnal saat post_stock_button diklik
+            \App\Http\Helpers\CustomHelper::rollbackPayment(PurchaseOrder::class, $po->id);
+            $this->syncJournalEntry($po);
 
             return $po->fresh();
         });
@@ -216,8 +238,9 @@ class PurchaseOrderService
             'crudTable-filter-purchase_order_plugin_load' => $item,
         ];
     }
+
     /**
-     * Delete a Purchase Order and its associated file.
+     * Delete a Purchase Order and its associated file & journal entries.
      */
     public function deletePO(int $id): bool
     {
@@ -234,6 +257,9 @@ class PurchaseOrderService
             if ($po->document_path) {
                 Storage::disk('public')->delete($po->document_path);
             }
+
+            // Rollback & hapus semua entri jurnal dan log snapshot terkait PO ini
+            \App\Http\Helpers\CustomHelper::rollbackPayment(PurchaseOrder::class, $po->id);
 
             return (bool) $po->delete();
         });
@@ -254,5 +280,86 @@ class PurchaseOrderService
         $uniqueKey = Str::random(5);
 
         return "{$safeName}-{$uniqueKey}.{$extension}";
+    }
+
+    /**
+     * Sync Journal Entry and record LogPayment snapshot.
+     */
+    private function syncJournalEntry(PurchaseOrder $po): void
+    {
+        $currencyCode = $po->currency_code ?? 'IDR';
+        $exchangeRate = (float) ($po->exchange_rate ?? 1.0);
+
+        // Ambil akun Jurnal 20102 (PO_VENDOR / Hutang Vendor PO)
+        $accountCode = \App\Http\Helpers\CustomHelper::getAccountMapping('PO_VENDOR') ?? '20102';
+        $account = \App\Models\Account::where('code', $accountCode)->first();
+        if (!$account) {
+            return;
+        }
+
+        // Perhitungan nilai base IDR (Rupiah) sesuai jenis PO
+        if ($po->po_type === 'supplier') {
+            // Untuk PO Supplier: akumulasi harga_base item * qty (menggunakan price_base yang sudah dalam Rupiah)
+            $details = $po->purchase_order_details;
+            if ($details->isEmpty()) {
+                $details = \App\Models\PurchaseOrderDetail::where('purchase_order_id', $po->id)->get();
+            }
+
+            $totalItemBaseValue = 0;
+            foreach ($details as $detail) {
+                // $detail->price_base sudah merepresentasikan (price * exchange_rate)
+                $totalItemBaseValue += ((float) ($detail->price_base ?? ($detail->price * $exchangeRate))) * ((int) $detail->qty);
+            }
+
+            $debitBase = $totalItemBaseValue;
+            $description = "Pekerjaan PO Supplier " . ($po->po_number ?? $po->work_code);
+        } else {
+            // Untuk PO Subkon: nilai job_value_base (sudah dalam Rupiah = job_value * exchange_rate)
+            $debitBase = (float) ($po->job_value_base ?? ($po->job_value * $exchangeRate));
+            $description = "Pekerjaan PO Subkon " . ($po->po_number ?? $po->work_code);
+        }
+
+        // Simpan / update ke journal_entries
+        // Menyaraskan debit dan debit_base dengan nilai Rupiah asli (Base Amount)
+        $journal = \App\Http\Helpers\CustomHelper::updateOrCreateJournalEntry([
+            'account_id' => $account->id,
+            'reference_id' => $po->id,
+            'reference_type' => PurchaseOrder::class,
+            'description' => $description,
+            'date' => \Carbon\Carbon::now(),
+            'currency_code' => $currencyCode,
+            'exchange_rate' => $exchangeRate,
+            'debit' => $debitBase,
+            'credit' => 0,
+            'debit_base' => $debitBase,
+            'credit_base' => 0,
+        ], [
+            'account_id' => $account->id,
+            'reference_id' => $po->id,
+            'reference_type' => PurchaseOrder::class,
+        ]);
+
+        // Capture data snapshot ke LogPayment
+        $log_payment = [];
+        $log_payment[] = [
+            'id' => $journal->id,
+            'account_id' => $account->id,
+            'reference_id' => $po->id,
+            'reference_type' => PurchaseOrder::class,
+            'description' => $description,
+            'date' => \Carbon\Carbon::now(),
+            'debit' => $debitBase,
+            'debit_base' => $debitBase,
+            'credit' => 0,
+            'credit_base' => 0,
+            'type' => \App\Models\JournalEntry::class,
+        ];
+
+        $newLogPayment = new \App\Models\LogPayment();
+        $newLogPayment->reference_type = PurchaseOrder::class;
+        $newLogPayment->reference_id = $po->id;
+        $newLogPayment->name = "CREATE_PURCHASE_ORDER";
+        $newLogPayment->snapshot = json_encode($log_payment);
+        $newLogPayment->save();
     }
 }

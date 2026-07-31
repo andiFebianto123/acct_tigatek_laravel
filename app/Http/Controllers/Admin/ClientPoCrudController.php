@@ -965,22 +965,7 @@ class ClientPoCrudController extends CrudController
             ],
         ]);
 
-        CRUD::addField([
-            'name'        => 'purchase_order_id',
-            'label'       => trans('backpack::crud.client_po.field.purchase_order_id.label'),
-            'type'        => 'select2_ajax_custom',
-            'entity'      => 'purchaseOrder',
-            'attribute'   => 'po_number',
-            'data_source' => backpack_url('client/select2-supplier-po-id'),
-            'dependencies' => ['company_id'],
-            'include_all_form_fields' => true,
-            'wrapper'     => [
-                'class' => 'form-group col-md-6 manual-segment',
-            ],
-            'attributes'  => [
-                'placeholder' => trans('backpack::crud.client_po.field.purchase_order_id.placeholder'),
-            ],
-        ]);
+
 
         CRUD::field([   // 1-n relationship
             'label'       => trans('backpack::crud.client_po.field.client_id.label'), // Table column heading
@@ -1293,22 +1278,7 @@ class ClientPoCrudController extends CrudController
             ],
         ]);
 
-        CRUD::addField([
-            'name'        => 'purchase_order_id',
-            'label'       => trans('backpack::crud.client_po.field.purchase_order_id.label'),
-            'type'        => 'select2_ajax_custom',
-            'entity'      => 'purchaseOrder',
-            'attribute'   => 'po_number',
-            'data_source' => backpack_url('client/select2-supplier-po-id'),
-            'dependencies' => ['company_id'],
-            'include_all_form_fields' => true,
-            'wrapper'     => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes'  => [
-                'placeholder' => trans('backpack::crud.client_po.field.purchase_order_id.placeholder'),
-            ],
-        ]);
+
 
         CRUD::field([
             'label'       => trans('backpack::crud.client_po.field.client_id.label'),

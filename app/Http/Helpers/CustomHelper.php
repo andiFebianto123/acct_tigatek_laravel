@@ -34,6 +34,7 @@ class CustomHelper
 
             // Liabilities & Taxes
             'DEBT_VOUCHER' => '20101',
+            'PO_VENDOR' => '20102',
             'DEBT_PPN' => '20301',
             'UNIFICATION' => '20304',
 
