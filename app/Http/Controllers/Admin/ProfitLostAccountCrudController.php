@@ -263,49 +263,55 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Qty Terjual',
+                                    'label'     => trans('backpack::crud.profit_lost.column.total_qty_sold') ?? 'Qty Terjual',
                                     'type'      => 'number',
                                     'name'      => 'total_qty_sold',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Total Jual (Revenue)',
+                                    'label'     => trans('backpack::crud.profit_lost.column.sell_value') ?? 'Total Jual (Revenue)',
                                     'type'      => 'text',
                                     'name'      => 'sell_value',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Avg Jual Satuan',
+                                    'label'     => trans('backpack::crud.profit_lost.column.avg_harga_jual_satuan') ?? 'Avg Jual Satuan',
                                     'type'      => 'text',
                                     'name'      => 'avg_harga_jual_satuan_base',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Total Beli (HPP FIFO)',
+                                    'label'     => trans('backpack::crud.profit_lost.column.purchase_value') ?? 'Total Beli (HPP FIFO)',
                                     'type'      => 'text',
                                     'name'      => 'purchase_value',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Avg Beli Satuan',
+                                    'label'     => trans('backpack::crud.profit_lost.column.avg_harga_beli_satuan') ?? 'Avg Beli Satuan',
                                     'type'      => 'text',
                                     'name'      => 'avg_harga_beli_satuan_base',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Laba Kotor',
+                                    'label'     => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Lain - Lain',
+                                    'type'      => 'text',
+                                    'name'      => 'voucher_supplier_value',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.profit_lost_supplier') ?? 'Laba Kotor',
                                     'type'      => 'text',
                                     'name'      => 'profit_lost_supplier',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Margin (%)',
+                                    'label'     => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
                                     'type'      => 'text',
                                     'name'      => 'margin_percent',
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => 'Status Pengiriman',
+                                    'label'     => trans('backpack::crud.profit_lost.column.delivery_status') ?? 'Status Pengiriman',
                                     'type'      => 'text',
                                     'name'      => 'delivery_status',
                                     'orderable' => true,
@@ -1058,14 +1064,14 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Total Qty Terjual
             CRUD::column([
-                'label' => 'Qty Terjual',
+                'label' => trans('backpack::crud.profit_lost.column.total_qty_sold') ?? 'Qty Terjual',
                 'name'  => 'total_qty_sold',
                 'type'  => 'number',
             ]);
 
             // Total Jual (Revenue - Exclude PPN IDR Base)
             CRUD::column([
-                'label'    => 'Total Jual (Revenue)',
+                'label'    => trans('backpack::crud.profit_lost.column.sell_value') ?? 'Total Jual (Revenue)',
                 'name'     => 'sell_value',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1078,7 +1084,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Rata-rata Harga Jual Satuan
             CRUD::column([
-                'label'    => 'Avg Jual Satuan',
+                'label'    => trans('backpack::crud.profit_lost.column.avg_harga_jual_satuan') ?? 'Avg Jual Satuan',
                 'name'     => 'avg_harga_jual_satuan_base',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1088,7 +1094,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Total Harga Beli / Modal HPP FIFO
             CRUD::column([
-                'label'    => 'Total Beli (HPP FIFO)',
+                'label'    => trans('backpack::crud.profit_lost.column.purchase_value') ?? 'Total Beli (HPP FIFO)',
                 'name'     => 'purchase_value',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1101,7 +1107,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Rata-rata Harga Beli Modal Satuan
             CRUD::column([
-                'label'    => 'Avg Beli Satuan',
+                'label'    => trans('backpack::crud.profit_lost.column.avg_harga_beli_satuan') ?? 'Avg Beli Satuan',
                 'name'     => 'avg_harga_beli_satuan_base',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1109,9 +1115,22 @@ class ProfitLostAccountCrudController extends CrudController
                 },
             ]);
 
+            // Voucher Supplier
+            CRUD::column([
+                'label'    => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Lain - Lain',
+                'name'     => 'voucher_supplier_value',
+                'type'     => 'closure',
+                'function' => function ($entry) {
+                    return CustomHelper::formatRupiahWithCurrency($entry->voucher_supplier_value ?? 0);
+                },
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.total_voucher_supplier_base', $columnDirection);
+                }
+            ]);
+
             // Laba Kotor (Revenue - HPP FIFO)
             CRUD::column([
-                'label'    => 'Laba Kotor',
+                'label'    => trans('backpack::crud.profit_lost.column.profit_lost_supplier') ?? 'Laba Kotor',
                 'name'     => 'profit_lost_supplier',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1130,7 +1149,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Persentase Margin Laba Kotor (%)
             CRUD::column([
-                'label'    => 'Margin (%)',
+                'label'    => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
                 'name'     => 'margin_percent',
                 'type'     => 'closure',
                 'function' => function ($entry) {
@@ -1143,7 +1162,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Status Pengiriman (FIFO Posted)
             CRUD::column([
-                'label'    => 'Status Pengiriman',
+                'label'    => trans('backpack::crud.profit_lost.column.delivery_status') ?? 'Status Pengiriman',
                 'name'     => 'delivery_status',
                 'type'     => 'closure',
                 'function' => function ($entry) {

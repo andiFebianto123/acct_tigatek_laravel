@@ -569,6 +569,8 @@ class ProfitLostRepository
         $supplierSubQuery = DB::table('invoice_clients as ic')
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
+            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
+            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type = "supplier" GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',
@@ -579,10 +581,12 @@ class ProfitLostRepository
                 DB::raw("COALESCE(SUM(icd.qty), 0) AS total_qty_sold"),
                 DB::raw("ic.price_total_exclude_ppn_base AS total_harga_jual_base"),
                 DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
-                DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_base"),
-                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(COALESCE(SUM(icd.cogs_amount_base), 0) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
-                DB::raw("(ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) AS laba_kotor_base"),
-                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - COALESCE(SUM(icd.cogs_amount_base), 0)) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
+                DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_gross_base"),
+                DB::raw("COALESCE(v_supp.total_voucher_supplier_base, 0) AS total_voucher_supplier_base"),
+                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) AS total_harga_beli_base"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base"),
+                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
                 DB::raw("CASE WHEN ic.delivery_note_id IS NOT NULL OR EXISTS (SELECT 1 FROM delivery_notes dn WHERE dn.invoice_client_id = ic.id) THEN 'Terbit Surat Jalan & FIFO Posted' ELSE 'Invoice Tanpa Surat Jalan' END AS delivery_status")
             ])
             ->groupBy(
@@ -592,7 +596,8 @@ class ProfitLostRepository
                 'c.name',
                 'ic.currency_code',
                 'ic.price_total_exclude_ppn_base',
-                'ic.delivery_note_id'
+                'ic.delivery_note_id',
+                'v_supp.total_voucher_supplier_base'
             );
 
         $query->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')
@@ -614,11 +619,13 @@ class ProfitLostRepository
                 supplier_data.total_qty_sold,
                 supplier_data.total_harga_jual_base as sell_value,
                 supplier_data.avg_harga_jual_satuan_base,
+                supplier_data.total_harga_beli_gross_base,
                 supplier_data.total_harga_beli_base as purchase_value,
                 supplier_data.avg_harga_beli_satuan_base,
                 supplier_data.laba_kotor_base as profit_lost_supplier,
                 supplier_data.margin_percent,
-                supplier_data.delivery_status
+                supplier_data.delivery_status,
+                supplier_data.total_voucher_supplier_base as voucher_supplier_value
             ")
         ]);
     }

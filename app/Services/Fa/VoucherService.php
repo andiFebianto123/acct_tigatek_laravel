@@ -97,7 +97,7 @@ class VoucherService
         }
 
         if ($item->po_type === 'supplier') {
-            $item->client_po_id = null;
+            $item->client_po_id = $data->client_po_id ?? null;
             $item->no_po_spk = $no_po_spk;
         } else {
             $item->client_po_id = $data->client_po_id;
@@ -253,7 +253,7 @@ class VoucherService
         }
 
         if ($item->po_type === 'supplier') {
-            $item->client_po_id = null;
+            $item->client_po_id = $data->client_po_id ?? null;
             $item->no_po_spk = $no_po_spk;
         } else {
             $item->client_po_id = $data->client_po_id;

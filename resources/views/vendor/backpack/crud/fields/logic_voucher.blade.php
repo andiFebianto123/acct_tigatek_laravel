@@ -147,8 +147,8 @@
                         clientPoWrapper.hide();
                         this.getEl('select[name="client_po_id"]').attr('disabled', true);
                         
-                        invoiceClientWrapper.hide();
-                        this.getEl('select[name="invoice_client_id"]').attr('disabled', true);
+                        invoiceClientWrapper.show();
+                        this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
                         
                         jobNameWrapper.find('label').text("Deskripsi Pesanan");
                     } else {

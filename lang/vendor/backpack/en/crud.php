@@ -729,5 +729,16 @@ return [
                 'label' => 'PO Client Supplier',
             ],
         ],
+        'column' => [
+            'total_qty_sold' => 'Qty Sold',
+            'sell_value' => 'Total Sell (Revenue)',
+            'avg_harga_jual_satuan' => 'Avg Sell Unit',
+            'purchase_value' => 'Total Purchase (COGS FIFO)',
+            'avg_harga_beli_satuan' => 'Avg Purchase Unit',
+            'voucher_supplier_value' => 'Other Costs',
+            'profit_lost_supplier' => 'Gross Profit',
+            'margin_percent' => 'Margin (%)',
+            'delivery_status' => 'Delivery Status',
+        ],
     ],
 ];
