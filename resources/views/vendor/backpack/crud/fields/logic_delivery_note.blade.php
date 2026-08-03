@@ -1,19 +1,6 @@
 @php
     $field['wrapper'] = $field['wrapper'] ?? $field['wrapperAttributes'] ?? [];
     $field['wrapper']['class'] = $field['wrapper']['class'] ?? "hidden";
-    $set_value = (isset($entry)) ? $entry : null;
-
-    $existingDetails = [];
-    if (isset($entry) && $entry->details && $entry->details->count() > 0) {
-        foreach ($entry->details as $d) {
-            $existingDetails[] = [
-                'device_stock_id'   => $d->device_stock_id,
-                'device_stock_text' => $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ') (Stok: ' . $d->device_stock->qty . ')') : null,
-                'description'       => $d->description,
-                'qty'               => (int) $d->qty,
-            ];
-        }
-    }
 @endphp
 
 {{-- hidden input --}}
@@ -59,9 +46,14 @@
                     this.itemRowIndex = 0;
                 }
 
-                init() {
+                init(initialData) {
+                    initialData = initialData || {};
                     var self = this;
                     var form = this.form;
+
+                    // Clear any existing table rows from previous modal opens
+                    $('#table-invoice-items tbody').empty();
+                    this.itemRowIndex = 0;
 
                     // --- Event: Tombol Tambah Baris ---
                     $(form).off('click.dn_add_item', '#btn-add-dn-item').on('click.dn_add_item', '#btn-add-dn-item', function (e) {
@@ -122,7 +114,7 @@
                     });
 
                     // --- Prefill saat Edit atau awal dibuka ---
-                    var existing = {!! json_encode($existingDetails) !!};
+                    var existing = initialData.existingDetails || [];
                     if (existing && existing.length > 0) {
                         self.renderInvoiceItemsTable(existing);
                     } else {
@@ -133,9 +125,9 @@
                     }
 
                     // Restore Select2 reference_id jika ada nilai awal
-                    var currentType = $(form + ' select[name="reference_type"]').val();
-                    var currentRefId = '{{ $entry?->reference_id ?? "" }}';
-                    var currentRefNum = '{!! $entry?->reference_number ?? "" !!}';
+                    var currentType = $(form + ' select[name="reference_type"]').val() || initialData.refType;
+                    var currentRefId = initialData.refId || '';
+                    var currentRefNum = initialData.refNum || '';
 
                     if (currentType && self.referenceConfig[currentType]) {
                         var $refSelect = $(form + ' select[name="reference_id"]');
@@ -144,7 +136,7 @@
                         if (currentRefId) {
                             var textToShow = currentRefNum ? currentRefNum : ('ID: ' + currentRefId);
                             var newOption = new Option(textToShow, currentRefId, true, true);
-                            $refSelect.append(newOption).trigger('change.select2');
+                            $refSelect.append(newOption);
                         }
                     }
                 }
@@ -365,9 +357,36 @@
             var form_type = "{{ $crud->getActionMethod() }}";
             var form = (form_type == 'create') ? '#form-create' : '#form-edit';
 
+            @php
+                $entry = $entry ?? $crud?->entry;
+                $existingDetails = [];
+                if (isset($entry) && $entry->details && $entry->details->count() > 0) {
+                    foreach ($entry->details as $d) {
+                        $existingDetails[] = [
+                            'device_stock_id'   => $d->device_stock_id,
+                            'device_stock_text' => $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ') (Stok: ' . $d->device_stock->qty . ')') : null,
+                            'description'       => $d->description,
+                            'qty'               => (float) $d->qty,
+                        ];
+                    }
+                }
+            @endphp
+
+            var currentExistingDetails = {!! json_encode($existingDetails) !!};
+            var currentEntryId = '{{ $entry?->id ?? "" }}';
+            var currentRefId = '{{ $entry?->reference_id ?? "" }}';
+            var currentRefNum = '{!! $entry?->reference_number ?? "" !!}';
+            var currentRefType = '{{ $entry?->reference_type ?? "" }}';
+
             if (typeof window.DeliveryNoteLogicManager !== 'undefined') {
                 var logicMgr = new window.DeliveryNoteLogicManager(form);
-                logicMgr.init();
+                logicMgr.init({
+                    existingDetails: currentExistingDetails,
+                    entryId: currentEntryId,
+                    refId: currentRefId,
+                    refNum: currentRefNum,
+                    refType: currentRefType
+                });
             }
         })();
     </script>

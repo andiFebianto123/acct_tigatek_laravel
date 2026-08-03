@@ -94,8 +94,6 @@ class ClientPoCrudController extends CrudController
             'show' => $viewMenu,
             'print' => true,
         ]);
-
-        CRUD::addButtonFromView('line', 'print_po_client', 'print_po_client', 'beginning');
     }
 
     public function index()

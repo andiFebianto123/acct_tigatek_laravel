@@ -34,7 +34,15 @@ class ClientQuotationService
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
             }
 
-            return ClientQuotation::create($attributes);
+            $quotation = ClientQuotation::create($attributes);
+
+            if (!empty($data->items)) {
+                foreach ($data->items as $itemData) {
+                    $quotation->details()->create($itemData->toArray());
+                }
+            }
+
+            return $quotation;
         });
     }
 
@@ -58,12 +66,20 @@ class ClientQuotationService
                 }
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
             } else {
-                if ($quotation->document_path) {
+                if (!is_string($data->document_path) && $quotation->document_path) {
                     Storage::disk('public')->delete($quotation->document_path);
                 }
             }
 
             $quotation->update($attributes);
+
+            $quotation->details()->delete();
+            if (!empty($data->items)) {
+                foreach ($data->items as $itemData) {
+                    $quotation->details()->create($itemData->toArray());
+                }
+            }
+
             return $quotation;
         });
     }
@@ -99,6 +115,7 @@ class ClientQuotationService
             if ($quotation->document_path) {
                 Storage::disk('public')->delete($quotation->document_path);
             }
+            $quotation->details()->delete();
             return (bool) $quotation->delete();
         });
     }

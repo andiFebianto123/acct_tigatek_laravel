@@ -2,10 +2,15 @@
 
 namespace App\DTOs\ClientManagement;
 
+use App\Models\DeviceStock;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class ClientQuotationData
 {
+    /**
+     * @param ClientQuotationDetailData[] $items
+     */
     public function __construct(
         public readonly ?int $company_id,
         public readonly ?string $work_code,
@@ -24,10 +29,49 @@ class ClientQuotationData
         public readonly mixed $document_path,
         public readonly ?string $category,
         public readonly ?string $status,
+        public readonly array $items = [],
     ) {}
 
     public static function fromRequest(Request $request): self
     {
+        $currencyCode = $request->currency_code ?? 'IDR';
+        $exchangeRate = 1.0;
+        if ($currencyCode === 'USD') {
+            $settings = Setting::first();
+            $exchangeRate = (float) ($settings?->usd_rate ?? 16000);
+        }
+
+        $items = [];
+        $rawDetails = $request->client_quotation_details ?? $request->client_quotation_details_edit ?? $request->items ?? [];
+        if (is_string($rawDetails)) {
+            $rawDetails = json_decode($rawDetails, true) ?? [];
+        }
+        if (is_array($rawDetails)) {
+            foreach ($rawDetails as $item) {
+                if (is_array($item)) {
+                    $deviceStockId = isset($item['device_stock_id']) && $item['device_stock_id'] !== '' ? (int) $item['device_stock_id'] : null;
+                    $name = $item['item_name'] ?? $item['name'] ?? '';
+                    if (empty($name) && $deviceStockId) {
+                        $device = DeviceStock::find($deviceStockId);
+                        if ($device) {
+                            $name = $device->name;
+                        }
+                    }
+
+                    if (!empty($name) || $deviceStockId) {
+                        $normalizedItem = [
+                            'device_stock_id' => $deviceStockId,
+                            'item_name' => $name,
+                            'qty' => $item['qty'] ?? 1,
+                            'unit' => $item['unit'] ?? null,
+                            'unit_price' => $item['unit_price'] ?? $item['price'] ?? 0,
+                        ];
+                        $items[] = ClientQuotationDetailData::fromArray($normalizedItem, $exchangeRate);
+                    }
+                }
+            }
+        }
+
         return new self(
             company_id: $request->company_id ? (int) $request->company_id : null,
             work_code: $request->work_code,
@@ -35,7 +79,7 @@ class ClientQuotationData
             reimburse_type: $request->reimburse_type,
             po_number: $request->po_number,
             job_name: $request->job_name,
-            currency_code: $request->currency_code ?? 'IDR',
+            currency_code: $currencyCode,
             rap_value: (float) str_replace(',', '', $request->rap_value ?? 0),
             job_value: (float) str_replace(',', '', $request->job_value ?? 0),
             tax_ppn: (float) ($request->tax_ppn ?? 0),
@@ -46,6 +90,7 @@ class ClientQuotationData
             document_path: $request->file('document_path') ?? $request->document_path,
             category: $request->category,
             status: $request->status,
+            items: $items,
         );
     }
 

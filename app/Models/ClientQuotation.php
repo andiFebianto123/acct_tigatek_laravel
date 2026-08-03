@@ -29,4 +29,21 @@ class ClientQuotation extends Model
     {
         return $this->belongsTo(Company::class, 'company_id');
     }
+
+    public function details()
+    {
+        return $this->hasMany(ClientQuotationDetail::class, 'client_quotation_id');
+    }
+
+    public function getClientQuotationDetailsAttribute()
+    {
+        return $this->details->map(function ($d) {
+            return [
+                'device_stock_id' => $d->device_stock_id,
+                'name' => $d->item_name,
+                'qty' => (float) $d->qty,
+                'price' => (float) $d->unit_price,
+            ];
+        })->toArray();
+    }
 }

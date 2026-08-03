@@ -219,7 +219,9 @@ class DeliveryNoteCrudController extends CrudController
 
         $this->crud->registerFieldEvents();
 
-        $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $entry = $this->crud->getEntryWithLocale($id);
+        $entry->load('details.device_stock');
+        $this->data['entry'] = $entry;
 
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
 
@@ -940,14 +942,26 @@ class DeliveryNoteCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
         $id        = (int) request()->input('reference_id');
-        $quotation = \App\Models\ClientQuotation::with('client')->find($id);
+        $quotation = \App\Models\ClientQuotation::with(['details.deviceStock', 'client'])->find($id);
 
         if (!$quotation) {
             return response()->json(['success' => false, 'message' => 'Quotation tidak ditemukan'], 404);
         }
 
         $items = [];
-        if ($quotation->job_name) {
+        if ($quotation->details && $quotation->details->count() > 0) {
+            foreach ($quotation->details as $detail) {
+                $dsName = $detail->deviceStock 
+                    ? $detail->deviceStock->name . ' (' . $detail->deviceStock->code . ')'
+                    : null;
+                $items[] = [
+                    'device_stock_id'   => $detail->device_stock_id,
+                    'device_stock_text' => $dsName,
+                    'name'              => $detail->item_name ?? $detail->deviceStock?->name ?? '-',
+                    'qty'               => (float) $detail->qty,
+                ];
+            }
+        } elseif ($quotation->job_name) {
             $items[] = ['name' => $quotation->job_name, 'qty' => 1];
         }
 
@@ -976,9 +990,14 @@ class DeliveryNoteCrudController extends CrudController
 
         $items = [];
         foreach ($invoice->proforma_invoice_client_details as $detail) {
+            $dsName = $detail->deviceStock 
+                ? $detail->deviceStock->name . ' (' . $detail->deviceStock->code . ')'
+                : null;
             $items[] = [
-                'name' => $detail->name ?? $detail->deviceStock?->name ?? '-',
-                'qty'  => $detail->qty ?? 1,
+                'device_stock_id'   => $detail->device_stock_id ?? null,
+                'device_stock_text' => $dsName,
+                'name'              => $detail->name ?? $detail->deviceStock?->name ?? '-',
+                'qty'               => (float) ($detail->qty ?? 1),
             ];
         }
 
@@ -1007,10 +1026,14 @@ class DeliveryNoteCrudController extends CrudController
 
         $items = [];
         foreach ($invoice->invoice_client_details as $detail) {
+            $dsName = $detail->deviceStock 
+                ? $detail->deviceStock->name . ' (' . $detail->deviceStock->code . ')'
+                : null;
             $items[] = [
-                'device_stock_id' => $detail->device_stock_id ?? null,
-                'name'            => $detail->name ?? $detail->deviceStock?->name ?? '-',
-                'qty'             => $detail->qty ?? 1,
+                'device_stock_id'   => $detail->device_stock_id ?? null,
+                'device_stock_text' => $dsName,
+                'name'              => $detail->name ?? $detail->deviceStock?->name ?? '-',
+                'qty'               => (float) ($detail->qty ?? 1),
             ];
         }
 
@@ -1031,14 +1054,30 @@ class DeliveryNoteCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
         $id = (int) request()->input('reference_id');
-        $po = $this->clientPoRepository->findWithClient($id);
+        $po = \App\Models\ClientPo::with(['quotations.details.deviceStock', 'client'])->find($id);
 
         if (!$po) {
             return response()->json(['success' => false, 'message' => 'Client PO tidak ditemukan'], 404);
         }
 
         $items = [];
-        if ($po->job_name) {
+        if ($po->quotations && $po->quotations->count() > 0) {
+            foreach ($po->quotations as $quotation) {
+                foreach ($quotation->details as $detail) {
+                    $dsName = $detail->deviceStock 
+                        ? $detail->deviceStock->name . ' (' . $detail->deviceStock->code . ')'
+                        : null;
+                    $items[] = [
+                        'device_stock_id'   => $detail->device_stock_id,
+                        'device_stock_text' => $dsName,
+                        'name'              => $detail->item_name ?? $detail->deviceStock?->name ?? '-',
+                        'qty'               => (float) $detail->qty,
+                    ];
+                }
+            }
+        }
+
+        if (empty($items) && $po->job_name) {
             $items[] = ['name' => $po->job_name, 'qty' => 1];
         }
 

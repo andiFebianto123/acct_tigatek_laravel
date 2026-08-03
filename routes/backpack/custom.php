@@ -158,6 +158,7 @@ Route::group([
         Route::get('quotation/total', [ClientQuotationCrudController::class, 'countAllPPn']);
         Route::get('quotation/total-without-po', 'ClientQuotationCrudController@totalWithoutPo');
         Route::get('quotation/{id}/print', [ClientQuotationCrudController::class, 'printQuotation']);
+        Route::match(['get', 'post', 'put'], 'quotation/select2-device-stock', [ClientQuotationCrudController::class, 'select2DeviceStock']);
 
         Route::get('proforma-invoice/{id}/print', [ProformaInvoiceClientCrudController::class, 'printInvoice']);
         Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-po', [ProformaInvoiceClientCrudController::class, 'select2ClientPo']);

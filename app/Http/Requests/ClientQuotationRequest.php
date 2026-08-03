@@ -18,6 +18,28 @@ class ClientQuotationRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        if ($this->has('job_value')) {
+            $this->merge([
+                'job_value' => str_replace(',', '', $this->job_value),
+            ]);
+        }
+        if ($this->has('rap_value')) {
+            $this->merge([
+                'rap_value' => str_replace(',', '', $this->rap_value),
+            ]);
+        }
+        if ($this->has('job_value_include_ppn')) {
+            $this->merge([
+                'job_value_include_ppn' => str_replace(',', '', $this->job_value_include_ppn),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array
@@ -26,7 +48,7 @@ class ClientQuotationRequest extends FormRequest
     {
         $id = request('id');
         $status = request('status');
-        
+
         $rule_origin = [
             'company_id' => 'sometimes|required|exists:companies,id',
             'client_id' => 'required|exists:clients,id',
@@ -74,6 +96,12 @@ class ClientQuotationRequest extends FormRequest
         }
 
         $rule['date_po'] = 'nullable|date';
+        $rule['items'] = 'nullable|array';
+        $rule['items.*.item_name'] = 'nullable|string';
+        $rule['items.*.qty'] = 'nullable';
+        $rule['items.*.unit'] = 'nullable|string';
+        $rule['items.*.unit_price'] = 'nullable';
+        $rule['items.*.total_price'] = 'nullable';
 
         return $rule;
     }

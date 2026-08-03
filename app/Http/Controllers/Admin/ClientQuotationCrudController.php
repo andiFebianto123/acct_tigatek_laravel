@@ -341,7 +341,14 @@ class ClientQuotationCrudController extends CrudController
 
         $this->crud->registerFieldEvents();
 
-        $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $entry = $this->crud->getEntryWithLocale($id);
+        $entry->load('details.deviceStock');
+        foreach ($entry->details as $d) {
+            $d->qty = (float) $d->qty;
+            $d->price = (float) ($d->unit_price ?? $d->price ?? 0);
+        }
+        $entry->client_quotation_details_edit = $entry->details;
+        $this->data['entry'] = $entry;
 
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
 
@@ -814,6 +821,102 @@ class ClientQuotationCrudController extends CrudController
                 'class' => 'form-group col-md-6'
             ]
         ]);
+
+        $id = request()->segment(4);
+
+        if ($id && $id != 'create') {
+            CRUD::addField([
+                'name' => 'client_quotation_details_edit',
+                'label' => trans('backpack::crud.invoice_client.field.item.label'),
+                'type' => 'repeatable',
+                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
+                'fields' => [
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'select2_ajax_device_stock',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'data_source' => backpack_url('client/quotation/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
+                        'method' => 'GET',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 0,
+                            'step' => 'any',
+                        ]
+                    ],
+                    [
+                        'name' => 'price',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ],
+                    ],
+                ]
+            ]);
+        } else {
+            CRUD::addField([
+                'name' => 'client_quotation_details',
+                'label' => trans('backpack::crud.invoice_client.field.item.label'),
+                'type' => 'repeatable',
+                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
+                'fields' => [
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'select2_ajax_device_stock',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'data_source' => backpack_url('client/quotation/select2-device-stock'),
+                        'placeholder' => 'Pilih Nama Barang',
+                        'minimum_input_length' => 0,
+                        'model' => \App\Models\DeviceStock::class,
+                        'attribute' => 'name',
+                        'method' => 'GET',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ]
+                    ],
+                    [
+                        'name' => 'qty',
+                        'type' => 'number',
+                        'label' => 'QTY',
+                        'default' => 1,
+                        'wrapper' => [
+                            'class' => 'form-group col-md-2',
+                        ],
+                        'attributes' => [
+                            'min' => 0,
+                            'step' => 'any',
+                        ]
+                    ],
+                    [
+                        'name' => 'price',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                        'type' => 'mask_currency',
+                        'currency_name' => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-5',
+                        ],
+                    ],
+                ]
+            ]);
+        }
 
         CRUD::addField([
             'name' => 'logic_client_quotation',
@@ -1358,5 +1461,37 @@ class ClientQuotationCrudController extends CrudController
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
 
         return $pdf->stream($safeFileName);
+    }
+
+    public function select2DeviceStock()
+    {
+        $this->crud->hasAccessOrFail('create');
+
+        $search = request()->input('q', '');
+
+        $query = \App\Models\DeviceStock::select(['id', 'name', 'sell_price', 'qty', 'currency_code', 'code']);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->paginate(20);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $results[] = [
+                'id'            => $item->id,
+                'text'          => $item->name .' ('. $item->code .')'. ' (Stok: ' . $item->qty . ')',
+                'name'          => $item->name .' ('. $item->code .')',
+                'sell_price'    => (float) $item->sell_price,
+                'qty_available' => (int) $item->qty,
+                'currency_code' => $item->currency_code ?? 'IDR',
+            ];
+        }
+
+        return response()->json(['results' => $results]);
     }
 }
