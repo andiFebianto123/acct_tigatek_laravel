@@ -25,9 +25,10 @@ class ProformaInvoiceSaveData
         public readonly mixed $invoice_document = null,
         public readonly ?int $account_source_id = null,
         public readonly ?string $note = null,
-        public readonly ?int $subkon_id = null,
+        public readonly ?string $subkon_id = null,
         public readonly ?string $term = null,
         public readonly ?string $currency_code = 'IDR',
+        public readonly ?string $pic = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -83,6 +84,7 @@ class ProformaInvoiceSaveData
             subkon_id: $request->subkon_id ? (int) $request->subkon_id : null,
             term: $request->term,
             currency_code: $request->currency_code ?? 'IDR',
+            pic: $request->pic,
         );
     }
 }

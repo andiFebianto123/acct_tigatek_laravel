@@ -350,6 +350,7 @@ class InvoiceClientService
         $invoice->type_device = $dto->type_device;
         $invoice->term = $dto->term;
         $invoice->delivery_note_id = $dto->delivery_note_id;
+        $invoice->pic = $dto->pic;
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float
@@ -380,14 +381,16 @@ class InvoiceClientService
                 $invoice_item->price_base = $price * $exchangeRate;
 
                 // Simpan device_stock_id jika ada (dari mode Persediaan)
-                $deviceStockId = isset($item['device_stock_id']) && !empty($item['device_stock_id'])
-                    ? (int) $item['device_stock_id']
+                $rawStockId = $item['device_stock_id'] ?? null;
+                $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
+                    ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
 
                 // Simpan delivery_note_detail_id jika ada
-                $dnDetailId = isset($item['delivery_note_detail_id']) && !empty($item['delivery_note_detail_id'])
-                    ? (int) $item['delivery_note_detail_id']
+                $rawDnId = $item['delivery_note_detail_id'] ?? null;
+                $dnDetailId = ($rawDnId !== null && (int) $rawDnId > 0)
+                    ? (int) $rawDnId
                     : null;
                 $invoice_item->delivery_note_detail_id = $dnDetailId;
 

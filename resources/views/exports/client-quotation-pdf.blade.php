@@ -400,7 +400,7 @@
                 <br><br><br>
             </div>
             <div class="orange-line"></div>
-            <div class="signer-name">{{ backpack_user()->name ?? 'Defina Maharani' }}</div>
+            <div class="signer-name">{{ !empty($entry->pic) ? $entry->pic : (backpack_user()->name ?? 'Defina Maharani') }}</div>
         </div>
         <div class="clearfix"></div>
     </div>

@@ -23,6 +23,7 @@ class SpkData
         public ?string $additional_info,
         public ?int $company_id = null,
         public ?string $currency_code = 'IDR',
+        public ?string $pic = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -43,6 +44,7 @@ class SpkData
             additional_info: $request->input('additional_info'),
             company_id: backpack_user()->hasRole('Super Admin') ? $request->input('company_id') : backpack_user()->company_id,
             currency_code: $request->input('currency_code', 'IDR'),
+            pic: $request->input('pic'),
         );
     }
 
@@ -63,6 +65,7 @@ class SpkData
             'additional_info' => $this->additional_info,
             'company_id' => $this->company_id,
             'currency_code' => $this->currency_code,
+            'pic' => $this->pic,
         ];
 
         if (is_string($this->document_path)) {

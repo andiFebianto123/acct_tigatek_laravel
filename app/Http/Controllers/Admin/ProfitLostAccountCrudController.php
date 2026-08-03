@@ -758,14 +758,14 @@ class ProfitLostAccountCrudController extends CrudController
                 $dto = ProjectProfitLostSaveData::fromRequest(request());
                 $item = $this->service->storeProjectProfitLost($dto);
                 if(request('orderable_type') == "App\\Models\\InvoiceClient"){
-                    $eventName = 'supplier_create_success';
+                    $eventName = 'crudTable-supplier_create_success';
                 }else{
-                    $eventName = 'project_create_success';
+                    $eventName = 'crudTable-project_create_success';
                 }
             } else {
                 $dto = ConsolidateItemSaveData::fromRequest(request());
                 $item = $this->service->storeConsolidateItem($dto);
-                $eventName = 'account_create_success';
+                $eventName = 'crudTable-account_create_success';
             }
 
             \Alert::success(trans('backpack::crud.insert_success'))->flash();
@@ -826,10 +826,14 @@ class ProfitLostAccountCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('delete');
 
+
         try {
             if (request('type') == 'project') {
                 $this->service->deleteProjectProfitLost((int) $id);
-                return response()->json(['events' => ['crudTable-project_updated_success' => true]]);
+                return response()->json(['events' => [
+                    'crudTable-project_updated_success' => true,
+                    'crudTable-supplier_updated_success' => true,
+                ]]);
             }
 
             $this->service->deleteConsolidateItem((int) $id);

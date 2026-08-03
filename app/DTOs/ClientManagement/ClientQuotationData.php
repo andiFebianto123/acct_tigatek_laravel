@@ -29,6 +29,7 @@ class ClientQuotationData
         public readonly mixed $document_path,
         public readonly ?string $category,
         public readonly ?string $status,
+        public readonly ?string $pic = null,
         public readonly array $items = [],
     ) {}
 
@@ -90,6 +91,7 @@ class ClientQuotationData
             document_path: $request->file('document_path') ?? $request->document_path,
             category: $request->category,
             status: $request->status,
+            pic: $request->pic ?? null,
             items: $items,
         );
     }
@@ -114,6 +116,7 @@ class ClientQuotationData
             'document_path' => $this->document_path,
             'category' => $this->category,
             'status' => $this->status,
+            'pic' => $this->pic,
         ];
     }
 }

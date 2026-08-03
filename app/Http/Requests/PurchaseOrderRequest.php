@@ -43,6 +43,7 @@ class PurchaseOrderRequest extends FormRequest
             'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
             'company_id' => backpack_user()->hasRole('Super Admin') ? 'required|exists:companies,id' : 'nullable',
             'term' => 'nullable|string',
+            'pic' => 'required|string|max:150',
         ];
 
         if (request()->input('po_type') === 'supplier') {

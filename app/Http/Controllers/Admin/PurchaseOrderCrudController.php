@@ -712,17 +712,16 @@ class PurchaseOrderCrudController extends CrudController
             'include_all_form_fields' => true,
         ]);
 
-        CRUD::addField([   // Hidden
-            'name'  => 'space',
-            'type'  => 'hidden',
-            'value' => 'active',
+        CRUD::addField([
+            'name' => 'pic',
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-6'
+                'class' => 'form-group col-md-6',
             ],
             'attributes' => [
-                'disabled'  => 'disabled',
-                // 'placeholder' => trans('backpack::crud.spk.field.')
-            ]
+                'placeholder' => trans('backpack::crud.client_quotation.field.pic.placeholder'),
+            ],
         ]);
 
         CRUD::addField([

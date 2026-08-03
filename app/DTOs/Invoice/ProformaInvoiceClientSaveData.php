@@ -30,6 +30,7 @@ class ProformaInvoiceClientSaveData
         public readonly ?string $type_device = null,
         public readonly ?string $term = null,
         public readonly ?string $currency_code = 'IDR',
+        public readonly ?string $pic = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -73,6 +74,7 @@ class ProformaInvoiceClientSaveData
             type_device: $request->type_device,
             term: $request->term,
             currency_code: $request->input('currency_code', 'IDR'),
+            pic: $request->pic,
         );
     }
 }

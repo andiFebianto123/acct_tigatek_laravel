@@ -844,6 +844,7 @@ class DeliveryNoteCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
+        $entry->load(['details.device_stock', 'client', 'company']);
 
         $pdf = Pdf::loadView('exports.delivery-note-pdf', [
             'entry' => $entry,

@@ -103,6 +103,7 @@ class ProformaInvoiceService
         $invoice->note = $dto->note;
         $invoice->term = $dto->term;
         $invoice->subkon_id = $dto->subkon_id;
+        $invoice->pic = $dto->pic;
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float

@@ -123,6 +123,7 @@ class InvoiceClientRequest extends FormRequest
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',
             'term' => 'nullable|string',
             'delivery_note_id' => 'nullable|exists:delivery_notes,id',
+            'pic' => 'required|string|max:150',
         ];
 
         if ($id) {

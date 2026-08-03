@@ -451,6 +451,12 @@ class ClientQuotationCrudController extends CrudController
             'limit'  => 40,
         ]);
 
+        // CRUD::column([
+        //     'label'  => trans('backpack::crud.client_quotation.column.pic'),
+        //     'name'   => 'pic',
+        //     'type'   => 'text',
+        // ]);
+
         CRUD::column([
             'label'  => trans('backpack::crud.client_quotation.column.job_name'),
             'name' => 'job_name',
@@ -672,6 +678,16 @@ class ClientQuotationCrudController extends CrudController
                 ...$po_number_disabled,
                 'placeholder' => trans('backpack::crud.client_quotation.field.po_number.placeholder'),
             ],
+        ]);
+
+        CRUD::field([
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'name'  => 'pic',
+            'type'  => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_quotation.field.pic.placeholder'),
+            ]
         ]);
 
         // CRUD::field([

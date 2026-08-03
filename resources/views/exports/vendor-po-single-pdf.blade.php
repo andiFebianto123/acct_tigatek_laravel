@@ -322,7 +322,7 @@
             <br><br><br>
         </div>
         <div class="signer-name">
-            <b>{{ backpack_user()->name ?? 'Defina Maharani' }}</b>
+            <b>{{ !empty($entry->pic) ? $entry->pic : (backpack_user()->name ?? 'Defina Maharani') }}</b>
         </div>
     </div>
     <div class="clearfix"></div>

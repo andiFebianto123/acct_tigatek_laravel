@@ -878,10 +878,15 @@ return [
             'date_po' => 'Tanggal Penawaran',
             'currency_code' => 'Mata Uang',
             'job_value_base' => 'Nilai Pekerjaan (IDR)',
+            'pic' => 'PIC',
         ],
         'field' => [
             'currency_code' => [
                 'label' => 'Mata Uang',
+            ],
+            'pic' => [
+                'label' => 'PIC',
+                'placeholder' => 'Masukkan Nama PIC',
             ],
             'client_id' => [
                 'label' => 'Nama Perusahaan',

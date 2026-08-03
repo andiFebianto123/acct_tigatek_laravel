@@ -252,18 +252,29 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td class="text-center">1</td>
-                    <td>{{ $entry->description ?? '-' }}</td>
-                    <td class="text-center">
-                        @if(is_numeric($entry->qty))
-                            {{ $entry->qty }} unit
-                        @else
-                            {{ $entry->qty }}
-                        @endif
-                    </td>
-                    <td class="text-center">{{ $entry->information ?? '-' }}</td>
-                </tr>
+                @if($entry->details && $entry->details->count() > 0)
+                    @foreach($entry->details as $index => $detail)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td>{{ $detail->device_stock->name ?? $detail->description ?? '-' }}</td>
+                            <td class="text-center">{{ (float)$detail->qty }} unit</td>
+                            <td>{{ $detail->description ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td class="text-center">1</td>
+                        <td>{{ $entry->description ?? '-' }}</td>
+                        <td class="text-center">
+                            @if(is_numeric($entry->qty))
+                                {{ (float)$entry->qty }} unit
+                            @else
+                                {{ $entry->qty ?? '1 unit' }}
+                            @endif
+                        </td>
+                        <td class="text-center">{{ $entry->information ?? '-' }}</td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>

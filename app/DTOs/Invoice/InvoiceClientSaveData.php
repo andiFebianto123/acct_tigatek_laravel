@@ -30,6 +30,7 @@ class InvoiceClientSaveData
         public readonly ?int $client_id = null,
         public readonly ?string $currency_code = 'IDR',
         public readonly ?int $delivery_note_id = null,
+        public readonly ?string $pic = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -103,6 +104,7 @@ class InvoiceClientSaveData
             client_id: $request->client_id ? (int) $request->client_id : null,
             currency_code: $currencyCode,
             delivery_note_id: $request->delivery_note_id ? (int) $request->delivery_note_id : null,
+            pic: $request->pic,
         );
     }
 }

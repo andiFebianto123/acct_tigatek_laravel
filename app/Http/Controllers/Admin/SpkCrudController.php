@@ -870,18 +870,7 @@ class SpkCrudController extends CrudController
             'include_all_form_fields' => true,
         ]);
 
-        CRUD::addField([   // Hidden
-            'name'  => 'space',
-            'type'  => 'hidden',
-            'value' => 'active',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-            'attributes' => [
-                'disabled'  => 'disabled',
-                // 'placeholder' => trans('backpack::crud.spk.field.')
-            ]
-        ]);
+
 
         CRUD::addField([
             'name' => 'no_spk',

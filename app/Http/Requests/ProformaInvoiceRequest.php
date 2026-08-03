@@ -48,6 +48,7 @@ class ProformaInvoiceRequest extends FormRequest
             'account_source_id' => 'nullable|exists:cast_accounts,id',
             'note' => 'nullable|string|max:500',
             'term' => 'nullable|string',
+            'pic' => 'required|string|max:150',
             'subkon_id' => 'required|exists:subkons,id',
         ];
 

@@ -563,10 +563,22 @@ class ProformaInvoiceClientCrudController extends CrudController
             'type' => 'text',
             'default' => $defaultProformaInvoiceNumber,
             'wrapper'   => [
-                'class' => 'form-group col-md-12',
+                'class' => 'form-group col-md-6',
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.proforma_invoice.field.invoice_number.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'pic',
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_quotation.field.pic.placeholder'),
             ],
         ]);
 

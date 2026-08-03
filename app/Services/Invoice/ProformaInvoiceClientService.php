@@ -106,6 +106,7 @@ class ProformaInvoiceClientService
         $invoice->note = $dto->note;
         $invoice->type_device = $dto->type_device;
         $invoice->term = $dto->term;
+        $invoice->pic = $dto->pic;
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float
@@ -136,8 +137,9 @@ class ProformaInvoiceClientService
                 $invoice_item->price_base = $price * $exchangeRate;
 
                 // Simpan device_stock_id jika ada (dari mode Persediaan)
-                $deviceStockId = isset($item['device_stock_id']) && !empty($item['device_stock_id'])
-                    ? (int) $item['device_stock_id']
+                $rawStockId = $item['device_stock_id'] ?? null;
+                $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
+                    ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
 
