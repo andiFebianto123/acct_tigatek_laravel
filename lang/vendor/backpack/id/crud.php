@@ -965,6 +965,7 @@ return [
             'invoice_number' => 'No. Invoice',
             'name' => 'Nama Pekerjaan',
             'invoice_date' => 'Tanggal Invoice',
+            'category' => 'Kategori',
             'client_po_id' => 'No. PO',
             'po_date' => 'Tanggal PO',
             'client_id' => 'Client',
@@ -1003,6 +1004,10 @@ return [
             'invoice_date' => [
                 'label' => 'Tanggal Invoice',
                 'placeholder' => 'Pilih Tanggal',
+            ],
+            'category' => [
+                'label' => 'Kategori',
+                'placeholder' => 'Pilih Kategori',
             ],
             'client_po_id' => [
                 'placeholder' => 'Masukan nomor PO Client',

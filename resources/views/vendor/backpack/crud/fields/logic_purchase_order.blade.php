@@ -28,65 +28,158 @@
             return {
                 form_type : "{{ $crud->getActionMethod() }}",
 
+                getForm: function() {
+                    var formContainer = (this.form_type == 'create') ? '#form-create' : '#form-edit';
+                    var $form = $(formContainer);
+                    if (!$form.length || !$form.is(':visible')) {
+                        $form = $('.modal.show form, .modal form, form').filter(':visible').first();
+                    }
+                    if (!$form.length) {
+                        $form = $('form').first();
+                    }
+                    return $form;
+                },
+
                 toggleFormFields: function(){
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
-                    var po_type = $(form + ' select[name="po_type"]').val();
+                    var $form = this.getForm();
+                    var po_type = $form.find('select[name="po_type"]').val() || $('select[name="po_type"]').val();
 
-                    var workCodeWrapper = $(form + ' input[name="work_code"]').closest('.form-group');
-                    var workCodeInput = $(form + ' input[name="work_code"]');
+                    var workCodeInput = $form.find('input[name="work_code"]');
+                    var workCodeWrapper = workCodeInput.closest('.form-group');
 
-                    var jobNameWrapper = $(form + ' input[name="job_name"]').closest('.form-group');
+                    var jobNameInput = $form.find('input[name="job_name"]');
+                    var jobNameWrapper = jobNameInput.closest('.form-group');
                     var jobNameLabel = jobNameWrapper.find('label');
-                    var jobNameInput = $(form + ' input[name="job_name"]');
 
-                    var jobDescWrapper = $(form + ' [name="job_description"]').closest('.form-group');
-                    var jobDescInput = $(form + ' [name="job_description"]');
+                    var jobDescInput = $form.find('[name="job_description"]');
+                    var jobDescWrapper = jobDescInput.closest('.form-group');
 
-                    var itemsWrapper = $(form + ' [name="purchase_order_details"], ' + form + ' [name="purchase_order_details_edit"]').closest('.form-group');
+                    var jobValueMasked = $form.find('#job_value_masked, input[data-alt="job_value_masked"]');
+                    var jobValueHidden = $form.find('#job_value, input[name="job_value"]');
+                    var jobValueWrapper = jobValueMasked.closest('.form-group');
+                    if (!jobValueWrapper.length) {
+                        jobValueWrapper = jobValueHidden.closest('.form-group');
+                    }
+                    var jobValueLabel = jobValueWrapper.find('label');
+
+                    var itemsWrapper = $form.find('[name="purchase_order_details"], [name="purchase_order_details_edit"]').closest('.form-group');
                     if (!itemsWrapper.length) {
-                        itemsWrapper = $(form + ' [data-repeatable-holder]').closest('.form-group');
+                        itemsWrapper = $form.find('[data-repeatable-holder]').closest('.form-group');
                     }
 
                     if (po_type === 'supplier') {
                         workCodeWrapper.hide();
-                        workCodeInput.attr('disabled', true);
+                        workCodeInput.prop('disabled', true);
 
-                        jobNameLabel.text("{{ trans('backpack::crud.po.field.job_name.label_supplier') }}");
-                        jobNameInput.attr('placeholder', "{{ trans('backpack::crud.po.field.job_name.placeholder_supplier') }}");
+                        // Sembunyikan field Nama Barang / Pekerjaan untuk PO Supplier
+                        jobNameWrapper.hide();
+                        jobNameInput.prop('disabled', true);
 
                         jobDescWrapper.hide();
-                        jobDescInput.attr('disabled', true);
+                        jobDescInput.prop('disabled', true);
+
+                        // Ganti label Nilai Pekerjaan -> Grand Total dan buat Readonly
+                        if (jobValueLabel.length) {
+                            jobValueLabel.text("Grand Total");
+                        }
+                        jobValueMasked.prop('readonly', true).css({
+                            'background-color': '#e9ecef',
+                            'pointer-events': 'none'
+                        });
 
                         itemsWrapper.show();
+                        this.calculateItemsTotal();
                     } else {
                         workCodeWrapper.show();
-                        workCodeInput.removeAttr('disabled');
+                        workCodeInput.prop('disabled', false);
 
-                        jobNameLabel.text("{{ trans('backpack::crud.po.field.job_name.label') }}");
+                        // Tampilkan kembali field Nama Barang / Pekerjaan untuk PO Subkon
+                        jobNameWrapper.show();
+                        jobNameInput.prop('disabled', false);
+                        if (jobNameLabel.length) {
+                            jobNameLabel.text("{{ trans('backpack::crud.po.field.job_name.label') }}");
+                        }
                         jobNameInput.attr('placeholder', "{{ trans('backpack::crud.po.field.job_name.placeholder') }}");
 
                         jobDescWrapper.show();
-                        jobDescInput.removeAttr('disabled');
+                        jobDescInput.prop('disabled', false);
+
+                        if (jobValueLabel.length) {
+                            jobValueLabel.text("{{ trans('backpack::crud.po.column.job_value') }}");
+                        }
+                        jobValueMasked.prop('readonly', false).css({
+                            'background-color': '',
+                            'pointer-events': ''
+                        });
 
                         itemsWrapper.hide();
+                        this.calculateTotalWithTax();
+                    }
+                },
+
+                calculateItemsTotal: function() {
+                    var $form = this.getForm();
+                    var po_type = $form.find('select[name="po_type"]').val() || $('select[name="po_type"]').val();
+
+                    if (po_type === 'supplier') {
+                        var totalSum = 0;
+                        var activeCurr = $form.find('select[name="currency_code"]').val() || $('select[name="currency_code"]').val() || 'IDR';
+
+                        $form.find('[data-repeatable-holder]').children().each(function() {
+                            var $row = $(this);
+                            var qtyInput = $row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"]').val();
+                            var qty = parseFloat(qtyInput || 0);
+
+                            var $priceMasked = $row.find('input[data-alt="price_masked"]');
+                            var $priceHidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                            if (!$priceHidden.length) {
+                                $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
+                            }
+                            var price = parseFloat($priceHidden.val() || 0);
+                            if (!price && $priceMasked.length) {
+                                var str = $priceMasked.val() || '';
+                                if (activeCurr === 'USD') {
+                                    price = parseFloat(str.replace(/,/g, '')) || 0;
+                                } else {
+                                    price = parseFloat(str.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                                }
+                            }
+                            totalSum += (qty * (price || 0));
+                        });
+
+                        if (activeCurr === 'IDR') {
+                            totalSum = Math.round(totalSum);
+                        }
+
+                        var $jobValueHidden = $form.find('#job_value, input[name="job_value"]');
+                        var $jobValueMasked = $form.find('#job_value_masked, input[data-alt="job_value_masked"]');
+
+                        $jobValueHidden.val(totalSum);
+                        if (typeof window.formatCurrency === 'function') {
+                            $jobValueMasked.val(window.formatCurrency(totalSum, activeCurr));
+                        } else {
+                            $jobValueMasked.val(totalSum);
+                        }
+
+                        this.calculateTotalWithTax();
                     }
                 },
 
                 calculateTotalWithTax: function() {
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
-                    var curr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                    var $form = this.getForm();
+                    var curr = $form.find('select[name="currency_code"]').val() || $('select[name="currency_code"]').val() || 'IDR';
 
                     // Update currency dropdown di job_value_currency agar mengikutsertakan masking IDR/USD
-                    var $jobCurrencySelect = $(form + ' select[name="job_value_currency"]');
+                    var $jobCurrencySelect = $form.find('select[name="job_value_currency"]');
                     if ($jobCurrencySelect.length && $jobCurrencySelect.val() !== curr) {
                         $jobCurrencySelect.val(curr).trigger('change');
                     }
 
                     // Synchronize dropdown mask_currency secara umum
-                    $(form + ' select.currency-select-dropdown').val(curr);
+                    $form.find('select.currency-select-dropdown').val(curr);
 
                     // Synchronize prefix text pada input group total_value_with_tax
-                    var $totalField = $(form + ' input[name="total_value_with_tax"]');
+                    var $totalField = $form.find('input[name="total_value_with_tax"]');
                     var $totalGroup = $totalField.closest('.input-group');
                     if ($totalGroup.length) {
                         var $prefixSpan = $totalGroup.find('.input-group-text').first();
@@ -95,74 +188,91 @@
                         }
                     }
 
-                    // Menggunakan helper getInputNumber agar presisi membaca float desimal murni dari input
-                    var rawJobValue = (typeof getInputNumber === 'function')
-                        ? getInputNumber(form + ' #job_value')
-                        : parseFloat($(form + ' #job_value').val() || 0);
+                    var $jobValInput = $form.find('#job_value, input[name="job_value"]');
+                    var rawJobValue = (typeof getInputNumber === 'function' && $jobValInput.length)
+                        ? getInputNumber($jobValInput[0])
+                        : parseFloat($jobValInput.val() || 0);
 
-                    var taxPpn = (typeof getInputNumber === 'function')
-                        ? getInputNumber(form + ' input[name="tax_ppn"]')
-                        : parseFloat($(form + ' input[name="tax_ppn"]').val() || 0);
+                    var $taxInput = $form.find('input[name="tax_ppn"]');
+                    var taxPpn = (typeof getInputNumber === 'function' && $taxInput.length)
+                        ? getInputNumber($taxInput[0])
+                        : parseFloat($taxInput.val() || 0);
 
                     var nilai_ppn = (taxPpn == 0) ? 0 : (rawJobValue * (taxPpn / 100));
                     var totalWithTax = rawJobValue + nilai_ppn;
 
-                    setInputNumber2(form + ' input[name="total_value_with_tax"]', totalWithTax, curr);
+                    setInputNumber2($totalField, totalWithTax, curr);
                 },
 
                 load: function(){
                     var instance = this;
-                    var form = (this.form_type == 'create') ? '#form-create' : '#form-edit';
 
-                    // Initial state toggle
-                    instance.toggleFormFields();
-
-                    // Initial calculation & sync
+                    // Initial state toggle & calculation
                     setTimeout(() => {
-                        var initialCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
-                        $(form + ' select.currency-select-dropdown').val(initialCurr);
+                        var $form = instance.getForm();
+                        instance.toggleFormFields();
 
-                        var rawJobVal = $(form + ' #job_value').val() || '';
+                        var initialCurr = $form.find('select[name="currency_code"]').val() || 'IDR';
+                        $form.find('select.currency-select-dropdown').val(initialCurr);
+
+                        var rawJobVal = $form.find('#job_value, input[name="job_value"]').val() || '';
                         if (rawJobVal && typeof window.formatCurrency === 'function') {
-                            $(form + ' #job_value_masked').val(window.formatCurrency(rawJobVal, initialCurr));
+                            $form.find('#job_value_masked, input[data-alt="job_value_masked"]').val(window.formatCurrency(rawJobVal, initialCurr));
                         }
 
                         instance.calculateTotalWithTax();
                     }, 100);
 
                     // Event listener pergantian po_type
-                    $(form + ' select[name="po_type"]').on('change select2:select', function() {
+                    $(document).off('change.po_type select2:select.po_type', 'select[name="po_type"]')
+                               .on('change.po_type select2:select.po_type', 'select[name="po_type"]', function() {
                         instance.toggleFormFields();
                     });
 
-                    // Melacak mata uang sebelumnya untuk konversi otomatis saat user mengubah dropdown utama
-                    var previousCurrency = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                    // Event listener perubahan pada rincian item repeatable
+                    $(document).off('keyup.po_items input.po_items change.po_items', '[data-repeatable-holder] input')
+                               .on('keyup.po_items input.po_items change.po_items', '[data-repeatable-holder] input', function() {
+                        instance.calculateItemsTotal();
+                    });
 
-                    $(form + ' select[name="currency_code"]').on('change select2:select', function() {
+                    $(document).off('click.po_items_btn', '[data-button-type="add"], .delete-element, .delete-button, button.close')
+                               .on('click.po_items_btn', '[data-button-type="add"], .delete-element, .delete-button, button.close', function() {
+                        setTimeout(function() {
+                            instance.calculateItemsTotal();
+                        }, 120);
+                    });
+
+                    // Melacak mata uang sebelumnya untuk konversi otomatis saat user mengubah dropdown utama
+                    var previousCurrency = $('select[name="currency_code"]').val() || 'IDR';
+
+                    $(document).off('change.po_curr select2:select.po_curr', 'select[name="currency_code"]')
+                               .on('change.po_curr select2:select.po_curr', 'select[name="currency_code"]', function() {
+                        var $form = instance.getForm();
                         var newCurrency = $(this).val() || 'IDR';
 
                         if (newCurrency !== previousCurrency) {
                             var usdRate = window.usdRate || 16000;
-                            var rawJobVal = (typeof getInputNumber === 'function')
-                                ? getInputNumber(form + ' #job_value')
-                                : parseFloat($(form + ' #job_value').val() || 0);
+                            var $jobValInput = $form.find('#job_value, input[name="job_value"]');
+                            var rawJobVal = (typeof getInputNumber === 'function' && $jobValInput.length)
+                                ? getInputNumber($jobValInput[0])
+                                : parseFloat($jobValInput.val() || 0);
 
                             if (rawJobVal > 0 && typeof window.convertCurrency === 'function') {
                                 var convertedJobVal = window.convertCurrency(rawJobVal, previousCurrency, newCurrency, usdRate);
 
-                                $(form + ' #job_value').val(convertedJobVal);
+                                $jobValInput.val(convertedJobVal);
                                 if (typeof window.formatCurrency === 'function') {
-                                    $(form + ' #job_value_masked').val(window.formatCurrency(convertedJobVal, newCurrency));
+                                    $form.find('#job_value_masked, input[data-alt="job_value_masked"]').val(window.formatCurrency(convertedJobVal, newCurrency));
                                 }
                             } else {
-                                var currentRaw = $(form + ' #job_value').val() || '';
+                                var currentRaw = $jobValInput.val() || '';
                                 if (typeof window.formatCurrency === 'function') {
-                                    $(form + ' #job_value_masked').val(window.formatCurrency(currentRaw, newCurrency));
+                                    $form.find('#job_value_masked, input[data-alt="job_value_masked"]').val(window.formatCurrency(currentRaw, newCurrency));
                                 }
                             }
 
                             // Sync dropdown tampilan pada mask_currency
-                            $(form + ' select.currency-select-dropdown').val(newCurrency);
+                            $form.find('select.currency-select-dropdown').val(newCurrency);
 
                             previousCurrency = newCurrency;
                         }
@@ -171,20 +281,18 @@
                     });
 
                     // Event listener pengetikan job_value & tax_ppn
-                    $(form + ' #job_value_masked').on('keyup input change', function() {
-                        instance.calculateTotalWithTax();
-                    });
-
-                    $(form + ' input[name="tax_ppn"]').on('keyup input change', function() {
+                    $(document).off('keyup.po_val input.po_val change.po_val', '#job_value_masked, input[data-alt="job_value_masked"], input[name="tax_ppn"]')
+                               .on('keyup.po_val input.po_val change.po_val', '#job_value_masked, input[data-alt="job_value_masked"], input[name="tax_ppn"]', function() {
                         instance.calculateTotalWithTax();
                     });
 
                     var entry = @json($entry_value ?? null);
 
                     function populateDeviceStockSelect2() {
+                        var $form = instance.getForm();
                         var details = (entry && (entry.purchase_order_details_edit || entry.purchase_order_details)) ? (entry.purchase_order_details_edit || entry.purchase_order_details) : null;
                         if (details && Array.isArray(details)) {
-                            $(form + ' [data-repeatable-holder]').children().each(function(index, el) {
+                            $form.find('[data-repeatable-holder]').children().each(function(index, el) {
                                 var itemData = details[index];
                                 if (itemData) {
                                     var $select = $(el).find('select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]');
@@ -212,7 +320,7 @@
                                             if (!$priceHidden.length) {
                                                 $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
                                             }
-                                            var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                                            var activeCurr = $form.find('select[name="currency_code"]').val() || 'IDR';
                                             var rawPriceFromDb = parseFloat(itemData.price || 0);
                                             if (activeCurr === 'IDR') {
                                                 rawPriceFromDb = Math.round(rawPriceFromDb);
@@ -228,8 +336,9 @@
                         }
                     }
 
-                    $(form).off('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]')
-                           .on('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]', function(e) {
+                    $(document).off('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]')
+                               .on('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]', function(e) {
+                        var $form = instance.getForm();
                         var data = e.params ? e.params.data : null;
                         if (data) {
                             var $row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row, tr');
@@ -238,7 +347,7 @@
                             if (!$priceHidden.length) {
                                 $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
                             }
-                            var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                            var activeCurr = $form.find('select[name="currency_code"]').val() || 'IDR';
                             
                             // Gunakan buy_price (Harga Beli) dari Master Device Stock untuk PO Supplier
                             var priceVal = (data.buy_price !== undefined && data.buy_price !== null) 
@@ -257,6 +366,10 @@
                                     $priceMasked.val(priceVal);
                                 }
                             }
+
+                            setTimeout(function() {
+                                instance.calculateItemsTotal();
+                            }, 100);
                         }
                     });
 

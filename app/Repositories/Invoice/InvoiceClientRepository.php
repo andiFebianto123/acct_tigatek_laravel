@@ -53,6 +53,10 @@ class InvoiceClientRepository
         if ($dto->company_id && $dto->company_id != 'all') {
             $query->where('invoice_clients.company_id', $dto->company_id);
         }
+
+        if ($dto->category && $dto->category != 'all') {
+            $query->where('invoice_clients.category', $dto->category);
+        }
     }
 
     private function applyColumnFilters($query, mixed $columns): void
@@ -81,6 +85,7 @@ class InvoiceClientRepository
                 match ($name) {
                     'company' => $query->where('companies.name', 'like', "%{$value}%"),
                     'invoice_number' => $query->where('invoice_clients.invoice_number', 'like', "%{$value}%"),
+                    'category' => $query->where('invoice_clients.category', 'like', "%{$value}%"),
                     'kdp' => $query->where('invoice_clients.kdp', 'like', "%{$value}%"),
                     'name' => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
                     'description' => $query->where('invoice_clients.description', 'like', "%{$value}%"),

@@ -351,6 +351,7 @@ class InvoiceClientService
         $invoice->term = $dto->term;
         $invoice->delivery_note_id = $dto->delivery_note_id;
         $invoice->pic = $dto->pic;
+        $invoice->category = $dto->category ?? 'rutin';
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float

@@ -115,6 +115,7 @@ class InvoiceClientRequest extends FormRequest
             'currency_code' => 'required|in:IDR,USD',
             'invoice_number' => 'required|min:3|max:50|unique:invoice_clients,invoice_number,' . $id,
             'invoice_date' => 'required',
+            'category' => 'required|in:rutin,non_rutin',
             'client_po_id' => 'nullable|exists:client_po,id',
             'status' => 'nullable|in:Paid,Unpaid',
             'invoice_document' => 'nullable|file|mimes:pdf|max:30720', // 30MB = 30720 KB

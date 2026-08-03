@@ -157,6 +157,14 @@ class InvoiceClientCrudController extends CrudController
             ->label(trans('backpack::crud.invoice_client.column.send_invoice_revision'))
             ->type('date');
 
+        $this->crud->filter('category11crudTable-invoice')
+            ->label(trans('backpack::crud.invoice_client.column.category') ?? 'Kategori')
+            ->type('select2')
+            ->values(fn() => [
+                'rutin' => 'Rutin',
+                'non_rutin' => 'Non Rutin',
+            ]);
+
         $columns = [
             [
                 'name'      => 'row_number',
@@ -203,6 +211,12 @@ class InvoiceClientCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.invoice_client.column.invoice_date'),
                 'name' => 'invoice_date',
+                'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.category') ?? 'Kategori',
+                'name' => 'category',
                 'type'  => 'text',
                 'orderable' => true,
             ],
@@ -300,7 +314,7 @@ class InvoiceClientCrudController extends CrudController
                 'crud_custom' => $this->crud,
                 'hide_title' => true,
                 'columns' => $columns,
-                'filter_table' => collect($this->crud->filters())->slice(0, 4),
+                'filter_table' => collect($this->crud->filters())->slice(0, 6),
                 'route' => backpack_url('invoice-client/search'),
             ]
         ]);
@@ -518,6 +532,22 @@ class InvoiceClientCrudController extends CrudController
                 'format' => $new_format_date,
             ],
         );
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.column.category') ?? 'Kategori',
+            'name'  => 'category',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                $cat = $entry->category ?? 'rutin';
+                $label = ($cat === 'non_rutin') ? 'Non Rutin' : 'Rutin';
+                if ($status_file !== null) {
+                    return $label;
+                }
+                $badgeClass = ($cat === 'non_rutin') ? 'badge bg-warning text-dark' : 'badge bg-info text-white';
+                return '<span class="' . $badgeClass . '">' . e($label) . '</span>';
+            },
+            'escaped' => false,
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.column.client_po_id'),
@@ -962,6 +992,21 @@ class InvoiceClientCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.invoice_client.field.invoice_date.placeholder')
             ]
+        ]);
+
+        CRUD::addField([
+            'name'        => 'category',
+            'label'       => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'rutin'     => 'Rutin',
+                'non_rutin' => 'Non Rutin',
+            ],
+            'default'     => 'rutin',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([

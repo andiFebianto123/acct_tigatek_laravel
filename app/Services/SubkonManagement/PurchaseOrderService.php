@@ -33,13 +33,36 @@ class PurchaseOrderService
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
             $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
 
-            // Auto generate work_code for Supplier PO
+            // Auto generate work_code & fallback values for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
                 if (empty($payload['work_code']) || !str_starts_with($payload['work_code'], 'WRK-')) {
                     do {
                         $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
                     } while (PurchaseOrder::where('work_code', $uniqueCode)->exists());
                     $payload['work_code'] = $uniqueCode;
+                }
+
+                if (empty($payload['job_name'])) {
+                    $payload['job_name'] = 'PO Supplier';
+                }
+                if (empty($payload['job_description'])) {
+                    $payload['job_description'] = 'PO Supplier';
+                }
+
+                // Recalculate job_value from item details if details are provided
+                if (!empty($data->details)) {
+                    $calculatedJobValue = 0;
+                    foreach ($data->details as $item) {
+                        $qty = (int) ($item['qty'] ?? 1);
+                        $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
+                        $calculatedJobValue += ($qty * $price);
+                    }
+                    if ($calculatedJobValue > 0) {
+                        $payload['job_value'] = $calculatedJobValue;
+                        $payload['job_value_base'] = $calculatedJobValue * $exchangeRate;
+                        $payload['total_value_with_tax'] = $this->calculateTotalWithTax($calculatedJobValue, $data->tax_ppn);
+                        $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+                    }
                 }
             }
 
@@ -86,13 +109,36 @@ class PurchaseOrderService
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
             $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
 
-            // Auto generate work_code for Supplier PO
+            // Auto generate work_code & fallback values for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
                 if (empty($payload['work_code']) || !str_starts_with($payload['work_code'], 'WRK-')) {
                     do {
                         $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
                     } while (PurchaseOrder::where('work_code', $uniqueCode)->exists());
                     $payload['work_code'] = $uniqueCode;
+                }
+
+                if (empty($payload['job_name'])) {
+                    $payload['job_name'] = $po->job_name ?: 'PO Supplier';
+                }
+                if (empty($payload['job_description'])) {
+                    $payload['job_description'] = $po->job_description ?: 'PO Supplier';
+                }
+
+                // Recalculate job_value from item details if details are provided
+                if (!empty($data->details)) {
+                    $calculatedJobValue = 0;
+                    foreach ($data->details as $item) {
+                        $qty = (int) ($item['qty'] ?? 1);
+                        $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
+                        $calculatedJobValue += ($qty * $price);
+                    }
+                    if ($calculatedJobValue > 0) {
+                        $payload['job_value'] = $calculatedJobValue;
+                        $payload['job_value_base'] = $calculatedJobValue * $exchangeRate;
+                        $payload['total_value_with_tax'] = $this->calculateTotalWithTax($calculatedJobValue, $data->tax_ppn);
+                        $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+                    }
                 }
             }
 
