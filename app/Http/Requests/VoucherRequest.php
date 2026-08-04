@@ -56,6 +56,15 @@ class VoucherRequest extends FormRequest
                     if ($account && $account->status == CastAccount::LOAN) {
                         $fail(trans('backpack::crud.voucher.confirm.account_loan'));
                     }
+                    if ($account && !empty($account->currency_code)) {
+                        $voucherCurrency = $this->input('currency_code') ?? 'IDR';
+                        if ($account->currency_code !== $voucherCurrency) {
+                            $fail(trans('backpack::crud.voucher.validation.currency_mismatch', [
+                                'account_currency' => $account->currency_code,
+                                'voucher_currency' => $voucherCurrency,
+                            ]));
+                        }
+                    }
                 }
             ],
             'reference_id' => $this->input('po_type') === 'supplier' ? 'required' : 'nullable',
@@ -97,7 +106,25 @@ class VoucherRequest extends FormRequest
             'job_name' => 'nullable',
             'company_id' => 'nullable|exists:companies,id',
             'po_type' => 'required|in:subkon,supplier',
-            'currency_code' => 'nullable|in:IDR,USD',
+            'currency_code' => [
+                'nullable',
+                'in:IDR,USD',
+                function ($attribute, $value, $fail) {
+                    $accountSourceId = $this->input('account_source_id');
+                    if ($accountSourceId) {
+                        $account = CastAccount::find($accountSourceId);
+                        if ($account && !empty($account->currency_code)) {
+                            $voucherCurrency = $value ?? 'IDR';
+                            if ($account->currency_code !== $voucherCurrency) {
+                                $fail(trans('backpack::crud.voucher.validation.voucher_currency_mismatch', [
+                                    'account_currency' => $account->currency_code,
+                                    'voucher_currency' => $voucherCurrency,
+                                ]));
+                            }
+                        }
+                    }
+                }
+            ],
         ];
 
         if ($factur_status == 'ADA') {

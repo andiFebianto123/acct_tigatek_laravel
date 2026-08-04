@@ -34,22 +34,42 @@ class TransferBalanceRequest extends FormRequest
             'to_account' => [
                 'required',
                 function ($attr, $value, $fail) use ($cast_account_id) {
+                    $sourceAccount = CastAccount::find($cast_account_id);
                     if (strpos($value, 'acc_') === 0) {
                         $accountId = str_replace('acc_', '', $value);
                         if (!\App\Models\Account::where('id', $accountId)->exists()) {
                             $fail(trans('backpack::crud.cash_account.field_transfer.errors.account_not_found'));
                         }
                     } else {
-                        if (!CastAccount::where('id', $value)->exists()) {
+                        $destAccount = CastAccount::where('id', $value)->first();
+                        if (!$destAccount) {
                             $fail(trans('backpack::crud.cash_account.field_transfer.errors.cast_account_not_found'));
-                        }
-                        if ($value == $cast_account_id) {
-                            $fail(trans('backpack::crud.cash_account.field_transfer.errors.to_account_is_same'));
+                        } else {
+                            if ($value == $cast_account_id) {
+                                $fail(trans('backpack::crud.cash_account.field_transfer.errors.to_account_is_same'));
+                            }
                         }
                     }
                 }
             ],
-            'currency_code' => ['nullable', 'in:IDR,USD'],
+            'currency_code' => [
+                'nullable',
+                'in:IDR,USD',
+                function ($attribute, $value, $fail) use ($cast_account_id) {
+                    if ($cast_account_id) {
+                        $sourceAccount = CastAccount::find($cast_account_id);
+                        if ($sourceAccount && !empty($sourceAccount->currency_code)) {
+                            $inputCurrency = $value ?? $this->nominal_transfer_currency ?? 'IDR';
+                            if ($inputCurrency !== $sourceAccount->currency_code) {
+                                $fail(trans('backpack::crud.cash_account.field_transfer.errors.transfer_currency_mismatch', [
+                                    'account_name' => $sourceAccount->name,
+                                    'account_currency' => $sourceAccount->currency_code,
+                                ]));
+                            }
+                        }
+                    }
+                }
+            ],
             'nominal_transfer' => [
                 'required',
                 'numeric',

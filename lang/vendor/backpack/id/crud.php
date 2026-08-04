@@ -1262,6 +1262,8 @@ return [
                 'label' => 'Tanggal',
             ],
             'errors' => [
+                'transaction_currency_mismatch' => 'Transaksi untuk rekening :account_name harus menggunakan mata uang :account_currency.',
+                'transfer_currency_mismatch' => 'Transfer saldo dari rekening :account_name harus menggunakan mata uang :account_currency.',
                 'nominal_transfer_to_more' => 'Nominal tidak boleh melebihi jumlah saldo.',
                 'nominal_transfer_to_more_destination' => 'Nominal tidak boleh melebihi jumlah saldo rekening Kas.',
                 'to_account_is_same' => 'Rekening tujuan harus berbeda dengan rekening yang dipindah',
@@ -1778,6 +1780,8 @@ return [
         'validation' => [
             'subkon_id_company_mismatch' => 'Nama Badan Usaha tidak sesuai dengan perusahaan yang dipilih.',
             'client_po_id_company_mismatch' => 'Kode Pekerjaan / No. PO/SPK tidak sesuai dengan perusahaan yang dipilih.',
+            'currency_mismatch' => 'Mata uang rekening kas (:account_currency) tidak sesuai dengan mata uang voucher (:voucher_currency).',
+            'voucher_currency_mismatch' => 'Mata uang voucher (:voucher_currency) harus sesuai dengan mata uang rekening kas (:account_currency).',
         ],
         'column' => [
             'voucher' => [

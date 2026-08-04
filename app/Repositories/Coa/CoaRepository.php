@@ -16,7 +16,10 @@ class CoaRepository
 
         $netProfit = CustomHelper::getNetProfit($startDate, $endDate);
         
-        $balanceSubquery = "(SELECT IFNULL(SUM(je.debit - je.credit), 0) FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%')";
+        $balanceSubquery = "(SELECT CASE 
+            WHEN accounts.currency_code = 'USD' THEN IFNULL(SUM(je.debit - je.credit), 0)
+            ELSE IFNULL(SUM(je.debit_base - je.credit_base), 0)
+        END FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%')";
         if ($startDate && $endDate) {
             $balanceSubquery .= " AND je.date BETWEEN '$startDate' AND '$endDate'";
         }
@@ -30,6 +33,7 @@ class CoaRepository
                 accounts.code as code_,
                 accounts.name as name_,
                 accounts.level as level_,
+                accounts.currency_code as currency_code,
                 CASE WHEN accounts.code = '303' THEN $netProfit ELSE $balanceSubquery END as balance
             ")
         ]);
@@ -83,6 +87,7 @@ class CoaRepository
                 MAX(accounts.code) as code,
                 MAX(accounts.name) as name,
                 MAX(accounts.level) as level,
+                MAX(accounts.currency_code) as currency_code,
                 (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
             "))->where('accounts.id', $id)
             ->groupBy('accounts.id')

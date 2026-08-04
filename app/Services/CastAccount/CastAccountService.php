@@ -265,16 +265,29 @@ class CastAccountService
             if (!$isAccount) {
                 // other account
                 $otherAccount = CastAccount::where('id', $data->to_account)->first();
+                $destCurrency = $otherAccount->currency_code ?? 'IDR';
+
+                if ($currencyCode === 'USD' && $destCurrency === 'IDR') {
+                    $destNominal = (float) $data->nominal_transfer * $usdRate;
+                    $destExchangeRate = 1.0;
+                } elseif ($currencyCode === 'IDR' && $destCurrency === 'USD') {
+                    $destNominal = ($usdRate > 0) ? ((float) $data->nominal_transfer / $usdRate) : 0;
+                    $destExchangeRate = (float) $usdRate;
+                } else {
+                    $destNominal = (float) $data->nominal_transfer;
+                    $destExchangeRate = $exchangeRate;
+                }
+
                 $other_old_saldo = CustomHelper::total_balance_cast_account($otherAccount->id, CastAccount::CASH);
-                $other_new_saldo = $other_old_saldo + $data->nominal_transfer;
+                $other_new_saldo = $other_old_saldo + $destNominal;
 
                 $newTransaction_2 = new AccountTransaction;
                 $newTransaction_2->cast_account_id = $otherAccount->id;
                 $newTransaction_2->cast_account_destination_id = $newTransaction->cast_account_id;
                 $newTransaction_2->date_transaction = $date_transfer;
-                $newTransaction_2->nominal_transaction = $data->nominal_transfer;
-                $newTransaction_2->currency_code = $currencyCode;
-                $newTransaction_2->exchange_rate = $exchangeRate;
+                $newTransaction_2->nominal_transaction = $destNominal;
+                $newTransaction_2->currency_code = $destCurrency;
+                $newTransaction_2->exchange_rate = $destExchangeRate;
                 $newTransaction_2->nominal_transaction_base = $nominalBase;
                 $newTransaction_2->total_saldo_before = $other_old_saldo;
                 $newTransaction_2->total_saldo_after = $other_new_saldo;
@@ -291,27 +304,36 @@ class CastAccountService
                     'reference_id' => $newTransaction->id,
                     'reference_type' => AccountTransaction::class,
                 ];
+
+                $destAccount_id = $otherAccount->account_id;
+                $destJournalCurrency = $destCurrency;
+                $destJournalRate = $destExchangeRate;
+                $destJournalDebit = $destNominal;
             } else {
                 $otherAccount = \App\Models\Account::where('id', $target_id)->first();
                 $otherAccount->account_id = $target_id;
                 $newTransaction_2 = $newTransaction;
+                $destAccount_id = $target_id;
+                $destJournalCurrency = $currencyCode;
+                $destJournalRate = $exchangeRate;
+                $destJournalDebit = (float) $data->nominal_transfer;
             }
 
             // tambah saldo di akun tujuan
             $journal_destination = CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $otherAccount->account_id,
+                'account_id' => $destAccount_id,
                 'reference_id' => $newTransaction_2->id,
                 'reference_type' => AccountTransaction::class,
                 'description' => $description,
                 'date' => Carbon::parse($date_transfer),
-                'currency_code' => $currencyCode,
-                'exchange_rate' => $exchangeRate,
-                'debit' => $data->nominal_transfer,
+                'currency_code' => $destJournalCurrency,
+                'exchange_rate' => $destJournalRate,
+                'debit' => $destJournalDebit,
                 'credit' => 0,
                 'debit_base' => $nominalBase,
                 'credit_base' => 0,
             ], [
-                'account_id' => $otherAccount->account_id,
+                'account_id' => $destAccount_id,
                 'reference_id' => $newTransaction_2->id,
                 'reference_type' => AccountTransaction::class,
             ]);

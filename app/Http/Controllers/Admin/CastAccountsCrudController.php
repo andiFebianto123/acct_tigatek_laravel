@@ -244,6 +244,7 @@ class CastAccountsCrudController extends CrudController
             MAX(cast_accounts.bank_name) as bank_name,
             MAX(cast_accounts.no_account) as no_account,
             MAX(cast_accounts.status) as status,
+            MAX(cast_accounts.currency_code) as currency_code,
             (SUM(IF(account_transactions.status = "enter", account_transactions.nominal_transaction, 0)) - SUM(IF(account_transactions.status = "out", account_transactions.nominal_transaction, 0))) as saldo
         '));
 
@@ -285,7 +286,10 @@ class CastAccountsCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.cash_account.field.total_saldo.label'),
                 'name' => 'saldo',
-                'type'  => 'text'
+                'type'  => 'closure',
+                'function' => function ($row) {
+                    return CustomHelper::formatCurrency($row->saldo, $row->currency_code ?? 'IDR');
+                }
             ],
         );
         // CRUD::column([
@@ -674,7 +678,24 @@ class CastAccountsCrudController extends CrudController
         $rule = [
             'date_transaction' => 'required',
             'status' => 'required|in:enter,out', // Validasi status
-            'currency_code' => 'nullable|in:IDR,USD',
+            'currency_code' => [
+                'nullable',
+                'in:IDR,USD',
+                function ($attribute, $value, $fail) use ($cast_account_id) {
+                    if ($cast_account_id) {
+                        $castAccount = CastAccount::find($cast_account_id);
+                        if ($castAccount && !empty($castAccount->currency_code)) {
+                            $inputCurrency = $value ?? request()->input('nominal_transaction_currency') ?? 'IDR';
+                            if ($inputCurrency !== $castAccount->currency_code) {
+                                $fail(trans('backpack::crud.cash_account.field_transaction.errors.transaction_currency_mismatch', [
+                                    'account_name' => $castAccount->name,
+                                    'account_currency' => $castAccount->currency_code,
+                                ]));
+                            }
+                        }
+                    }
+                }
+            ],
             'nominal_transaction' => [
                 'required',
                 'numeric',
@@ -1070,6 +1091,8 @@ class CastAccountsCrudController extends CrudController
             ]);
         }
 
+        $defaultCurrency = $cast_account?->currency_code ?? 'IDR';
+
         CRUD::addField([
             'name'        => 'currency_code',
             'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Currency Code',
@@ -1078,7 +1101,7 @@ class CastAccountsCrudController extends CrudController
                 'IDR' => 'IDR (Rp)',
                 'USD' => 'USD ($)',
             ],
-            'default'     => 'IDR',
+            'default'     => $defaultCurrency,
             'allows_null' => false,
             'wrapper'     => [
                 'class' => 'form-group col-md-12',
@@ -1111,7 +1134,7 @@ class CastAccountsCrudController extends CrudController
                 'IDR' => 'IDR (Rp)',
                 'USD' => 'USD ($)',
             ],
-            'default_currency' => 'IDR',
+            'default_currency' => $defaultCurrency,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
             ],
@@ -1998,7 +2021,8 @@ class CastAccountsCrudController extends CrudController
         $data = [];
         foreach ($detail as $entry) {
             $date_str = Carbon::parse($entry->date_transaction)->translatedFormat('d/m/Y');
-            $nominal_str = CustomHelper::formatRupiahWithCurrency($entry->nominal_transaction);
+            $transCurrency = $entry->currency_code ?? $castAccount->currency_code ?? 'IDR';
+            $nominal_str = CustomHelper::formatCurrency($entry->nominal_transaction, $transCurrency);
 
             // Logic Tombol Aksi (Pindahan dari Blade lama)
             $btn = '';
@@ -2013,13 +2037,6 @@ class CastAccountsCrudController extends CrudController
                 $btn .= '<a href="javascript:void(0)" onclick="deleteEntry(this)" data-route="' . $url_delete . '" class="btn btn-sm btn-danger" data-title-delete="Hapus Item Transaksi" data-body="Apakah anda yakin ingin menghapus data item transaksi ini ?"><i class="la la-trash"></i></a>';
             }
 
-            // if ($isRegularTransaction) {
-            //     if ($has_access_primary) {
-            //         if (!$entry->cast_account_destination_id) {
-            //             $url_edit = url($this->crud->route . '/' . $entry->id . '/edit?type=transaction&_id=' . $entry->cast_account_id);
-            //             $url_update = url($this->crud->route) . '/' . $entry->id . '?type=transaction&_id=' . $entry->cast_account_id;
-            //             $btn .= '<a href="javascript:void(0)" onclick="editEntry(this)" data-route="' . $url_edit . '" data-route-action="' . $url_update . '" data-title-edit="Ubah Data Transaksi" class="btn btn-sm btn-primary me-1"><i class="la la-pen"></i></a>';
-            //         }
             //         if ($entry->log_payment_id) {
             //             $url_delete = url($this->crud->route . "/delete-transaction-void/" . $entry->id);
             //             $btn .= '<a href="javascript:void(0)" onclick="deleteEntry(this)" data-route="' . $url_delete . '" class="btn btn-sm btn-danger" data-title-delete="Hapus Item Transaksi" data-body="Apakah anda yakin ingin menghapus data item transaksi ini ?"><i class="la la-trash"></i></a>';
@@ -2057,7 +2074,7 @@ class CastAccountsCrudController extends CrudController
 
         $filter_year = request()->input('filter_year');
         $total_balance = CustomHelper::total_balance_cast_account($id, CastAccount::CASH, $filter_year);
-        $castAccount->total_saldo_str = CustomHelper::formatRupiahWithCurrency($total_balance);
+        $castAccount->total_saldo_str = CustomHelper::formatCurrency($total_balance, $castAccount->currency_code ?? 'IDR');
 
         return response()->json([
             'draw' => intval(request()->input('draw')),

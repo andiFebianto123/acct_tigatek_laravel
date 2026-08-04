@@ -217,6 +217,20 @@ class ExpenseAccountCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'currency_code',
+            'label' => 'Mata Uang',
+            'type' => 'select_from_array',
+            'options' => [
+                'IDR' => 'IDR (Rupiah)',
+                'USD' => 'USD (Dollar)',
+            ],
+            'default' => 'IDR',
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ]
+        ]);
+
+        CRUD::addField([
             'name' => 'balance',
             'label' =>  trans('backpack::crud.expense_account.column.balance'),
             'type' => 'mask',
@@ -424,7 +438,10 @@ class ExpenseAccountCrudController extends CrudController
         CRUD::column([
             'name' => 'balance',
             'label' => trans('backpack::crud.expense_account.column.balance'),
-            'type' => 'balance',
+            'type' => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->balance, $entry->currency_code ?? 'IDR');
+            }
         ]);
 
         $dto = CoaFilterData::fromRequest(request());

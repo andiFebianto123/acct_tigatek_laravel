@@ -34,7 +34,18 @@ class CoaService
             $item->name = $dto->name;
             $item->type = Account::EXPENSE;
             $item->level = $level;
+            $item->currency_code = $dto->currency_code ?? 'IDR';
             $item->save();
+
+            $currencyCode = $dto->currency_code ?? 'IDR';
+            $exchangeRate = 1.0;
+            if ($currencyCode === 'USD') {
+                $setting = \App\Models\Setting::first();
+                $exchangeRate = (float) ($setting?->usd_rate ?? 16000);
+            }
+
+            $debit = (float) ($dto->balance ?? 0);
+            $debitBase = $debit * $exchangeRate;
 
             CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $item->id,
@@ -42,7 +53,12 @@ class CoaService
                 'reference_type' => Account::class,
                 'description' => 'FIRST BALANCE',
                 'date' => Carbon::now(),
-                'debit' => $dto->balance,
+                'currency_code' => $currencyCode,
+                'exchange_rate' => $exchangeRate,
+                'debit' => $debit,
+                'credit' => 0,
+                'debit_base' => $debitBase,
+                'credit_base' => 0,
             ], [
                 'reference_id' => $item->id,
                 'reference_type' => Account::class,
@@ -68,6 +84,9 @@ class CoaService
 
             $item->code = $dto->code;
             $item->name = $dto->name;
+            if ($dto->currency_code) {
+                $item->currency_code = $dto->currency_code;
+            }
             if ($newParent && $newParent->code != $item->code) {
                 $item->level = $newParent->level + 1;
             }
@@ -115,14 +134,30 @@ class CoaService
 
                 $this->castAccountService->storeTransaction($transDto);
             } else {
+                $currencyCode = $item->currency_code ?? 'IDR';
+                $exchangeRate = 1.0;
+                if ($currencyCode === 'USD') {
+                    $setting = \App\Models\Setting::first();
+                    $exchangeRate = (float) ($setting?->usd_rate ?? 16000);
+                }
+
+                $debit = (float) ($dto->balance ?? 0);
+                $debitBase = $debit * $exchangeRate;
+
                 CustomHelper::updateOrCreateJournalEntry([
                     'account_id' => $item->id,
                     'reference_id' => $item->id,
                     'reference_type' => Account::class,
                     'description' => 'FIRST BALANCE',
                     'date' => Carbon::now(),
-                    'debit' => $dto->balance,
+                    'currency_code' => $currencyCode,
+                    'exchange_rate' => $exchangeRate,
+                    'debit' => $debit,
+                    'credit' => 0,
+                    'debit_base' => $debitBase,
+                    'credit_base' => 0,
                 ], [
+                    'account_id' => $item->id,
                     'reference_id' => $item->id,
                     'reference_type' => Account::class,
                 ]);

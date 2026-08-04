@@ -13,6 +13,7 @@ class CoaSaveData
         public readonly ?float $balance,
         public readonly ?string $type = null,
         public readonly ?int $level = null,
+        public readonly ?string $currency_code = 'IDR',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -26,6 +27,7 @@ class CoaSaveData
             balance: $cleanNominal($request->balance),
             type: $request->type,
             level: $request->level ? (int) $request->level : null,
+            currency_code: $request->currency_code ?? 'IDR',
         );
     }
 
@@ -38,6 +40,7 @@ class CoaSaveData
             'balance' => $this->balance,
             'type' => $this->type,
             'level' => $this->level,
+            'currency_code' => $this->currency_code,
         ];
     }
 }

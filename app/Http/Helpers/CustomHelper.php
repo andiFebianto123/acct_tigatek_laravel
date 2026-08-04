@@ -328,8 +328,8 @@ class CustomHelper
                 ->orderBy('cast_accounts.id', 'ASC')
                 ->select(DB::raw("
                 cast_accounts.id,
-                SUM(IF(account_transactions.status = 'enter', account_transactions.nominal_transaction, 0)) as total_saldo_enter,
-                SUM(IF(account_transactions.status = 'out', account_transactions.nominal_transaction, 0)) as total_saldo_out
+                SUM(IF(account_transactions.status = 'enter', IF(cast_accounts.currency_code = 'USD', account_transactions.nominal_transaction, IFNULL(account_transactions.nominal_transaction_base, account_transactions.nominal_transaction)), 0)) as total_saldo_enter,
+                SUM(IF(account_transactions.status = 'out', IF(cast_accounts.currency_code = 'USD', account_transactions.nominal_transaction, IFNULL(account_transactions.nominal_transaction_base, account_transactions.nominal_transaction)), 0)) as total_saldo_out
             "))
                 ->get();
 
@@ -341,6 +341,9 @@ class CustomHelper
                 }
             }
         } else if ($status == CastAccount::LOAN) {
+            $castAccount = CastAccount::find($id);
+            $isUsd = ($castAccount && $castAccount->currency_code === 'USD');
+
             $journal_query = JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id, $year) {
                 $q->where('cast_account_id', $id);
                 if ($year && $year != 'all') {
@@ -350,9 +353,15 @@ class CustomHelper
                 $q->where('id', $id);
             });
 
-            $journal_ = $journal_query
-                ->select(DB::raw('SUM(debit) - SUM(credit) as total'))
-                ->get();
+            if ($isUsd) {
+                $journal_ = $journal_query
+                    ->select(DB::raw('SUM(debit) - SUM(credit) as total'))
+                    ->get();
+            } else {
+                $journal_ = $journal_query
+                    ->select(DB::raw('SUM(IFNULL(debit_base, debit)) - SUM(IFNULL(credit_base, credit)) as total'))
+                    ->get();
+            }
             if ($journal_) {
                 foreach ($journal_ as $journal) {
                     return $journal->total;
@@ -375,8 +384,8 @@ class CustomHelper
                 ->orderBy('cast_accounts.id', 'ASC')
                 ->select(DB::raw("
                 cast_accounts.id,
-                SUM(IF(account_transactions.status = 'enter', account_transactions.nominal_transaction, 0)) as total_saldo_enter,
-                SUM(IF(account_transactions.status = 'out', account_transactions.nominal_transaction, 0)) as total_saldo_out
+                SUM(IF(account_transactions.status = 'enter', IF(cast_accounts.currency_code = 'USD', account_transactions.nominal_transaction, IFNULL(account_transactions.nominal_transaction_base, account_transactions.nominal_transaction)), 0)) as total_saldo_enter,
+                SUM(IF(account_transactions.status = 'out', IF(cast_accounts.currency_code = 'USD', account_transactions.nominal_transaction, IFNULL(account_transactions.nominal_transaction_base, account_transactions.nominal_transaction)), 0)) as total_saldo_out
             "))
                 ->get();
             if ($listCashAccounts) {
@@ -387,13 +396,24 @@ class CustomHelper
                 }
             }
         } else if ($status == CastAccount::LOAN) {
-            $journal_ = JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id_cast_account) {
+            $castAccount = CastAccount::find($id_cast_account);
+            $isUsd = ($castAccount && $castAccount->currency_code === 'USD');
+
+            $journal_query = JournalEntry::whereHasMorph('reference', AccountTransaction::class, function ($q) use ($id_cast_account) {
                 $q->where('cast_account_id', $id_cast_account);
             })->orWhereHasMorph('reference', CastAccount::class, function ($q) use ($id_cast_account) {
                 $q->where('id', $id_cast_account);
-            })
-                ->select(DB::raw('SUM(debit) - SUM(credit) as total'))
-                ->get();
+            });
+
+            if ($isUsd) {
+                $journal_ = $journal_query
+                    ->select(DB::raw('SUM(debit) - SUM(credit) as total'))
+                    ->get();
+            } else {
+                $journal_ = $journal_query
+                    ->select(DB::raw('SUM(IFNULL(debit_base, debit)) - SUM(IFNULL(credit_base, credit)) as total'))
+                    ->get();
+            }
             if ($journal_) {
                 foreach ($journal_ as $journal) {
                     return $journal->total;

@@ -99,7 +99,7 @@
         @if ($detail->status == \App\Models\CastAccount::LOAN)
             {{ trans('backpack::crud.cash_account_loan.field.account.label') }} : <b>{{ $detail->account->code }} - {{ $detail->account->name }}</b><br>
         @endif
-        <strong>{{ trans('backpack::crud.card.cast_account_card.balance') }} : </strong><span class="saldo-str">{!! \App\Http\Helpers\CustomHelper::formatRupiahWithCurrency($detail->saldo) !!}</span>
+        <strong>{{ trans('backpack::crud.card.cast_account_card.balance') }} : </strong><span class="saldo-str">{!! \App\Http\Helpers\CustomHelper::formatCurrency($detail->saldo, $detail->currency_code ?? 'IDR') !!}</span>
     </div>
     @if($detail->status == \App\Models\CastAccount::LOAN)
     <div>
