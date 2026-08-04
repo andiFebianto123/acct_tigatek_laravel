@@ -562,6 +562,119 @@ class ProfitLostRepository
     }
 
     /**
+     * Detail Laporan Laba Rugi Supplier / Invoice Client
+     */
+    public function getSupplierDetail(int $id, ?string $filterYear = null, bool $pure = false): array
+    {
+        $profitLost = ProjectProfitLost::findOrFail($id);
+        $invoice = \App\Models\InvoiceClient::with(['client', 'invoice_client_details'])->find($profitLost->orderable_id);
+
+        if (!$invoice) {
+            return [];
+        }
+
+        $qtySold = (int) $invoice->invoice_client_details->sum('qty');
+        $sellValue = (float) $invoice->price_total_exclude_ppn_base;
+        $avgSellUnit = $qtySold > 0 ? round($sellValue / $qtySold, 2) : 0;
+
+        $cogsGross = (float) $invoice->invoice_client_details->sum('cogs_amount_base');
+
+        $voucherSupplierValue = 0.0;
+        if (!empty($invoice->client_po_id)) {
+            $voucherSupplierValue = (float) DB::table('vouchers')
+                ->where('client_po_id', $invoice->client_po_id)
+                ->where('po_type', 'supplier')
+                ->sum('bill_value_base');
+        }
+
+        $purchaseValueNet = $cogsGross - $voucherSupplierValue;
+        $avgPurchaseUnit = $qtySold > 0 ? round($purchaseValueNet / $qtySold, 2) : 0;
+        $profitSupplier = $sellValue - $purchaseValueNet;
+        $marginPercent = $sellValue > 0 ? round(($profitSupplier / $sellValue) * 100, 2) : 0;
+
+        $items = [];
+        foreach ($invoice->invoice_client_details as $detail) {
+            $itemQty = (int) ($detail->qty ?? 1);
+            $itemRevenue = (float) ($detail->price ?? 0);
+            $itemCogs = (float) ($detail->cogs_amount_base ?? 0);
+            $itemProfit = $itemRevenue - $itemCogs;
+
+            $items[] = [
+                'name' => $detail->item_name ?? 'Persediaan Barang',
+                'qty' => $itemQty,
+                'revenue_raw' => $itemRevenue,
+                'revenue' => $pure ? $itemRevenue : CustomHelper::formatRupiahWithCurrency($itemRevenue),
+                'cogs_raw' => $itemCogs,
+                'cogs' => $pure ? $itemCogs : CustomHelper::formatRupiahWithCurrency($itemCogs),
+                'profit_raw' => $itemProfit,
+                'profit' => $pure ? $itemProfit : CustomHelper::formatRupiahWithCurrency($itemProfit),
+            ];
+        }
+
+        $vouchersList = [];
+        if (!empty($invoice->client_po_id)) {
+            $vouchersData = DB::table('vouchers')
+                ->where('client_po_id', $invoice->client_po_id)
+                ->where('po_type', 'supplier')
+                ->get();
+
+            foreach ($vouchersData as $v) {
+                $vouchersList[] = [
+                    'no_voucher' => $v->no_voucher,
+                    'date_voucher' => $v->date_voucher ? \Carbon\Carbon::parse($v->date_voucher)->format('d/m/Y') : '-',
+                    'bill_number' => $v->bill_number ?? '-',
+                    'description' => $v->payment_description ?? '-',
+                    'bill_value_base_raw' => (float) $v->bill_value_base,
+                    'bill_value_base' => $pure ? (float) $v->bill_value_base : CustomHelper::formatRupiahWithCurrency($v->bill_value_base),
+                ];
+            }
+        }
+
+        if ($pure) {
+            return [
+                'invoice_number' => $invoice->invoice_number,
+                'invoice_date' => $invoice->invoice_date,
+                'supplier_name' => $invoice->client->name ?? '-',
+                'currency_code' => $invoice->currency_code ?? 'IDR',
+                'qty_sold' => $qtySold,
+                'sell_value' => $sellValue,
+                'avg_sell_unit' => $avgSellUnit,
+                'cogs_gross' => $cogsGross,
+                'voucher_supplier_value' => $voucherSupplierValue,
+                'purchase_value' => $purchaseValueNet,
+                'avg_purchase_unit' => $avgPurchaseUnit,
+                'profit_supplier' => $profitSupplier,
+                'margin_percent' => $marginPercent,
+                'items' => $items,
+                'vouchers' => $vouchersList,
+            ];
+        }
+
+        return [
+            'invoice_number' => $invoice->invoice_number,
+            'invoice_date' => $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') : '-',
+            'supplier_name' => $invoice->client->name ?? '-',
+            'currency_code' => $invoice->currency_code ?? 'IDR',
+            'qty_sold' => number_format($qtySold, 0, ',', '.'),
+            'sell_value_raw' => $sellValue,
+            'sell_value' => CustomHelper::formatRupiahWithCurrency($sellValue),
+            'avg_sell_unit' => CustomHelper::formatRupiahWithCurrency($avgSellUnit),
+            'cogs_gross_raw' => $cogsGross,
+            'cogs_gross' => CustomHelper::formatRupiahWithCurrency($cogsGross),
+            'voucher_supplier_value_raw' => $voucherSupplierValue,
+            'voucher_supplier_value' => CustomHelper::formatRupiahWithCurrency($voucherSupplierValue),
+            'purchase_value_raw' => $purchaseValueNet,
+            'purchase_value' => CustomHelper::formatRupiahWithCurrency($purchaseValueNet),
+            'avg_purchase_unit' => CustomHelper::formatRupiahWithCurrency($avgPurchaseUnit),
+            'profit_supplier_raw' => $profitSupplier,
+            'profit_supplier' => CustomHelper::formatRupiahWithCurrency($profitSupplier),
+            'margin_percent' => number_format($marginPercent, 2, ',', '.') . '%',
+            'items' => $items,
+            'vouchers' => $vouchersList,
+        ];
+    }
+
+    /**
      * Query untuk tab Supplier — Perhitungan Laba Rugi FIFO Per Invoice Supplier / Device Stock.
      */
     public function applySupplierListQuery($query, ProfitLostFilterData $filter)

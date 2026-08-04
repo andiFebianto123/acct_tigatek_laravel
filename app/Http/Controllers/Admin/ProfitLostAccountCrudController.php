@@ -17,6 +17,7 @@ use App\Http\Helpers\CustomHelper;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Exports\ProfitLostExcel;
+use App\Http\Exports\ProfitLostSupplierExcel;
 use App\Models\ConsolidateIncomeItem;
 use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\FormaterExport;
@@ -387,8 +388,16 @@ class ProfitLostAccountCrudController extends CrudController
 
     public function total_detail_project($id, $pure = 0)
     {
-        $filter_year = request()->get('filter_year');
+        $request = request();
+        $filter_year = $request->has('filter_year') ? $request->filter_year : null;
         return $this->repository->getProjectDetail((int) $id, $filter_year, (bool) $pure);
+    }
+
+    public function total_detail_supplier($id, $pure = 0)
+    {
+        $request = request();
+        $filter_year = $request->has('filter_year') ? $request->filter_year : null;
+        return $this->repository->getSupplierDetail((int) $id, $filter_year, (bool) $pure);
     }
 
     public function consolidate_formula()
@@ -408,10 +417,11 @@ class ProfitLostAccountCrudController extends CrudController
         CRUD::addButtonFromView('top', 'export-excel-profit-lost', 'export-excel-profit-lost', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-profit-lost', 'export-pdf-profit-lost', 'beginning');
 
+        $docLabel = $profitLost?->clientPo?->po_number ?? ($profitLost?->orderable?->invoice_number ?? '-');
         $breadcrumbs = [
             trans('backpack::crud.menu.finance_report') => backpack_url('cash-flow'),
             trans('backpack::crud.menu.profit_lost') => url($this->crud->route),
-            $profitLost->clientPo->po_number =>  $profitLost->clientPo->po_number,
+            $docLabel => $docLabel,
         ];
         $this->data['crud'] = $this->crud;
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
@@ -419,18 +429,35 @@ class ProfitLostAccountCrudController extends CrudController
         $this->data['title_modal_edit'] = trans('backpack::crud.profit_lost.title_modal_edit_consolidation');
         $this->data['title_modal_delete'] = trans('backpack::crud.profit_lost.title_modal_delete_consolidation');
 
-        $this->card->addCard([
-            'name' => 'detail-project',
-            'line' => 'top',
-            'view' => 'crud::components.detail-project-profit-lost',
-            'params' => [
-                'data'   => $profitLost,
-                'report' => $this->total_detail_project($id),
-            ],
-            'wrapper' => [
-                'class' => 'col-md-6'
-            ]
-        ]);
+        $isSupplier = ($profitLost?->orderable_type === \App\Models\InvoiceClient::class);
+
+        if ($isSupplier) {
+            $this->card->addCard([
+                'name' => 'detail-supplier',
+                'line' => 'top',
+                'view' => 'crud::components.detail-supplier-profit-lost',
+                'params' => [
+                    'data'   => $profitLost,
+                    'report' => $this->total_detail_supplier($id),
+                ],
+                'wrapper' => [
+                    'class' => 'col-md-6'
+                ]
+            ]);
+        } else {
+            $this->card->addCard([
+                'name' => 'detail-project',
+                'line' => 'top',
+                'view' => 'crud::components.detail-project-profit-lost',
+                'params' => [
+                    'data'   => $profitLost,
+                    'report' => $this->total_detail_project($id),
+                ],
+                'wrapper' => [
+                    'class' => 'col-md-6'
+                ]
+            ]);
+        }
 
         $this->data['breadcrumbs'] = $breadcrumbs;
         $this->data['cards'] = $this->card;
@@ -1025,6 +1052,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             CRUD::addButtonFromView('line', 'delete-profit-lost-project', 'delete-profit-lost-project', 'beginning');
             CRUD::addButtonFromView('line', 'update-profit-lost', 'update-profit-lost', 'beginning');
+            CRUD::addButtonFromView('line', 'show-detail-project', "show-detail-project", 'end');
 
             $this->crud->addColumn([
                 'name'      => 'row_number',
@@ -1530,12 +1558,23 @@ class ProfitLostAccountCrudController extends CrudController
         $id = request()->id;
         $profitLost = ProjectProfitLost::findOrFail($id);
 
-        $pdf = Pdf::loadView('exports.profit-lost-detail', [
-            'profit_lost' => $profitLost,
-            'report'      => $this->total_detail_project($id)
-        ])->setPaper('A4', 'portrait');
+        $isSupplier = ($profitLost->orderable_type === \App\Models\InvoiceClient::class);
 
-        $fileName = 'laporan-laba-rugi_' . now()->format('Ymd_His') . '.pdf';
+        if ($isSupplier) {
+            $pdf = Pdf::loadView('exports.profit-lost-supplier-detail', [
+                'profit_lost' => $profitLost,
+                'report'      => $this->total_detail_supplier($id)
+            ])->setPaper('A4', 'portrait');
+
+            $fileName = 'laporan-laba-rugi-supplier_' . now()->format('Ymd_His') . '.pdf';
+        } else {
+            $pdf = Pdf::loadView('exports.profit-lost-detail', [
+                'profit_lost' => $profitLost,
+                'report'      => $this->total_detail_project($id)
+            ])->setPaper('A4', 'portrait');
+
+            $fileName = 'laporan-laba-rugi_' . now()->format('Ymd_His') . '.pdf';
+        }
 
         return response()->streamDownload(function () use ($pdf) { echo $pdf->output(); }, $fileName, [
             'Content-Type'        => 'application/pdf',
@@ -1547,16 +1586,30 @@ class ProfitLostAccountCrudController extends CrudController
     {
         $id = request()->id;
         $profitLost = ProjectProfitLost::findOrFail($id);
-        $report = $this->total_detail_project($id, 1);
 
-        $name = "Laporan-laba-rugi-proyek-detail.xlsx";
+        $isSupplier = ($profitLost->orderable_type === \App\Models\InvoiceClient::class);
 
-        return response()->streamDownload(function () use ($profitLost, $report) {
-            echo Excel::raw(new ProfitLostExcel($profitLost, $report), \Maatwebsite\Excel\Excel::XLSX);
-        }, $name, [
-            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="' . $name . '"',
-        ]);
+        if ($isSupplier) {
+            $report = $this->total_detail_supplier($id, 1);
+            $name = "Laporan-laba-rugi-supplier-detail.xlsx";
+
+            return response()->streamDownload(function () use ($profitLost, $report) {
+                echo Excel::raw(new ProfitLostSupplierExcel($profitLost, $report), \Maatwebsite\Excel\Excel::XLSX);
+            }, $name, [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $name . '"',
+            ]);
+        } else {
+            $report = $this->total_detail_project($id, 1);
+            $name = "Laporan-laba-rugi-proyek-detail.xlsx";
+
+            return response()->streamDownload(function () use ($profitLost, $report) {
+                echo Excel::raw(new ProfitLostExcel($profitLost, $report), \Maatwebsite\Excel\Excel::XLSX);
+            }, $name, [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $name . '"',
+            ]);
+        }
     }
 
     public function exportConsolidationPdf()
