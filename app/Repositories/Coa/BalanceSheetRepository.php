@@ -36,7 +36,7 @@ class BalanceSheetRepository
 
         $netProfit = CustomHelper::getNetProfit($startDate, $endDate);
         
-        $balanceSubquery = "(SELECT IFNULL(SUM(je.debit - je.credit), 0) FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%') AND a2.type = accounts.type";
+        $balanceSubquery = "(SELECT CASE WHEN accounts.currency_code = 'USD' THEN IFNULL(SUM(je.debit - je.credit), 0) ELSE IFNULL(SUM(je.debit_base - je.credit_base), 0) END FROM journal_entries je JOIN accounts a2 ON je.account_id = a2.id WHERE a2.code LIKE CONCAT(accounts.code, '%') AND a2.type = accounts.type";
         if ($startDate && $endDate) {
             $balanceSubquery .= " AND je.date BETWEEN '$startDate' AND '$endDate'";
         }
@@ -49,6 +49,7 @@ class BalanceSheetRepository
                 accounts.code as code_,
                 accounts.name as name_,
                 accounts.level as level_,
+                accounts.currency_code as currency_code,
                 CASE WHEN accounts.code = '303' THEN $netProfit ELSE $balanceSubquery END as balance
             ")
         ]);
@@ -78,7 +79,7 @@ class BalanceSheetRepository
             }
         })->where('accounts.type', 'Assets')
             ->where('accounts.code', '!=', '303')
-            ->select(DB::raw('SUM(journal_entries.debit - journal_entries.credit) as balance'))
+            ->select(DB::raw('SUM(IFNULL(journal_entries.debit_base, journal_entries.debit) - IFNULL(journal_entries.credit_base, journal_entries.credit)) as balance'))
             ->first();
 
         $total_liabilities = Account::leftJoin('journal_entries', function ($q) use ($startDate, $endDate) {
@@ -88,7 +89,7 @@ class BalanceSheetRepository
             }
         })->where('accounts.type', 'Liabilities')
             ->where('accounts.code', '!=', '303')
-            ->select(DB::raw('SUM(journal_entries.debit - journal_entries.credit) as balance'))
+            ->select(DB::raw('SUM(IFNULL(journal_entries.debit_base, journal_entries.debit) - IFNULL(journal_entries.credit_base, journal_entries.credit)) as balance'))
             ->first();
 
         $equity_base = Account::leftJoin('journal_entries', function ($q) use ($startDate, $endDate) {
@@ -98,7 +99,7 @@ class BalanceSheetRepository
             }
         })->where('accounts.type', 'Equity')
             ->where('accounts.code', '!=', '303')
-            ->select(DB::raw('SUM(journal_entries.debit - journal_entries.credit) as balance'))
+            ->select(DB::raw('SUM(IFNULL(journal_entries.debit_base, journal_entries.debit) - IFNULL(journal_entries.credit_base, journal_entries.credit)) as balance'))
             ->first();
 
         return [
@@ -137,7 +138,11 @@ class BalanceSheetRepository
             });
         }
 
-        return (float) ($query->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0);
+        if ($account->currency_code === 'USD') {
+            return (float) ($query->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0);
+        } else {
+            return (float) ($query->selectRaw('SUM(IFNULL(debit_base, debit)) - SUM(IFNULL(credit_base, credit)) as balance')->first()->balance ?? 0);
+        }
     }
 
     public function findParentByCode(string $code): ?Account

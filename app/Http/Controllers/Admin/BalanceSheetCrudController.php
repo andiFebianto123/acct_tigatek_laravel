@@ -207,10 +207,10 @@ class BalanceSheetCrudController extends CrudController
         CRUD::column([
             'name' => 'balance',
             'label' => trans('backpack::crud.expense_account.column.balance'),
-            'type' => 'balance',
-            // 'value' => function($entry) {
-            //     return CustomHelper::formatRupiahWithCurrency($entry->balance);
-            // },
+            'type' => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->balance, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         if (request()->has('_type')) {
@@ -643,9 +643,9 @@ class BalanceSheetCrudController extends CrudController
 
         return response()->json([
             'status' => true,
-            'total_asset' => CustomHelper::formatRupiahWithCurrency($totals['total_asset']),
-            'total_liabilities' => CustomHelper::formatRupiahWithCurrency($totals['total_liabilities']),
-            'total_equity' => CustomHelper::formatRupiahWithCurrency($totals['total_equity']),
+            'total_asset' => CustomHelper::formatCurrency($totals['total_asset'], 'IDR'),
+            'total_liabilities' => CustomHelper::formatCurrency($totals['total_liabilities'], 'IDR'),
+            'total_equity' => CustomHelper::formatCurrency($totals['total_equity'], 'IDR'),
         ]);
     }
 
@@ -685,15 +685,18 @@ class BalanceSheetCrudController extends CrudController
 
         $cumulative_balance = $this->repository->getCumulativeBalanceBefore($account, $entries->first()?->date, $entries->first()?->id);
 
+        $accCurrency = $account->currency_code ?? 'IDR';
         $data = [];
         foreach ($entries as $entry) {
-            $cumulative_balance += ($entry->debit - $entry->credit);
+            $debitVal = ($accCurrency === 'USD') ? $entry->debit : ($entry->debit_base ?: $entry->debit);
+            $creditVal = ($accCurrency === 'USD') ? $entry->credit : ($entry->credit_base ?: $entry->credit);
+            $cumulative_balance += ($debitVal - $creditVal);
             $data[] = [
                 'date' => Carbon::parse($entry->date)->translatedFormat('d/m/Y'),
                 'description' => $entry->description,
-                'debit' => CustomHelper::formatRupiahWithCurrency($entry->debit),
-                'credit' => CustomHelper::formatRupiahWithCurrency($entry->credit),
-                'balance' => CustomHelper::formatRupiahWithCurrency($cumulative_balance),
+                'debit' => CustomHelper::formatCurrency($debitVal, $accCurrency),
+                'credit' => CustomHelper::formatCurrency($creditVal, $accCurrency),
+                'balance' => CustomHelper::formatCurrency($cumulative_balance, $accCurrency),
             ];
         }
 
@@ -716,6 +719,7 @@ class BalanceSheetCrudController extends CrudController
         $entries = $query->get();
         $cumulative_balance = $this->repository->getCumulativeBalanceBefore($account, $filter->startDate);
 
+        $accCurrency = $account->currency_code ?? 'IDR';
         $data = [];
         if ($filter->startDate) {
             $data[] = [
@@ -723,18 +727,20 @@ class BalanceSheetCrudController extends CrudController
                 'SALDO AWAL',
                 '-',
                 '-',
-                CustomHelper::formatRupiahWithCurrency($cumulative_balance),
+                CustomHelper::formatCurrency($cumulative_balance, $accCurrency),
             ];
         }
 
         foreach ($entries as $entry) {
-            $cumulative_balance += ($entry->debit - $entry->credit);
+            $debitVal = ($accCurrency === 'USD') ? $entry->debit : ($entry->debit_base ?: $entry->debit);
+            $creditVal = ($accCurrency === 'USD') ? $entry->credit : ($entry->credit_base ?: $entry->credit);
+            $cumulative_balance += ($debitVal - $creditVal);
             $data[] = [
                 Carbon::parse($entry->date)->translatedFormat('d/m/Y'),
                 $entry->description,
-                CustomHelper::formatRupiahWithCurrency($entry->debit),
-                CustomHelper::formatRupiahWithCurrency($entry->credit),
-                CustomHelper::formatRupiahWithCurrency($cumulative_balance),
+                CustomHelper::formatCurrency($debitVal, $accCurrency),
+                CustomHelper::formatCurrency($creditVal, $accCurrency),
+                CustomHelper::formatCurrency($cumulative_balance, $accCurrency),
             ];
         }
 

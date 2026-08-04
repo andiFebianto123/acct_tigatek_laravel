@@ -124,13 +124,17 @@ class CoaRepository
             }
         });
 
-        $result = $query->selectRaw('IFNULL(SUM(debit) - SUM(credit), 0) as balance')->first();
+        if ($account->currency_code === 'USD') {
+            $result = $query->selectRaw('IFNULL(SUM(debit) - SUM(credit), 0) as balance')->first();
+        } else {
+            $result = $query->selectRaw('IFNULL(SUM(IFNULL(debit_base, debit)) - SUM(IFNULL(credit_base, credit)), 0) as balance')->first();
+        }
         return (float) ($result->balance ?? 0);
     }
 
     public function getCumulativeBalanceBeforeEntry(Account $account, \App\Models\JournalEntry $firstEntry): float
     {
-        return \App\Models\JournalEntry::whereHas('account', function ($q) use ($account) {
+        $query = \App\Models\JournalEntry::whereHas('account', function ($q) use ($account) {
             $q->where('code', 'LIKE', $account->code . '%');
         })
             ->where(function ($q) use ($firstEntry) {
@@ -138,6 +142,12 @@ class CoaRepository
                     ->orWhere(function ($sq) use ($firstEntry) {
                         $sq->where('date', $firstEntry->date)->where('id', '<', $firstEntry->id);
                     });
-            })->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0;
+            });
+
+        if ($account->currency_code === 'USD') {
+            return (float) ($query->selectRaw('SUM(debit) - SUM(credit) as balance')->first()->balance ?? 0);
+        } else {
+            return (float) ($query->selectRaw('SUM(IFNULL(debit_base, debit)) - SUM(IFNULL(credit_base, credit)) as balance')->first()->balance ?? 0);
+        }
     }
 }
