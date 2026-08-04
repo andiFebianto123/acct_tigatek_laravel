@@ -276,7 +276,6 @@
         <div class="client-info">
             <b>Quotation to :</b>
             <div class="client-name">{{ $entry->client->name ?? '-' }}</div>
-            <div class="client-pic">Pic {{ $entry->pic ?? 'Bapak Wukir' }}</div>
             <div style="width: 80%;">
                 {!! nl2br(e($entry->client->address ?? 'Jakarta, Indonesia')) !!}
             </div>

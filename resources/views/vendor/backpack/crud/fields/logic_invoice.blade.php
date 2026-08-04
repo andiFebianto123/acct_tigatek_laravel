@@ -243,6 +243,36 @@
                             $subkonSelect.append(newOption).trigger('change');
                         }
                     }
+
+                    // Populate & select Client (Select2 AJAX)
+                    if (entry.client_id || entry.client) {
+                        var $cSelect = $(form + ' select[name="client_id"]');
+                        if ($cSelect.length) {
+                            var cId = entry.client_id || entry.client.id;
+                            var cText = entry.client ? entry.client.name : cId;
+                            if ($cSelect.find("option[value='" + cId + "']").length === 0) {
+                                var cOpt = new Option(cText, cId, true, true);
+                                $cSelect.append(cOpt).trigger('change');
+                            } else {
+                                $cSelect.val(cId).trigger('change');
+                            }
+                        }
+                    }
+
+                    // Populate & select Client Quotation (Select2 AJAX)
+                    if (entry.client_quotation_id || entry.client_quotation) {
+                        var $quotationSelect = $(form + ' select[name="client_quotation_id"], ' + form + ' select#client_quotation_id_select');
+                        if ($quotationSelect.length) {
+                            var qId = entry.client_quotation_id || entry.client_quotation.id;
+                            var qText = entry.client_quotation ? (entry.client_quotation.po_number + ' - ' + entry.client_quotation.job_name) : qId;
+                            if ($quotationSelect.find("option[value='" + qId + "']").length === 0) {
+                                var qOption = new Option(qText, qId, true, true);
+                                $quotationSelect.append(qOption).trigger('change');
+                            } else {
+                                $quotationSelect.val(qId).trigger('change');
+                            }
+                        }
+                    }
                 }
 
                 // Memperbarui UI status nominal_information (Hijau / Netral / Merah)
@@ -408,6 +438,116 @@
                             instance.logicFormulaNoPO();
                         }, 300);
                     }
+
+                    // AJAX Listener Client Quotation
+                    $(form + ' select[name="client_quotation_id"], ' + form + ' select#client_quotation_id_select').off('select2:select change').on('select2:select change', function(e) {
+                        var quotationId = $(this).val();
+                        if (!quotationId && e && e.params && e.params.data) {
+                            quotationId = e.params.data.id;
+                        }
+                        if (!quotationId) return;
+
+                        $.ajax({
+                            url: '{!! backpack_url("client/proforma-invoice/get-client-quotation-details") !!}',
+                            method: 'GET',
+                            data: { id: quotationId },
+                            success: function(res) {
+                                if (!res || !res.status) return;
+
+                                var curr = res.currency_code || 'IDR';
+                                $(form + ' select[name="currency_code"]').val(curr).trigger('change');
+                                previousCurrency = curr;
+
+                                var rawExc = res.nominal_exclude_ppn || 0;
+                                var $excHidden = $(form + ' input[type="hidden"][name="nominal_exclude_ppn"], ' + form + ' #nominal_exclude_ppn');
+                                var $excMasked = $(form + ' #nominal_exclude_ppn_masked');
+                                if ($excHidden.length) $excHidden.val(rawExc);
+                                if ($excMasked.length && typeof window.formatCurrency === 'function') {
+                                    $excMasked.val(window.formatCurrency(rawExc, curr));
+                                }
+
+                                if (res.tax_ppn !== undefined) {
+                                    $(form + ' input[name="tax_ppn"]').val(res.tax_ppn);
+                                }
+                                if (res.address) {
+                                    $(form + ' input[name="address_po"]').val(res.address);
+                                }
+                                if (res.description) {
+                                    $(form + ' textarea[name="description"], ' + form + ' input[name="description"]').val(res.description);
+                                }
+                                if (res.pic) {
+                                    $(form + ' input[name="pic"]').val(res.pic);
+                                }
+                                if (res.client_id) {
+                                    var $clientSelect = $(form + ' select[name="client_id"]');
+                                    if ($clientSelect.length) {
+                                        var clientName = res.client_name || res.client_id;
+                                        if ($clientSelect.find("option[value='" + res.client_id + "']").length === 0) {
+                                            var newClientOpt = new Option(clientName, res.client_id, true, true);
+                                            $clientSelect.append(newClientOpt).trigger('change');
+                                        } else {
+                                            $clientSelect.val(res.client_id).trigger('change');
+                                        }
+                                    }
+                                }
+
+                                // Populate item repeatable
+                                if (res.items && Array.isArray(res.items) && res.items.length > 0) {
+                                    var $container = $(form + ' [data-repeatable-holder]');
+                                    if ($container.length) {
+                                        $container.empty();
+
+                                        var $btn = $(form + ' [data-repeatable-element-name="proforma_invoice_client_details"], ' +
+                                                        form + ' [data-repeatable-element-name="proforma_invoice_client_details_edit"]');
+                                        if (!$btn.length) {
+                                            $btn = $(form + ' .btn-repeatable-add, ' + form + ' button.add-repeatable-element-button');
+                                        }
+
+                                        res.items.forEach(function(item, idx) {
+                                            if ($btn.length) {
+                                                $btn.trigger('click');
+                                            }
+                                            setTimeout(function() {
+                                                var $lastRow = $container.children().eq(idx);
+                                                if (!$lastRow.length) {
+                                                    $lastRow = $container.children().last();
+                                                }
+
+                                                $lastRow.find('input[data-repeatable-input-name="name"], input[name*="[name]"]').val(item.name).trigger('change');
+                                                $lastRow.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"]').val(item.qty).trigger('change');
+                                                if (item.device_stock_id) {
+                                                    $lastRow.find('input[name*="[device_stock_id]"]').val(item.device_stock_id);
+                                                }
+
+                                                var $maskedInput = $lastRow.find('input[data-alt="price_masked"]');
+                                                var $hiddenInput = $lastRow.find('input[type="hidden"][name*="[price]"]').last();
+                                                if ($hiddenInput.length) {
+                                                    $hiddenInput.val(item.price);
+                                                }
+                                                if ($maskedInput.length) {
+                                                    var formattedPrice = (typeof window.formatCurrency === 'function')
+                                                        ? window.formatCurrency(item.price, curr)
+                                                        : item.price;
+                                                    $maskedInput.val(formattedPrice).trigger('input').trigger('change');
+                                                }
+
+                                                if (idx === res.items.length - 1) {
+                                                    setTimeout(function() {
+                                                        instance.repeatableManager.initHandlers();
+                                                        instance.logicFormulaNoPO();
+                                                        countTotalPrice();
+                                                    }, 100);
+                                                }
+                                            }, (idx + 1) * 80);
+                                        });
+                                    }
+                                } else {
+                                    instance.logicFormulaNoPO();
+                                    countTotalPrice();
+                                }
+                            }
+                        });
+                    });
 
                     // AJAX Listener Subkon
                     $(form + ' select[name="subkon_id"]').off('select2:select').on('select2:select', function(e) {

@@ -37,6 +37,8 @@ class ProformaInvoiceClientRequest extends FormRequest
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',
             'currency_code' => 'nullable|string|in:IDR,USD',
             'pic' => 'required|string|max:150',
+            'client_quotation_id' => 'nullable|exists:client_quotations,id',
+            'client_id' => 'required|exists:clients,id',
         ];
 
         $currencyCode = request()->input('currency_code', 'IDR');

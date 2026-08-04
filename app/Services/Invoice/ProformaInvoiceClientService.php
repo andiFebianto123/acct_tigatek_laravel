@@ -107,6 +107,8 @@ class ProformaInvoiceClientService
         $invoice->type_device = $dto->type_device;
         $invoice->term = $dto->term;
         $invoice->pic = $dto->pic;
+        $invoice->client_quotation_id = $dto->client_quotation_id;
+        $invoice->client_id = $dto->client_id;
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float

@@ -10,8 +10,8 @@ class ProformaInvoiceClientRepository
 {
     public function applyListQuery($query, ProformaInvoiceClientFilterData $dto): void
     {
-        $query->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id');
-            // ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
+        $query->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id')
+            ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
 
         $this->applyFilters($query, $dto);
     }
@@ -91,11 +91,13 @@ class ProformaInvoiceClientRepository
                     1 => $query->where('proforma_invoice_clients.invoice_number', 'like', "%{$value}%"),
                     2 => $query->where('proforma_invoice_clients.invoice_date', 'like', "%{$value}%"),
                     3 => $query->where('clients.name', 'like', "%{$value}%"),
-                    4 => $query->where('proforma_invoice_clients.description', 'like', "%{$value}%"),
-                    5 => $query->where('proforma_invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
-                    6 => $query->where('proforma_invoice_clients.tax_ppn', 'like', "%{$value}%"),
-                    7 => $query->where('proforma_invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
-                    8 => $query->where('proforma_invoice_clients.note', 'like', "%{$value}%"),
+                    4 => $query->where('proforma_invoice_clients.currency_code', 'like', "%{$value}%"),
+                    5 => $query->where('proforma_invoice_clients.description', 'like', "%{$value}%"),
+                    6 => $query->where('proforma_invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
+                    7 => $query->where('proforma_invoice_clients.price_total_exclude_ppn_base', 'like', "%{$value}%"),
+                    8 => $query->where('proforma_invoice_clients.tax_ppn', 'like', "%{$value}%"),
+                    9 => $query->where('proforma_invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
+                    10 => $query->where('proforma_invoice_clients.note', 'like', "%{$value}%"),
                     default => null
                 };
             }
@@ -108,8 +110,8 @@ class ProformaInvoiceClientRepository
             DB::raw("SUM(price_total_exclude_ppn_base) as total_price_exclude_ppn"),
             DB::raw("SUM(price_total_include_ppn_base) as total_price_include_ppn"),
             DB::raw("SUM(discount_pph_base) as total_discount_pph")
-        )->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id');
-            //->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
+        )->leftJoin('companies', 'companies.id', '=', 'proforma_invoice_clients.company_id')
+            ->leftJoin('clients', 'clients.id', '=', 'proforma_invoice_clients.client_id');
 
         $this->applyFilters($query, $dto);
 

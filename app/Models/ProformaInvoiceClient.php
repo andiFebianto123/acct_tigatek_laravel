@@ -20,6 +20,11 @@ class ProformaInvoiceClient extends Model
         return $this->belongsTo(ClientPo::class, 'client_po_id');
     }
 
+    public function clientQuotation()
+    {
+        return $this->belongsTo(ClientQuotation::class, 'client_quotation_id');
+    }
+
     public function client()
     {
         return $this->belongsTo(ClientTransaction::class, 'client_id');

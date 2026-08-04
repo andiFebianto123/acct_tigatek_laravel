@@ -31,6 +31,7 @@ class ProformaInvoiceClientSaveData
         public readonly ?string $term = null,
         public readonly ?string $currency_code = 'IDR',
         public readonly ?string $pic = null,
+        public readonly ?int $client_quotation_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -75,6 +76,7 @@ class ProformaInvoiceClientSaveData
             term: $request->term,
             currency_code: $request->input('currency_code', 'IDR'),
             pic: $request->pic,
+            client_quotation_id: $request->client_quotation_id ? (int) $request->client_quotation_id : null,
         );
     }
 }

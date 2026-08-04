@@ -315,6 +315,12 @@ class ProformaInvoiceClientCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'label' => trans('backpack::crud.invoice_client.column.client_id'),
+                'name' => 'client_name',
+                'type' => 'text',
+                'orderable' => true,
+            ],
+            [
                 'name'  => 'currency_code',
                 'label' => trans('backpack::crud.client_quotation.column.currency_code'),
                 'type'  => 'closure',
@@ -428,7 +434,8 @@ class ProformaInvoiceClientCrudController extends CrudController
         CRUD::addClause('select', [
             DB::raw("
                 proforma_invoice_clients.*,
-                companies.name as company_name
+                companies.name as company_name,
+                clients.name as client_name
             ")
         ]);
 
@@ -472,6 +479,16 @@ class ProformaInvoiceClientCrudController extends CrudController
             'name' => 'invoice_date',
             'type'  => 'date',
             'format' => $new_format_date,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.column.client_id'),
+            'name' => 'client_name',
+            'type' => 'text',
+            'orderable' => true,
+            'orderLogic' => function ($query, $column, $columnDir) {
+                return $query->orderBy('clients.name', $columnDir);
+            },
         ]);
 
         CRUD::column([
@@ -558,6 +575,23 @@ class ProformaInvoiceClientCrudController extends CrudController
         }
 
         CRUD::addField([
+            'name' => 'client_quotation_id',
+            'label' => trans('backpack::crud.client_quotation.title_header'),
+            'type' => 'select2_ajax_custom',
+            'entity' => 'clientQuotation',
+            'attribute' => 'po_number',
+            'data_source' => url(config('backpack.base.route_prefix') . '/client/proforma-invoice/select2-client-quotation'),
+            'placeholder' => trans('backpack::crud.delivery_note.field.reference_type.options.quotation'),
+            'minimum_input_length' => 0,
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'id' => 'client_quotation_id_select',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'invoice_number',
             'label' => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'type' => 'text',
@@ -619,6 +653,19 @@ class ProformaInvoiceClientCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.invoice_client.field.description.placeholder'),
             ]
+        ]);
+
+        CRUD::addField([
+            'label'        => trans('backpack::crud.invoice_client.field.client_id.label'),
+            'type'         => 'select2_ajax_custom',
+            'name'         => 'client_id',
+            'entity'       => 'client',
+            'attribute'    => 'name',
+            'data_source'  => backpack_url('client/select2-client'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'placeholder'  => trans('backpack::crud.invoice_client.field.client_id.placeholder'),
+            'wrapper'      => ['class' => 'form-group col-md-12'],
         ]);
 
         CRUD::addField([
@@ -707,19 +754,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ]
         ]);
 
-        CRUD::addField([
-            'name' => 'nominal_information',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_information.label'),
-            'type' => 'text',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => '000.000',
-                'readonly' => true,
-            ]
-        ]);
+
 
         CRUD::addField([
             'name'        => 'type_device',
@@ -1284,5 +1319,73 @@ class ProformaInvoiceClientCrudController extends CrudController
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
 
         return $pdf->stream($safeFileName);
+    }
+
+    public function select2ClientQuotation()
+    {
+        $search = request()->input('q');
+        $companyId = request()->input('company_id');
+
+        $query = \App\Models\ClientQuotation::with(['client'])
+            ->select(['id', 'po_number', 'job_name', 'client_id', 'job_value', 'currency_code', 'tax_ppn', 'pic']);
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('po_number', 'LIKE', "%{$search}%")
+                  ->orWhere('job_name', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $dataset = $query->paginate(20);
+
+        $results = [];
+        foreach ($dataset as $item) {
+            $clientName = $item->client?->name ? ' (' . $item->client->name . ')' : '';
+            $results[] = [
+                'id' => $item->id,
+                'text' => $item->po_number . ' - ' . $item->job_name . $clientName,
+            ];
+        }
+
+        return response()->json(['results' => $results]);
+    }
+
+    public function getClientQuotationDetails()
+    {
+        $id = (int) request()->input('id');
+        $quotation = \App\Models\ClientQuotation::with(['details.deviceStock', 'client'])->find($id);
+
+        if (!$quotation) {
+            return response()->json(['status' => false, 'message' => 'Quotation tidak ditemukan'], 404);
+        }
+
+        $items = [];
+        if ($quotation->details && $quotation->details->count() > 0) {
+            foreach ($quotation->details as $detail) {
+                $items[] = [
+                    'name' => $detail->item_name ?? $detail->deviceStock?->name ?? '-',
+                    'qty' => (float) ($detail->qty ?? 1),
+                    'price' => (float) ($detail->unit_price ?? $detail->price ?? 0),
+                    'device_stock_id' => $detail->device_stock_id ?? null,
+                ];
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'client_id' => $quotation->client_id,
+            'client_name' => $quotation->client?->name ?? '',
+            'address' => $quotation->client?->address ?? '',
+            'description' => $quotation->job_name ?? '',
+            'pic' => $quotation->pic ?? '',
+            'currency_code' => $quotation->currency_code ?? 'IDR',
+            'nominal_exclude_ppn' => (float) ($quotation->job_value ?? 0),
+            'tax_ppn' => (float) ($quotation->tax_ppn ?? 11),
+            'items' => $items,
+        ]);
     }
 }

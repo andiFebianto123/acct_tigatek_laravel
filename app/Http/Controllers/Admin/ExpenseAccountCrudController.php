@@ -218,7 +218,7 @@ class ExpenseAccountCrudController extends CrudController
 
         CRUD::addField([
             'name' => 'currency_code',
-            'label' => 'Mata Uang',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
             'type' => 'select_from_array',
             'options' => [
                 'IDR' => 'IDR (Rupiah)',

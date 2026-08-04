@@ -67,7 +67,7 @@ class VoucherRequest extends FormRequest
                     }
                 }
             ],
-            'reference_id' => $this->input('po_type') === 'supplier' ? 'required' : 'nullable',
+            'reference_id' => 'nullable',
             'subkon_id' => [
                 'required',
                 function ($attribute, $value, $fail) {

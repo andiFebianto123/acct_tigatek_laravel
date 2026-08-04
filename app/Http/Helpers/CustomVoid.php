@@ -69,133 +69,201 @@ class CustomVoid
        
 
         // periksa jenis voucher
-        if ($voucher->reference_type == "App\Models\PurchaseOrder" || $voucher->reference_type == "App\Models\Spk") {
-            if ($invoice == null || $invoice_not_exists == true) {
-                $account = Account::where('code', CustomHelper::getAccountMapping('WIP'))->first();
-                $trans_2 = CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'currency_code' => $currency_code,
-                    'exchange_rate' => $exchange_rate,
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'debit_base' => $bill_value * $exchange_rate,
-                    'credit_base' => 0,
-                ], [
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                ]);
-                $log_payment[] = [
-                    'id' => $trans_2->id,
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'type' => JournalEntry::class,
-                ];
-            } else {
-                $account = Account::where('id', $voucher->account_id)->first();
+        // if ($voucher->reference_type == "App\Models\PurchaseOrder" || $voucher->reference_type == "App\Models\Spk") {
+        //     if ($invoice == null || $invoice_not_exists == true) {
+        //         $account = Account::where('code', CustomHelper::getAccountMapping('WIP'))->first();
+        //         $trans_2 = CustomHelper::updateOrCreateJournalEntry([
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'currency_code' => $currency_code,
+        //             'exchange_rate' => $exchange_rate,
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'debit_base' => $bill_value * $exchange_rate,
+        //             'credit_base' => 0,
+        //         ], [
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //         ]);
+        //         $log_payment[] = [
+        //             'id' => $trans_2->id,
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'type' => JournalEntry::class,
+        //         ];
+        //     } else {
+        //         $account = Account::where('id', $voucher->account_id)->first();
 
-                $trans_3 = CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Transaksi voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'currency_code' => $currency_code,
-                    'exchange_rate' => $exchange_rate,
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'debit_base' => $bill_value * $exchange_rate,
-                    'credit_base' => 0,
-                ], [
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                ]);
-                $log_payment[] = [
-                    'id' => $trans_3->id,
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Transaksi voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'type' => JournalEntry::class,
-                ];
-            }
-        } else if ($voucher->reference_type == "App\Models\ClientPo") {
-            if ($invoice == null || $invoice_not_exists == true) {
-                // jika tidak ada invoice di PO
-                $account = Account::where('code', CustomHelper::getAccountMapping('WIP'))->first();
-                $trans_4 = CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'currency_code' => $currency_code,
-                    'exchange_rate' => $exchange_rate,
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'debit_base' => $bill_value * $exchange_rate,
-                    'credit_base' => 0,
-                ], [
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                ]);
-                $log_payment[] = [
-                    'id' => $trans_4->id,
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'type' => JournalEntry::class,
-                ];
-            } else {
-                $account = Account::where('id', $voucher->account_id)->first();
+        //         $trans_3 = CustomHelper::updateOrCreateJournalEntry([
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Transaksi voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'currency_code' => $currency_code,
+        //             'exchange_rate' => $exchange_rate,
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'debit_base' => $bill_value * $exchange_rate,
+        //             'credit_base' => 0,
+        //         ], [
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //         ]);
+        //         $log_payment[] = [
+        //             'id' => $trans_3->id,
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Transaksi voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'type' => JournalEntry::class,
+        //         ];
+        //     }
+        // } else if ($voucher->reference_type == "App\Models\ClientPo") {
+        //     if ($invoice == null || $invoice_not_exists == true) {
+        //         // jika tidak ada invoice di PO
+        //         $account = Account::where('code', CustomHelper::getAccountMapping('WIP'))->first();
+        //         $trans_4 = CustomHelper::updateOrCreateJournalEntry([
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'currency_code' => $currency_code,
+        //             'exchange_rate' => $exchange_rate,
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'debit_base' => $bill_value * $exchange_rate,
+        //             'credit_base' => 0,
+        //         ], [
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //         ]);
+        //         $log_payment[] = [
+        //             'id' => $trans_4->id,
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Beban dalam proses pekerjaan voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'type' => JournalEntry::class,
+        //         ];
+        //     } else {
+        //         $account = Account::where('id', $voucher->account_id)->first();
 
-                $trans_5 = CustomHelper::updateOrCreateJournalEntry([
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Transaksi voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'currency_code' => $currency_code,
-                    'exchange_rate' => $exchange_rate,
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'debit_base' => $bill_value * $exchange_rate,
-                    'credit_base' => 0,
-                ], [
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                ]);
-                $log_payment[] = [
-                    'id' => $trans_5->id,
-                    'account_id' => $account->id,
-                    'reference_id' => $voucher->id,
-                    'reference_type' => Voucher::class,
-                    'description' => "Transaksi voucher " . $voucher->no_voucher,
-                    'date' => Carbon::now(),
-                    'debit' => $bill_value,
-                    'credit' => 0,
-                    'type' => JournalEntry::class,
-                ];
-            }
+        //         $trans_5 = CustomHelper::updateOrCreateJournalEntry([
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Transaksi voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'currency_code' => $currency_code,
+        //             'exchange_rate' => $exchange_rate,
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'debit_base' => $bill_value * $exchange_rate,
+        //             'credit_base' => 0,
+        //         ], [
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //         ]);
+        //         $log_payment[] = [
+        //             'id' => $trans_5->id,
+        //             'account_id' => $account->id,
+        //             'reference_id' => $voucher->id,
+        //             'reference_type' => Voucher::class,
+        //             'description' => "Transaksi voucher " . $voucher->no_voucher,
+        //             'date' => Carbon::now(),
+        //             'debit' => $bill_value,
+        //             'credit' => 0,
+        //             'type' => JournalEntry::class,
+        //         ];
+        //     }
+        // }
+
+        $account = Account::where('id', $voucher->account_id)->first();
+
+        if ($account) {
+            $trans_3 = CustomHelper::updateOrCreateJournalEntry([
+                'account_id' => $account->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+                'description' => "Transaksi voucher " . $voucher->no_voucher,
+                'date' => Carbon::now(),
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => $bill_value,
+                'credit' => 0,
+                'debit_base' => $bill_value * $exchange_rate,
+                'credit_base' => 0,
+            ], [
+                'account_id' => $account->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+            ]);
+            $log_payment[] = [
+                'id' => $trans_3->id,
+                'account_id' => $account->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+                'description' => "Transaksi voucher " . $voucher->no_voucher,
+                'date' => Carbon::now(),
+                'debit' => $bill_value,
+                'credit' => 0,
+                'type' => JournalEntry::class,
+            ];
+        }
+
+        // Tentukan Kode Akun Hutang berdasarkan po_type (subkon: 20101, supplier: 20102)
+        $payableCode = ($voucher->po_type === 'supplier') ? '20102' : '20101';
+        $payableAccount = Account::where('code', $payableCode)->first();
+
+        if ($payableAccount) {
+            $trans_payable = CustomHelper::updateOrCreateJournalEntry([
+                'account_id' => $payableAccount->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'date' => Carbon::now(),
+                'currency_code' => $currency_code,
+                'exchange_rate' => $exchange_rate,
+                'debit' => 0,
+                'credit' => $bill_value,
+                'debit_base' => 0,
+                'credit_base' => $bill_value * $exchange_rate,
+            ], [
+                'account_id' => $payableAccount->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+            ]);
+            $log_payment[] = [
+                'id' => $trans_payable->id,
+                'account_id' => $payableAccount->id,
+                'reference_id' => $voucher->id,
+                'reference_type' => Voucher::class,
+                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'date' => Carbon::now(),
+                'debit' => 0,
+                'credit' => $bill_value,
+                'type' => JournalEntry::class,
+            ];
         }
 
         if (sizeof($log_payment) > 0) {
@@ -479,12 +547,9 @@ class CustomVoid
         $cast_account = CastAccount::where('id', $voucher->account_source_id)->first();
         $log_payment = [];
 
-        // Kurangi hutang (Debit pada akun 20102 untuk Supplier PO, atau 20101 untuk Voucher umum)
-        $isSupplierPo = ($voucher->po_type === 'supplier' || $voucher->reference_type === \App\Models\PurchaseOrder::class);
-        $accountCode = $isSupplierPo
-            ? (CustomHelper::getAccountMapping('PO_VENDOR') ?? '20102')
-            : (CustomHelper::getAccountMapping('DEBT_VOUCHER') ?? '20101');
-
+        // Kurangi hutang (Debit pada akun 20102 untuk Supplier, atau 20101 untuk Subkon)
+        $isSupplier = ($voucher->po_type === 'supplier');
+        $accountCode = $isSupplier ? '20102' : '20101';
         $hutang = Account::where('code', $accountCode)->first();
         if ($hutang) {
             $currency_code = $voucher->currency_code ?? 'IDR';
@@ -496,7 +561,7 @@ class CustomVoid
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Pelunasan " . ($isSupplierPo ? "Hutang Vendor PO " : "Hutang voucher ") . $voucher->no_voucher,
+                'description' => "Pelunasan " . ($isSupplier ? "Hutang Supplier " : "Hutang Subkon ") . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'currency_code' => $currency_code,
                 'exchange_rate' => $exchange_rate,
@@ -510,7 +575,7 @@ class CustomVoid
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Pelunasan " . ($isSupplierPo ? "Hutang Vendor PO " : "Hutang voucher ") . $voucher->no_voucher,
+                'description' => "Pelunasan " . ($isSupplier ? "Hutang Supplier " : "Hutang Subkon ") . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'type' => JournalEntry::class,
                 'debit' => $bill_val,
