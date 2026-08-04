@@ -163,6 +163,8 @@ Route::group([
         Route::get('proforma-invoice/{id}/print', [ProformaInvoiceClientCrudController::class, 'printInvoice']);
         Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-po', [ProformaInvoiceClientCrudController::class, 'select2ClientPo']);
         Route::match(['get', 'post', 'put'], 'proforma-invoice/get-client-po', [ProformaInvoiceClientCrudController::class, 'selectedClientPo']);
+        Route::match(['get', 'post', 'put'], 'proforma-invoice/select2-client-quotation', [ProformaInvoiceClientCrudController::class, 'select2ClientQuotation']);
+        Route::get('proforma-invoice/get-client-quotation-details', [ProformaInvoiceClientCrudController::class, 'getClientQuotationDetails']);
         Route::get('proforma-invoice/total', [ProformaInvoiceClientCrudController::class, 'total_price']);
         Route::post('proforma-invoice/export-pdf', [ProformaInvoiceClientCrudController::class, 'exportPdf']);
         Route::post('proforma-invoice/export-excel', [ProformaInvoiceClientCrudController::class, 'exportExcel']);
