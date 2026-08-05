@@ -31,7 +31,7 @@ class InvoiceClientService
             $profitAndLoss = 0;
 
             if ($originalPo) {
-                $clientId = $originalPo->client_id;
+                $clientId = $dto->client_id ?? $originalPo->client_id;
                 $startDate = $originalPo->start_date;
                 $endDate = $originalPo->end_date;
                 $reimburseType = $originalPo->reimburse_type;
@@ -40,9 +40,12 @@ class InvoiceClientService
                 $priceTotal = $originalPo->price_total;
                 $profitAndLoss = $originalPo->profit_and_loss;
             } else {
-                $client = \App\Models\Client::where('company_id', $dto->company_id)->first();
-                if ($client) {
-                    $clientId = $client->id;
+                $clientId = $dto->client_id;
+                if (!$clientId) {
+                    $client = \App\Models\Client::where('company_id', $dto->company_id)->first();
+                    if ($client) {
+                        $clientId = $client->id;
+                    }
                 }
             }
 
@@ -229,7 +232,9 @@ class InvoiceClientService
             $calculation = $this->calculateCalculation($dto->nominal_exclude_ppn, $dto->tax_ppn, $dto->pph);
 
             $this->mapDtoToModel($invoice, $dto, $total_price, $calculation['diskon_pph']);
-            if ($po) {
+            if ($dto->client_id) {
+                $invoice->client_id = $dto->client_id;
+            } else if ($po) {
                 $invoice->client_id = $po->client_id;
             }
 
@@ -352,6 +357,9 @@ class InvoiceClientService
         $invoice->delivery_note_id = $dto->delivery_note_id;
         $invoice->pic = $dto->pic;
         $invoice->category = $dto->category ?? 'rutin';
+        if ($dto->client_id) {
+            $invoice->client_id = $dto->client_id;
+        }
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float

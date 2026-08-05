@@ -573,7 +573,7 @@ class InvoiceClientCrudController extends CrudController
             'type'      => 'closure',
             'name'      => 'client_name',
             'function' => function ($entry) {
-                return $entry->client_po?->client?->name;
+                return $entry->client?->name ?? $entry->client_po?->client?->name;
             }
         ]);
 
@@ -1010,9 +1010,18 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'type' => 'hidden',
-            'name' => 'client_po_id',
-            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->client_po_id : $client_po_id_default,
+            'label'       => trans('backpack::crud.invoice_client.field.client_id.label') ?? 'Nama Client',
+            'type'        => "select2_ajax_custom",
+            'name'        => 'client_id',
+            'entity'      => 'client',
+            'attribute'   => "name",
+            'data_source' => backpack_url('client/select2-client'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'   => ['class' => 'form-group col-md-12'],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.invoice_client.field.client_id.placeholder') ?? 'Pilih Client',
+            ]
         ]);
 
         CRUD::addField([
