@@ -69,8 +69,11 @@ class VoucherRequest extends FormRequest
             ],
             'reference_id' => 'nullable',
             'subkon_id' => [
-                'required',
+                'nullable',
                 function ($attribute, $value, $fail) {
+                    if (empty($value)) {
+                        return;
+                    }
                     $companyId = $this->input('company_id');
                     if ($companyId && $companyId != '') {
                         $exists = \App\Models\Subkon::where('id', $value)

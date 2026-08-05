@@ -102,9 +102,9 @@
                     var curr = $(this.form + ' select[name="currency_code"]').val() || 'IDR';
                     var symbol = (curr === 'USD' ? '$' : 'Rp');
 
-                    // Delegated listener untuk seluruh input QTY
-                    $(this.form).off('input change keyup', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]')
-                               .on('input change keyup', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]', function() {
+                    // Delegated listener terpusat pada form untuk QTY dan Price (masked maupun hidden)
+                    $(this.form).off('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[name*="[price]"]')
+                               .on('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[name*="[price]"]', function() {
                         if (typeof self.onCalculate === 'function') self.onCalculate();
                     });
 
@@ -142,20 +142,28 @@
                 }
 
                 calculateTotalItems() {
+                    var self = this;
                     var total_price = 0;
-                    $(this.form + ' input[data-alt="price_masked"]').each(function() {
-                        var price_origin_field = $(this).parent().next();
-                        if (!price_origin_field.length) {
-                            price_origin_field = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row')
-                                                      .find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                    var curr = $(this.form + ' select[name="currency_code"]').val() || 'IDR';
+
+                    // Cari seluruh baris repeatable item (baik invoice_client_details maupun invoice_client_details_edit)
+                    $(this.form + ' [data-repeatable-holder]').children().each(function() {
+                        var $row = $(this);
+                        var $masked = $row.find('input[data-alt="price_masked"]');
+                        var $hidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                        
+                        var priceVal = 0;
+                        if ($hidden.length && parseFloat($hidden.val())) {
+                            priceVal = parseFloat($hidden.val());
+                        } else if ($masked.length && $masked.val()) {
+                            priceVal = parseFloat(self.cleanValue($masked.val(), curr, false)) || 0;
                         }
-                        var price_origin = Number(price_origin_field.val() || 0);
 
-                        var row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
-                        var qty = Number(row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1);
+                        var qtyVal = parseFloat($row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1) || 1;
 
-                        total_price += (price_origin * qty);
+                        total_price += (priceVal * qtyVal);
                     });
+
                     return total_price;
                 }
 
@@ -465,13 +473,23 @@
                         instance.logicFormulaNoPO();
                     });
 
-                    // Kalkulasi Real-time Selisih Item
+                    // Kalkulasi Real-time Akumulasi Item ke Nominal Exclude PPN
                     var countTotalPrice = function() {
                         var curr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var total_items = instance.repeatableManager.calculateTotalItems();
-                        var price_between = instance.total_price - total_items;
+                        
+                        // Picu pemicuan event input ke input masked bawaan mask_currency
+                        var $maskedExc = $('input[data-alt="nominal_exclude_ppn_masked"]');
+                        if ($maskedExc.length) {
+                            var formattedVal = (typeof window.formatCurrency === 'function')
+                                ? window.formatCurrency(total_items, curr)
+                                : total_items;
+                            $maskedExc.val(formattedVal).trigger('input');
+                        } else {
+                            $('input[name="nominal_exclude_ppn"]').val(total_items);
+                        }
 
-                        instance.formManager.updateNominalInformationUI(price_between, curr);
+                        instance.logicFormulaNoPO();
                     }
 
                     // Inisialisasi Repeatable Handlers

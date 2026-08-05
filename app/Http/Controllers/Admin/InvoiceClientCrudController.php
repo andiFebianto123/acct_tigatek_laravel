@@ -1236,28 +1236,7 @@ class InvoiceClientCrudController extends CrudController
         //     ],
         // ]);
 
-        CRUD::addField([
-            'name' => 'nominal_information',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_information.label'),
-            'type' => 'text',
-            'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes' => [
-                'placeholder' => '000.000',
-                'readonly' => true,
-            ]
-        ]);
 
-        CRUD::addField([
-            'name' => 'space_3',
-            'label' => '',
-            'type' => 'hidden',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
 
         CRUD::addField([
             'name' => 'invoice_document',
