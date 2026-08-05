@@ -388,13 +388,14 @@ class InvoiceClientCrudController extends CrudController
         $this->crud->registerFieldEvents();
 
         $entry = $this->crud->getEntryWithLocale($id);
+        $entry->load(['delivery_note', 'client']);
         $entry->po_date = Carbon::parse($entry->client_po->date_po)->format('d/m/Y');
         // $entry->client_name = $entry->client->name;
         $entry->price_total_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->price_total_include_ppn = $entry->price_total_include_ppn;
 
         $entry->invoice_client_details_edit = $entry->invoice_client_details;
-        $entry->client_name = $entry->client_po->client->name;
+        $entry->client_name = $entry->client?->name ?? $entry->client_po?->client?->name;
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->nominal_include_ppn = $entry->price_total_include_ppn;
         $entry->send_invoice_normal = $entry->send_invoice_normal_date;
