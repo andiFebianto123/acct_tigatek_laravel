@@ -244,10 +244,10 @@ class CustomVoid
                 'date' => Carbon::now(),
                 'currency_code' => $currency_code,
                 'exchange_rate' => $exchange_rate,
-                'debit' => 0,
-                'credit' => $bill_value,
-                'debit_base' => 0,
-                'credit_base' => $bill_value * $exchange_rate,
+                'debit' => $bill_value,
+                'credit' => 0,
+                'debit_base' => $bill_value * $exchange_rate,
+                'credit_base' => 0,
             ], [
                 'account_id' => $payableAccount->id,
                 'reference_id' => $voucher->id,
@@ -260,8 +260,8 @@ class CustomVoid
                 'reference_type' => Voucher::class,
                 'description' => "Hutang voucher " . $voucher->no_voucher,
                 'date' => Carbon::now(),
-                'debit' => 0,
-                'credit' => $bill_value,
+                'debit' => $bill_value,
+                'credit' => 0,
                 'type' => JournalEntry::class,
             ];
         }
@@ -316,38 +316,38 @@ class CustomVoid
             ];
         }
 
-        $hutang = Account::where('code', CustomHelper::getAccountMapping('DEBT_VOUCHER'))->first();
-        if ($hutang) {
-            $bill_val = (float) $voucher->bill_value;
-            $trans_1 = CustomHelper::updateOrCreateJournalEntry([
-                'account_id' => $hutang->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-                'description' => "piutang voucher " . $voucher->no_voucher,
-                'date' => Carbon::now(),
-                'currency_code' => $currency_code,
-                'exchange_rate' => $exchange_rate,
-                'debit' => $bill_val,
-                'credit' => 0,
-                'debit_base' => $bill_val * $exchange_rate,
-                'credit_base' => 0,
-            ], [
-                'account_id' => $hutang->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-            ]);
-            $log_payment[] = [
-                'id' => $trans_1->id,
-                'account_id' => $hutang->id,
-                'reference_id' => $voucher->id,
-                'reference_type' => Voucher::class,
-                'description' => "piutang voucher " . $voucher->no_voucher,
-                'date' => Carbon::now(),
-                'debit' => $bill_val,
-                'credit' => 0,
-                'type' => JournalEntry::class,
-            ];
-        }
+        // $hutang = Account::where('code', CustomHelper::getAccountMapping('DEBT_VOUCHER'))->first();
+        // if ($hutang) {
+        //     $bill_val = (float) $voucher->bill_value;
+        //     $trans_1 = CustomHelper::updateOrCreateJournalEntry([
+        //         'account_id' => $hutang->id,
+        //         'reference_id' => $voucher->id,
+        //         'reference_type' => Voucher::class,
+        //         'description' => "piutang voucher " . $voucher->no_voucher,
+        //         'date' => Carbon::now(),
+        //         'currency_code' => $currency_code,
+        //         'exchange_rate' => $exchange_rate,
+        //         'debit' => $bill_val,
+        //         'credit' => 0,
+        //         'debit_base' => $bill_val * $exchange_rate,
+        //         'credit_base' => 0,
+        //     ], [
+        //         'account_id' => $hutang->id,
+        //         'reference_id' => $voucher->id,
+        //         'reference_type' => Voucher::class,
+        //     ]);
+        //     $log_payment[] = [
+        //         'id' => $trans_1->id,
+        //         'account_id' => $hutang->id,
+        //         'reference_id' => $voucher->id,
+        //         'reference_type' => Voucher::class,
+        //         'description' => "piutang voucher " . $voucher->no_voucher,
+        //         'date' => Carbon::now(),
+        //         'debit' => $bill_val,
+        //         'credit' => 0,
+        //         'type' => JournalEntry::class,
+        //     ];
+        // }
         if ($voucher->total > 0) {
             $ppn = Account::where('code', CustomHelper::getAccountMapping('TAX'))->first();
             $total_ppn = (float) ($voucher->bill_value * ($voucher->tax_ppn / 100));
@@ -547,7 +547,7 @@ class CustomVoid
         $cast_account = CastAccount::where('id', $voucher->account_source_id)->first();
         $log_payment = [];
 
-        // Kurangi hutang (Debit pada akun 20102 untuk Supplier, atau 20101 untuk Subkon)
+        // Akun hutang (Kredit pada akun 20102 untuk Supplier, atau 20101 untuk Subkon)
         $isSupplier = ($voucher->po_type === 'supplier');
         $accountCode = $isSupplier ? '20102' : '20101';
         $hutang = Account::where('code', $accountCode)->first();
@@ -565,10 +565,10 @@ class CustomVoid
                 'date' => Carbon::now(),
                 'currency_code' => $currency_code,
                 'exchange_rate' => $exchange_rate,
-                'debit' => $bill_val,
-                'credit' => 0,
-                'debit_base' => $bill_val_base,
-                'credit_base' => 0,
+                'debit' => 0,
+                'credit' => $bill_val,
+                'debit_base' => 0,
+                'credit_base' => $bill_val_base,
             ]);
             $log_payment[] = [
                 'id' => $trans_1->id,
@@ -578,10 +578,10 @@ class CustomVoid
                 'description' => "Pelunasan " . ($isSupplier ? "Hutang Supplier " : "Hutang Subkon ") . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'type' => JournalEntry::class,
-                'debit' => $bill_val,
-                'debit_base' => $bill_val_base,
-                'credit' => 0,
-                'credit_base' => 0,
+                'debit' => 0,
+                'debit_base' => 0,
+                'credit' => $bill_val,
+                'credit_base' => $bill_val_base,
             ];
         }
 
