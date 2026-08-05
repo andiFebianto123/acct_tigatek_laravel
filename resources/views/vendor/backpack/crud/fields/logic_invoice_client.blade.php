@@ -242,6 +242,32 @@
                     if (entry.type_device) $(form + ' select[name="type_device"]').val(entry.type_device).trigger('change');
                     if (entry.kdp) $(form + ' input[name="kdp"]').val(entry.kdp);
 
+                    if (entry.pic) $(form + ' input[name="pic"]').val(entry.pic);
+
+                    // Populate & select Client (Select2 AJAX)
+                    if (entry.client_id) {
+                        var $clientSelect = $(form + ' select[name="client_id"]');
+                        if ($clientSelect.length) {
+                            var clientName = (entry.client && entry.client.name) 
+                                ? entry.client.name 
+                                : (entry.client_name || ('ID: ' + entry.client_id));
+                            var clientOption = new Option(clientName, entry.client_id, true, true);
+                            $clientSelect.empty().append(clientOption);
+                        }
+                    }
+
+                    // Populate & select Delivery Note / Surat Jalan (Select2 AJAX)
+                    if (entry.delivery_note_id) {
+                        var $dnSelect = $(form + ' select[name="delivery_note_id"]');
+                        if ($dnSelect.length) {
+                            var dnNumber = (entry.delivery_note && entry.delivery_note.number) 
+                                ? entry.delivery_note.number 
+                                : (entry.delivery_note_number || ('ID: ' + entry.delivery_note_id));
+                            var dnOption = new Option(dnNumber, entry.delivery_note_id, true, true);
+                            $dnSelect.empty().append(dnOption);
+                        }
+                    }
+
                     // Populate & select Subkon (Select2 AJAX)
                     if (entry.subkon) {
                         var $subkonSelect = $(form + ' select[name="subkon_id"]');
@@ -478,15 +504,18 @@
                         var curr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var total_items = instance.repeatableManager.calculateTotalItems();
                         
-                        // Picu pemicuan event input ke input masked bawaan mask_currency
-                        var $maskedExc = $('input[data-alt="nominal_exclude_ppn_masked"]');
+                        var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+                        var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+
+                        var formattedVal = (typeof window.formatCurrency === 'function')
+                            ? window.formatCurrency(total_items, curr)
+                            : total_items;
+
                         if ($maskedExc.length) {
-                            var formattedVal = (typeof window.formatCurrency === 'function')
-                                ? window.formatCurrency(total_items, curr)
-                                : total_items;
-                            $maskedExc.val(formattedVal).trigger('input');
-                        } else {
-                            $('input[name="nominal_exclude_ppn"]').val(total_items);
+                            $maskedExc.val(formattedVal);
+                        }
+                        if ($hiddenExc.length) {
+                            $hiddenExc.val(total_items);
                         }
 
                         instance.logicFormulaNoPO();
@@ -642,16 +671,17 @@
                             $hiddenDeviceStockId.val(selected.id);
                         }
 
-                        // Auto-prefill harga jual ke kolom price jika ada sell_price
-                        if (selected.sell_price !== undefined) {
+                        // Auto-prefill harga jual ke kolom price hanya jika dipicu manual oleh user (bukan dari Delivery Note)
+                        if (selected.sell_price !== undefined && (!e.params || !e.params.isDeliveryNotePrefill)) {
                             var $priceHidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"]').last();
                             var $priceMasked = $row.find('input[data-alt="price_masked"]');
                             var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
 
                             var priceVal = parseFloat(selected.sell_price) || 0;
-                            if ($priceHidden.length) $priceHidden.val(priceVal);
+                            var cleanSellPrice = (activeCurrency === 'IDR') ? Math.round(priceVal) : priceVal;
+                            if ($priceHidden.length) $priceHidden.val(cleanSellPrice);
                             if ($priceMasked.length && typeof window.formatCurrency === 'function') {
-                                $priceMasked.val(window.formatCurrency(priceVal, activeCurrency)).trigger('change');
+                                $priceMasked.val(window.formatCurrency(cleanSellPrice, activeCurrency));
                             }
                         }
                     });
@@ -742,8 +772,8 @@
                     var self = this;
                     var form = this.form;
 
-                    $(form).off('change.dn_select select2:select.dn_select', 'select[name="delivery_note_id"]')
-                           .on('change.dn_select select2:select.dn_select', 'select[name="delivery_note_id"]', function() {
+                    $(form).off('select2:select.dn_select', 'select[name="delivery_note_id"]')
+                           .on('select2:select.dn_select', 'select[name="delivery_note_id"]', function() {
                         var deliveryNoteId = $(this).val();
                         if (!deliveryNoteId) return;
 
@@ -757,13 +787,29 @@
                                 // 1. Prefill Client
                                 if (res.client_id) {
                                     var $clientSelect = $(form + ' select[name="client_id"]');
+                                    var $dnSelect = $(form + ' select[name="delivery_note_id"]');
+                                    var currentDnVal = $dnSelect.val() || deliveryNoteId;
+                                    var currentDnText = $dnSelect.find('option:selected').text() || '';
+
                                     if ($clientSelect.length) {
                                         if ($clientSelect.find('option[value="' + res.client_id + '"]').length) {
-                                            $clientSelect.val(res.client_id).trigger('change');
+                                            $clientSelect.val(res.client_id);
                                         } else if (res.client_name) {
                                             var opt = new Option(res.client_name, res.client_id, true, true);
-                                            $clientSelect.append(opt).trigger('change');
+                                            $clientSelect.append(opt);
                                         }
+                                    }
+
+                                    // Restore pilihan delivery_note_id yang baru terpilih agar tidak tereset oleh dependency select2
+                                    if (currentDnVal && $dnSelect.length) {
+                                        setTimeout(function() {
+                                            if (!$dnSelect.find('option[value="' + currentDnVal + '"]').length) {
+                                                var dnOpt = new Option(currentDnText || ('ID: ' + currentDnVal), currentDnVal, true, true);
+                                                $dnSelect.empty().append(dnOpt);
+                                            } else {
+                                                $dnSelect.val(currentDnVal);
+                                            }
+                                        }, 150);
                                     }
                                 }
 
@@ -780,14 +826,19 @@
 
                                 // 3. Set Tipe Barang -> DeviceStock (Persediaan)
                                 var $typeDevice = $(form + ' select[name="type_device"]');
+                                var isTypeDeviceChanged = false;
                                 if ($typeDevice.length && $typeDevice.val() !== 'App\\Models\\DeviceStock') {
                                     $typeDevice.val('App\\Models\\DeviceStock').trigger('change');
+                                    isTypeDeviceChanged = true;
                                 }
 
-                                // 4. Prefill items ke form repeatable
-                                if (res.items && res.items.length) {
-                                    self.populateItems(res.items);
-                                }
+                                // 4. Prefill items ke form repeatable setelah mode persediaan aktif
+                                var delayMs = isTypeDeviceChanged ? 150 : 0;
+                                setTimeout(function() {
+                                    if (res.items && res.items.length) {
+                                        self.populateItems(res.items);
+                                    }
+                                }, delayMs);
                             },
                             error: function(xhr) {
                                 console.warn('[InvoiceClient] Error fetching DeliveryNote details:', xhr);
@@ -824,20 +875,38 @@
 
                         var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var priceVal = parseFloat(item.price || 0);
-                        if ($priceHidden.length) $priceHidden.val(priceVal);
-                        if ($priceMasked.length && typeof window.formatCurrency === 'function') {
-                            $priceMasked.val(window.formatCurrency(priceVal, activeCurr));
+                        var cleanPrice = (activeCurr === 'IDR') ? Math.round(priceVal) : priceVal;
+                        var formattedPrice = (typeof window.formatCurrency === 'function') ? window.formatCurrency(cleanPrice, activeCurr) : cleanPrice;
+                        
+                        if ($priceHidden.length) $priceHidden.val(cleanPrice);
+                        if ($priceMasked.length) {
+                            $priceMasked.val(formattedPrice);
                         }
 
                         var $select2 = $targetRow.find('.invoice-device-select2');
                         if ($select2.length && item.device_stock_id) {
                             var stockText = item.device_stock_name || item.name || ('ID: ' + item.device_stock_id);
                             var opt = new Option(stockText, item.device_stock_id, true, true);
-                            $select2.empty().append(opt).trigger('change.select2');
+                            $select2.empty().append(opt);
                         }
                     });
 
                     setTimeout(function() {
+                        items.forEach(function(item, idx) {
+                            var $rows = $(form + ' .repeatable-element');
+                            var $targetRow = $rows.eq(idx);
+                            if ($targetRow.length) {
+                                var $priceMasked = $targetRow.find('input[data-alt="price_masked"]');
+                                var $priceHidden = $targetRow.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                                var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                                var priceVal = parseFloat(item.price || 0);
+                                var cleanPrice = (activeCurr === 'IDR') ? Math.round(priceVal) : priceVal;
+                                var formattedPrice = (typeof window.formatCurrency === 'function') ? window.formatCurrency(cleanPrice, activeCurr) : cleanPrice;
+                                if ($priceHidden.length) $priceHidden.val(cleanPrice);
+                                if ($priceMasked.length) $priceMasked.val(formattedPrice);
+                            }
+                        });
+
                         if (self.logicInstance && self.logicInstance.repeatableManager) {
                             var totalItems = self.logicInstance.repeatableManager.calculateTotalItems();
                             var $nominalExcHidden = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');

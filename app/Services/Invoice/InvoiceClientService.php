@@ -107,6 +107,8 @@ class InvoiceClientService
                     client_id: $clientId,
                     currency_code: $dto->currency_code,
                     delivery_note_id: $dto->delivery_note_id,
+                    pic: $dto->pic,
+                    category: $dto->category,
                 );
             }
 
@@ -217,6 +219,8 @@ class InvoiceClientService
                         client_id: $client->id,
                         currency_code: $dto->currency_code,
                         delivery_note_id: $dto->delivery_note_id,
+                        pic: $dto->pic,
+                        category: $dto->category,
                     );
                 }
             }
