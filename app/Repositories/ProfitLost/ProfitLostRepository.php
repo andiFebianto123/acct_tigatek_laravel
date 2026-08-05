@@ -599,8 +599,10 @@ class ProfitLostRepository
             $itemCogs = (float) ($detail->cogs_amount_base ?? 0);
             $itemProfit = $itemRevenue - $itemCogs;
 
+            $itemName = $detail->name ?? $detail->deviceStock?->name ?? $detail->deliveryNoteDetail?->item_name ?? $detail->item_name ?? 'Persediaan Barang';
+
             $items[] = [
-                'name' => $detail->item_name ?? 'Persediaan Barang',
+                'name' => $itemName,
                 'qty' => $itemQty,
                 'revenue_raw' => $itemRevenue,
                 'revenue' => $pure ? $itemRevenue : CustomHelper::formatRupiahWithCurrency($itemRevenue),
