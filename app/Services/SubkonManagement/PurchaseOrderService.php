@@ -333,6 +333,7 @@ class PurchaseOrderService
      */
     private function syncJournalEntry(PurchaseOrder $po): void
     {
+        return;
         $currencyCode = $po->currency_code ?? 'IDR';
         $exchangeRate = (float) ($po->exchange_rate ?? 1.0);
 
