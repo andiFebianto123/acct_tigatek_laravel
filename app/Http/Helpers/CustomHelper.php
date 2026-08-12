@@ -1333,6 +1333,89 @@ class CustomHelper
         return $profitLost;
     }
 
+    public static function profitLostSupplierRepository($filter = [])
+    {
+        $v_supp = DB::table('vouchers')
+            ->select('client_po_id', DB::raw('SUM(bill_value_base) as total_voucher_supplier_base'))
+            ->where('po_type', 'supplier')
+            ->groupBy('client_po_id');
+
+        $supplierSubQuery = DB::table('invoice_clients as ic')
+            ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
+            ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
+            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
+            ->leftJoinSub($v_supp, 'v_supp', function ($join) {
+                $join->on('v_supp.client_po_id', '=', 'cpo.id');
+            })
+            ->where('ic.type_device', 'App\\Models\\DeviceStock')
+            ->when(!empty($filter['filter_year']), function ($query) use ($filter) {
+                $filter_year = $filter['filter_year'];
+                if ($filter_year && $filter_year != 'all') {
+                    return $query->whereYear('ic.invoice_date', $filter_year);
+                }
+            })
+            ->select([
+                'ic.id as invoice_id',
+                'ic.invoice_number as supplier_invoice_number',
+                'ic.invoice_date as supplier_date',
+                'ic.category as invoice_category',
+                'c.name as supplier_name',
+                'ic.currency_code',
+                DB::raw("COALESCE(SUM(icd.qty), 0) AS total_qty_sold"),
+                DB::raw("ic.price_total_exclude_ppn_base AS total_harga_jual_base"),
+                DB::raw("ic.price_total_exclude_ppn_base AS sell_value"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
+                DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_gross_base"),
+                DB::raw("COALESCE(v_supp.total_voucher_supplier_base, 0) AS total_voucher_supplier_base"),
+                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) AS total_harga_beli_base"),
+                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) AS purchase_value"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base"),
+                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
+                DB::raw("CASE WHEN ic.delivery_note_id IS NOT NULL OR EXISTS (SELECT 1 FROM delivery_notes dn WHERE dn.invoice_client_id = ic.id) THEN 'Terbit Surat Jalan & FIFO Posted' ELSE 'Invoice Tanpa Surat Jalan' END AS delivery_status")
+            ])
+            ->groupBy(
+                'ic.id',
+                'ic.invoice_number',
+                'ic.invoice_date',
+                'ic.category',
+                'c.name',
+                'ic.currency_code',
+                'ic.price_total_exclude_ppn_base',
+                'ic.delivery_note_id',
+                'v_supp.total_voucher_supplier_base'
+            );
+
+        return DB::table('project_profit_lost')
+            ->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')
+            ->joinSub($supplierSubQuery, 'supplier_data', function ($join) {
+                $join->on('supplier_data.invoice_id', '=', 'project_profit_lost.orderable_id');
+            })
+            ->select([
+                DB::raw("
+                    project_profit_lost.*,
+                    supplier_data.supplier_name,
+                    supplier_data.supplier_invoice_number,
+                    supplier_data.supplier_date,
+                    supplier_data.invoice_category,
+                    supplier_data.currency_code,
+                    supplier_data.total_qty_sold,
+                    supplier_data.total_harga_jual_base,
+                    supplier_data.total_harga_jual_base as sell_value,
+                    supplier_data.avg_harga_jual_satuan_base,
+                    supplier_data.total_harga_beli_gross_base,
+                    supplier_data.total_harga_beli_base,
+                    supplier_data.total_harga_beli_base as purchase_value,
+                    supplier_data.avg_harga_beli_satuan_base,
+                    supplier_data.laba_kotor_base,
+                    supplier_data.laba_kotor_base as profit_lost_supplier,
+                    supplier_data.margin_percent,
+                    supplier_data.delivery_status,
+                    supplier_data.total_voucher_supplier_base as voucher_supplier_value
+                ")
+            ]);
+    }
+
     public static function rollbackPayment($reference_type, $reference_id, $name = null)
     {
         $payment = LogPayment::where('reference_type', $reference_type)

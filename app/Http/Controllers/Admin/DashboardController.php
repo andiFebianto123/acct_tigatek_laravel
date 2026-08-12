@@ -301,8 +301,37 @@ class DashboardController extends CrudController
         $total_laba_rutin = $total_omzet_rutin - $total_biaya_rutin;
         $total_laba_non_rutin = $total_omzet_non_rutin - $total_biaya_non_rutin;
 
-        $total_all_laba = $total_laba_rutin + $total_laba_non_rutin;
-        $total_all_omzet = $total_omzet_rutin + $total_omzet_non_rutin;
+        // Perhitungan Realisasi Penjualan (Supplier DeviceStock)
+        $supplierQueryRutin = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
+            ->where(function ($q) {
+                $q->where(DB::raw('LOWER(supplier_data.invoice_category)'), 'rutin');
+            })
+            ->select(
+                DB::raw('SUM(supplier_data.sell_value) as total_omzet'),
+                DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
+            )
+            ->first();
+
+        $supplierQueryNonRutin = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
+            ->where(function ($q) {
+                $q->whereIn(DB::raw('LOWER(supplier_data.invoice_category)'), ['non_rutin', 'non rutin', 'non-rutin']);
+            })
+            ->select(
+                DB::raw('SUM(supplier_data.sell_value) as total_omzet'),
+                DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
+            )
+            ->first();
+
+        $total_omzet_rutin_penjualan = $supplierQueryRutin?->total_omzet ?? 0;
+        $total_biaya_rutin_penjualan = $supplierQueryRutin?->total_biaya ?? 0;
+        $total_omzet_non_rutin_penjualan = $supplierQueryNonRutin?->total_omzet ?? 0;
+        $total_biaya_non_rutin_penjualan = $supplierQueryNonRutin?->total_biaya ?? 0;
+
+        $total_laba_rutin_penjualan = $total_omzet_rutin_penjualan - $total_biaya_rutin_penjualan;
+        $total_laba_non_rutin_penjualan = $total_omzet_non_rutin_penjualan - $total_biaya_non_rutin_penjualan;
+
+        $total_all_laba = $total_laba_rutin + $total_laba_non_rutin + $total_laba_rutin_penjualan + $total_laba_non_rutin_penjualan;
+        $total_all_omzet = $total_omzet_rutin + $total_omzet_non_rutin + $total_omzet_rutin_penjualan + $total_omzet_non_rutin_penjualan;
 
         return [
             'total_omzet_rutin' => CustomHelper::formatRupiah($total_omzet_rutin),
@@ -313,6 +342,12 @@ class DashboardController extends CrudController
             'total_laba_non_rutin' => CustomHelper::formatRupiah($total_laba_non_rutin),
             'total_all_laba' => CustomHelper::formatRupiah($total_all_laba),
             'total_all_omzet' => CustomHelper::formatRupiah($total_all_omzet),
+            'total_omzet_rutin_penjualan' => CustomHelper::formatRupiah($total_omzet_rutin_penjualan),
+            'total_biaya_rutin_penjualan' => CustomHelper::formatRupiah($total_biaya_rutin_penjualan),
+            'total_omzet_non_rutin_penjualan' => CustomHelper::formatRupiah($total_omzet_non_rutin_penjualan),
+            'total_biaya_non_rutin_penjualan' => CustomHelper::formatRupiah($total_biaya_non_rutin_penjualan),
+            'total_laba_rutin_penjualan' => CustomHelper::formatRupiah($total_laba_rutin_penjualan),
+            'total_laba_non_rutin_penjualan' => CustomHelper::formatRupiah($total_laba_non_rutin_penjualan),
         ];
     }
 
@@ -369,9 +404,23 @@ class DashboardController extends CrudController
             })
             ->get();
 
+        $profit_lost_rutin_penjualan = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
+            ->where(function ($q) {
+                $q->where(DB::raw('LOWER(supplier_data.invoice_category)'), 'rutin');
+            })
+            ->get();
+
+        $profit_lost_non_rutin_penjualan = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
+            ->where(function ($q) {
+                $q->whereIn(DB::raw('LOWER(supplier_data.invoice_category)'), ['non_rutin', 'non rutin', 'non-rutin']);
+            })
+            ->get();
+
         return [
             'data_laba_rutin' => $profit_lost_rutin,
-            'data_laba_non_rutin' => $profit_lost_non_rutin
+            'data_laba_non_rutin' => $profit_lost_non_rutin,
+            'data_laba_rutin_penjualan' => $profit_lost_rutin_penjualan,
+            'data_laba_non_rutin_penjualan' => $profit_lost_non_rutin_penjualan,
         ];
     }
 
@@ -427,17 +476,18 @@ class DashboardController extends CrudController
             ->select([
                 'ds.*',
                 'dsc.name as category_name',
-                DB::raw('COALESCE(inv_last.price_base, inv_last.price, ds.sell_price_base, ds.sell_price, 0) as latest_sell_price_base'),
-                DB::raw('COALESCE(inv_last.price, ds.sell_price, 0) as latest_sell_price'),
+                DB::raw('COALESCE(NULLIF(inv_last.price_base, 0), NULLIF(inv_last.price, 0), NULLIF(ds.sell_price_base, 0), ds.sell_price, 0) as latest_sell_price_base'),
+                DB::raw('COALESCE(NULLIF(inv_last.price, 0), ds.sell_price, 0) as latest_sell_price'),
                 DB::raw("COALESCE(inv_last.currency_code, ds.currency_code, 'IDR') as latest_currency_code"),
                 DB::raw('IF(inv_last.device_stock_id IS NOT NULL, 1, 0) as is_from_invoice'),
-                DB::raw('(ds.qty * COALESCE(inv_last.price_base, inv_last.price, ds.sell_price_base, ds.sell_price, 0)) as total_jual_base'),
+                DB::raw('(ds.qty * COALESCE(NULLIF(ds.buy_price_base, 0), ds.buy_price, 0)) as total_hpp_base'),
+                DB::raw('(ds.qty * COALESCE(NULLIF(inv_last.price_base, 0), NULLIF(inv_last.price, 0), NULLIF(ds.sell_price_base, 0), ds.sell_price, 0)) as total_jual_base'),
             ])
             ->get();
 
         $total_stok = $stocks->sum('qty');
         $total_barang = $stocks->count();
-        $total_nominal = $stocks->sum('total_jual_base');
+        $total_nominal = $stocks->sum('total_hpp_base');
 
         return [
             'total_stok' => number_format($total_stok, 0, ',', '.'),

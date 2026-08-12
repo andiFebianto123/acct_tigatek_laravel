@@ -115,7 +115,7 @@
             } else { // USD / Default
                 let hasDecimalPoint = val.includes('.');
                 let clean = val.replace(/[^\d.]/g, '');
-                let parts = clean.split('.');
+                let parts = clean.replace(/[^\d.-]/g, '').split('.');
                 
                 let integerPart = parts[0] || '';
                 let sisa = integerPart.length % 3;

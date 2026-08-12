@@ -42,35 +42,74 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card2 mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card2">
                 <div class="card2-parent-header">
                     <div class="card2-header fs-6">
-                        Realisasi Pekerjaan
+                        Realisasi Pekerjaan | Realisasi Penjualan
                     </div>
                 </div>
                 <div class="card2-body">
                     <div class="row">
-                        <div class="col">
-                            <div class="label fw-bold mb-1">Rutin</div>
-                            <div class="item">
-                                <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Omzet<br><strong id="rp_rutin_omzet_total">Rp0</strong></div>
+                        <!-- Stack 1: Realisasi Pekerjaan -->
+                        <div class="col-md-6 border-end pe-md-4 mb-3 mb-md-0">
+                            <div class="fw-bold fs-6 text-primary mb-3 pb-1 border-bottom d-flex align-items-center">
+                                <i class="la la-tasks me-2"></i> Realisasi Pekerjaan
                             </div>
-                            <div class="item">
-                                <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Biaya<br><strong id="rp_rutin_biaya_total">Rp0</strong></div>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="label fw-bold mb-1">Rutin</div>
+                                    <div class="item">
+                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Omzet<br><strong id="rp_rutin_omzet_total">Rp0</strong></div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Biaya<br><strong id="rp_rutin_biaya_total">Rp0</strong></div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="label fw-bold mb-1">Non Rutin</div>
+                                    <div class="item">
+                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Omzet<br><strong id="rp_non_rutin_omzet_total">Rp0</strong></div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Biaya<br><strong id="rp_non_rutin_biaya_total">Rp0</strong></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="label fw-bold mb-1">Non Rutin</div>
-                            <div class="item">
-                                <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Omzet<br><strong id="rp_non_rutin_omzet_total">Rp0</strong></div>
+
+                        <!-- Stack 2: Realisasi Penjualan -->
+                        <div class="col-md-6 ps-md-4">
+                            <div class="fw-bold fs-6 text-success mb-3 pb-1 border-bottom d-flex align-items-center">
+                                <i class="la la-shopping-cart me-2"></i> Realisasi Penjualan
                             </div>
-                            <div class="item">
-                                <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div>Biaya<br><strong id="rp_non_rutin_biaya_total">Rp0</strong></div>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="label fw-bold mb-1">Rutin</div>
+                                    <div class="item">
+                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Omzet<br><strong id="rp_rutin_omzet_penjualan">Rp0</strong></div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Biaya<br><strong id="rp_rutin_biaya_penjualan">Rp0</strong></div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="label fw-bold mb-1">Non Rutin</div>
+                                    <div class="item">
+                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Omzet<br><strong id="rp_non_rutin_omzet_penjualan">Rp0</strong></div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div>Biaya<br><strong id="rp_non_rutin_biaya_penjualan">Rp0</strong></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -80,26 +119,61 @@
         <div class="col-md-6 mb-4">
             <div class="card2">
                 <div class="card2-parent-header">
-                    <div class="card2-header fs-6">Laba</div>
+                    <div class="card2-header fs-6">Laba Proyek | Laba Penjualan</div>
                 </div>
                 <div class="card2-body">
                     <div class="row">
-                        <div class="col">
-                            <div class="btn mb-3">
-                                <button class="btn btn-primary btn-sm" id="btn-rutin">Rutin</button>
+                        <!-- Stack 1: Laba Proyek -->
+                        <div class="col-md-6 border-end pe-md-4 mb-3 mb-md-0">
+                            <div class="fw-bold fs-6 text-primary mb-3 pb-1 border-bottom d-flex align-items-center">
+                                <i class="la la-calculator me-2"></i> Laba Proyek
                             </div>
-                            <div class="item">
-                                <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div><strong id="laba_rutin_total">Rp0</strong></div>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="btn mb-3">
+                                        <button class="btn btn-primary btn-sm" id="btn-rutin">Rutin</button>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div><strong id="laba_rutin_total">Rp0</strong></div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="btn mb-3">
+                                        <button class="btn btn-primary btn-sm" id="btn-non-rutin">Non Rutin</button>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div><strong id="laba_non_rutin_total">Rp0</strong></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col">
-                            <div class="btn mb-3">
-                                <button class="btn btn-primary btn-sm" id="btn-non-rutin">Non Rutin</button>
+
+                        <!-- Stack 2: Laba Penjualan -->
+                        <div class="col-md-6 ps-md-4">
+                            <div class="fw-bold fs-6 text-success mb-3 pb-1 border-bottom d-flex align-items-center">
+                                <i class="la la-chart-line me-2"></i> Laba Penjualan
                             </div>
-                            <div class="item">
-                                <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                <div><strong id="laba_non_rutin_total">Rp0</strong></div>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="btn mb-3">
+                                        <button class="btn btn-success btn-sm" id="btn-rutin-penjualan">Rutin</button>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div><strong id="laba_rutin_penjualan_total">Rp0</strong></div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="btn mb-3">
+                                        <button class="btn btn-success btn-sm" id="btn-non-rutin-penjualan">Non Rutin</button>
+                                    </div>
+                                    <div class="item">
+                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                        <div><strong id="laba_non_rutin_penjualan_total">Rp0</strong></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -111,7 +185,7 @@
                 <div class="card2-parent-header d-flex justify-content-between align-items-center pe-3 pb-2">
                     <div class="card2-header fs-6 mb-0">{{ __('backpack::crud.device_stock.info_header') }}</div>
                     <button class="btn btn-primary btn-sm" id="btn-device-stock">
-                        <i class="la la-list me-1"></i> {{ __('backpack::crud.details_row') ?: 'Detail' }}
+                        <i class="la la-list me-1"></i> Detail
                     </button>
                 </div>
                 <div class="card2-body">
@@ -313,6 +387,11 @@
                             $('#rp_non_rutin_omzet_total').html('Rp'+result.total_job_realisasion.total_omzet_non_rutin);
                             $('#rp_rutin_biaya_total').html('Rp'+result.total_job_realisasion.total_biaya_rutin);
                             $('#rp_non_rutin_biaya_total').html('Rp'+result.total_job_realisasion.total_biaya_non_rutin);
+
+                            $('#rp_rutin_omzet_penjualan').html('Rp'+result.total_job_realisasion.total_omzet_rutin_penjualan);
+                            $('#rp_rutin_biaya_penjualan').html('Rp'+result.total_job_realisasion.total_biaya_rutin_penjualan);
+                            $('#rp_non_rutin_omzet_penjualan').html('Rp'+result.total_job_realisasion.total_omzet_non_rutin_penjualan);
+                            $('#rp_non_rutin_biaya_penjualan').html('Rp'+result.total_job_realisasion.total_biaya_non_rutin_penjualan);
                             // $('#total_job_value_non_rutin').html('Rp'+result.total_job_realisasion.total_job_value_non_rutin);
 
                             $('#laba_all_total').html('Rp'+result.total_job_realisasion.total_all_laba);
@@ -322,6 +401,9 @@
 
                             $('#laba_rutin_total').html('Rp'+result.total_job_realisasion.total_laba_rutin);
                             $('#laba_non_rutin_total').html('Rp'+result.total_job_realisasion.total_laba_non_rutin);
+
+                            $('#laba_rutin_penjualan_total').html('Rp'+result.total_job_realisasion.total_laba_rutin_penjualan);
+                            $('#laba_non_rutin_penjualan_total').html('Rp'+result.total_job_realisasion.total_laba_non_rutin_penjualan);
 
                             // $('#omzet_all_total').html('Rp'+result.total_omzet_all.total_omzet);
                             $('#omzet_all_total').html('Rp'+result.total_job_realisasion.total_all_omzet);
@@ -358,12 +440,20 @@
         $('#btn-non-rutin').click(function(){
             $('#modalInfoLabaNonRutin').modal('show');
         });
+        $('#btn-rutin-penjualan').click(function(){
+            $('#modalInfoLabaRutinPenjualan').modal('show');
+        });
+        $('#btn-non-rutin-penjualan').click(function(){
+            $('#modalInfoLabaNonRutinPenjualan').modal('show');
+        });
         $('#btn-device-stock').click(function(){
             $('#modalDeviceStock').modal('show');
         });
         $('.modal .btn-close').click(function(){
             $('#modalInfoLabaRutin').modal('hide');
             $('#modalInfoLabaNonRutin').modal('hide');
+            $('#modalInfoLabaRutinPenjualan').modal('hide');
+            $('#modalInfoLabaNonRutinPenjualan').modal('hide');
             $('#modalDeviceStock').modal('hide');
         });
 
@@ -446,6 +536,96 @@
                                     <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->price_profit_lost_str) }}</td>
                                 </tr>
                             @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalInfoLabaRutinPenjualan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalInfoLabaRutinPenjualanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <h5 class="modal-title text-center w-100" id="modalInfoLabaRutinPenjualanLabel">Tabel Penjualan Rutin</h5>
+                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-borderless" style="width: 800px;">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>No. Invoice</th>
+                                <th>Supplier</th>
+                                <th>Nilai Invoice</th>
+                                <th>Biaya</th>
+                                <th>Laba</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!empty($data_laba['data_laba_rutin_penjualan']))
+                                @foreach ($data_laba['data_laba_rutin_penjualan'] as $key => $laba)
+                                    <tr>
+                                        <td>{{ $key + 1 }}</td>
+                                        <td>{{ $laba->supplier_invoice_number }}</td>
+                                        <td>{{ $laba->supplier_name }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->total_harga_jual_base) }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->total_harga_beli_base) }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->laba_kotor_base) }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalInfoLabaNonRutinPenjualan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalInfoLabaNonRutinPenjualanLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <h5 class="modal-title text-center w-100" id="modalInfoLabaNonRutinPenjualanLabel">Tabel Penjualan Non Rutin</h5>
+                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-borderless" style="width: 800px;">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>No. Invoice</th>
+                                <th>Supplier</th>
+                                <th>Nilai Invoice</th>
+                                <th>Biaya</th>
+                                <th>Laba</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!empty($data_laba['data_laba_non_rutin_penjualan']))
+                                @foreach ($data_laba['data_laba_non_rutin_penjualan'] as $key => $laba)
+                                    <tr>
+                                        <td>{{ $key + 1 }}</td>
+                                        <td>{{ $laba->supplier_invoice_number }}</td>
+                                        <td>{{ $laba->supplier_name }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->total_harga_jual_base) }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->total_harga_beli_base) }}</td>
+                                        <td>Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($laba->laba_kotor_base) }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Tidak ada data</td>
+                                </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>

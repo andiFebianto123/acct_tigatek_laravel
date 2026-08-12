@@ -194,7 +194,7 @@ class ClientCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.client.column.name'),
                 'name' => 'name',
-                'type'  => 'text'
+                'type'  => 'wrap_text'
             ],
         );
 
@@ -202,7 +202,7 @@ class ClientCrudController extends CrudController
             [
                 'label'  => trans('backpack::crud.client.column.address'),
                 'name' => 'address',
-                'type'  => 'text'
+                'type'  => 'wrap_text'
             ],
         );
 

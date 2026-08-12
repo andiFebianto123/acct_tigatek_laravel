@@ -354,7 +354,7 @@ return [
         'dashboard' => [
             'total_stok' => 'Jumlah Stok Barang',
             'total_barang' => 'Jumlah Barang',
-            'total_nominal' => 'Total Nominal (Akumulasi Harga Jual)',
+            'total_nominal' => 'Total Nominal (HPP / Modal Stok)',
         ],
         'column' => [
             'name' => 'Nama Barang',
