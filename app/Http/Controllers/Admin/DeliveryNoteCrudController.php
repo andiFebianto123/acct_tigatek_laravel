@@ -355,7 +355,8 @@ class DeliveryNoteCrudController extends CrudController
         $search = $request->input('q');
         $company_id = $request->input('company_id');
 
-        $query = ClientPo::select(['id', 'po_number']);
+        $query = ClientPo::select(['id', 'po_number'])
+            ->where('category', '!=', 'general');
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);

@@ -29,6 +29,8 @@ class ProformaInvoiceSaveData
         public readonly ?string $term = null,
         public readonly ?string $currency_code = 'IDR',
         public readonly ?string $pic = null,
+        public readonly ?string $category = 'rutin',
+        public readonly ?string $status = 'Unpaid',
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -85,6 +87,8 @@ class ProformaInvoiceSaveData
             term: $request->term,
             currency_code: $request->currency_code ?? 'IDR',
             pic: $request->pic,
+            category: $request->input('category', 'rutin'),
+            status: $request->input('status', 'Unpaid') ?: 'Unpaid',
         );
     }
 }

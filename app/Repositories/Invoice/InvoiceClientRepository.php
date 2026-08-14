@@ -90,7 +90,10 @@ class InvoiceClientRepository
                     'name' => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
                     'description' => $query->where('invoice_clients.description', 'like', "%{$value}%"),
                     'client_po_id' => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
-                    'client_name' => $query->whereHas('client_po.client', fn($q) => $q->where('name', 'like', "%{$value}%")),
+                    'client_name' => $query->where(function ($q) use ($value) {
+                        $q->whereHas('client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
+                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
+                    }),
                     'price_total_exclude_ppn' => $query->where('invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
                     'price_total_include_ppn' => $query->where('invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
                     'discount_pph' => $query->where('invoice_clients.discount_pph', 'like', "%{$value}%"),
@@ -107,11 +110,22 @@ class InvoiceClientRepository
                     2 => $query->where('invoice_clients.kdp', 'like', "%{$value}%"),
                     3 => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
                     4 => $query->where('invoice_clients.description', 'like', "%{$value}%"),
-                    6 => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
-                    8 => $query->whereHas('client_po.client', fn($q) => $q->where('name', 'like', "%{$value}%")),
-                    9 => $query->where('invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
-                    10 => $query->where('invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
-                    11 => $query->where('invoice_clients.discount_pph', 'like', "%{$value}%"),
+                    5 => $query->where('invoice_clients.invoice_date', 'like', "%{$value}%"),
+                    6 => $query->where('invoice_clients.category', 'like', "%{$value}%"),
+                    7 => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
+                    8 => $query->where('client_po.date_po', 'like', "%{$value}%"),
+                    9 => $query->where(function ($q) use ($value) {
+                        $q->whereHas('client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
+                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
+                    }),
+                    10 => $query->where('invoice_clients.currency_code', 'like', "%{$value}%"),
+                    11 => $query->where('invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
+                    12 => $query->where('invoice_clients.price_total_exclude_ppn_base', 'like', "%{$value}%"),
+                    13 => $query->where('invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
+                    14 => $query->where('invoice_clients.discount_pph', 'like', "%{$value}%"),
+                    15 => $query->where('invoice_clients.send_invoice_normal_date', 'like', "%{$value}%"),
+                    16 => $query->where('invoice_clients.send_invoice_revision_date', 'like', "%{$value}%"),
+                    17 => $query->where('invoice_clients.status', 'like', "%{$value}%"),
                     default => null
                 };
             }

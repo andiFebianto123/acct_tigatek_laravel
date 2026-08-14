@@ -188,6 +188,15 @@ class ProformaInvoiceCrudController extends CrudController
             ->label(trans('backpack::crud.proforma_invoice.field.invoice_date.label'))
             ->type('date');
 
+        $this->crud->filter('category11crudTable-invoice')
+            ->label(trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori')
+            ->type('dropdown')
+            ->values([
+                'all' => 'Semua Kategori',
+                'rutin' => 'Rutin',
+                'non_rutin' => 'Non Rutin',
+            ]);
+
         $this->crud->filter('po_date11crudTable-invoice')
             ->label(trans('backpack::crud.invoice_client.column.po_date'))
             ->type('date');
@@ -199,6 +208,8 @@ class ProformaInvoiceCrudController extends CrudController
         // $this->crud->filter('send_invoice_revision11crudTable-invoice')
         //     ->label(trans('backpack::crud.invoice_client.column.send_invoice_revision'))
         //     ->type('date');
+
+        $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
 
         $columns = [
             [
@@ -229,6 +240,22 @@ class ProformaInvoiceCrudController extends CrudController
                 'label'  => trans('backpack::crud.proforma_invoice.column.invoice_date'),
                 'name' => 'invoice_date',
                 'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label'  => trans('backpack::crud.invoice_client.column.category') ?? 'Kategori',
+                'name' => 'category',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) {
+                    $cat = $entry->category ?? 'rutin';
+                    $label = ($cat === 'non_rutin') ? 'Non Rutin' : 'Rutin';
+                    if ($status_file !== null && $status_file !== '') {
+                        return $label;
+                    }
+                    $badgeClass = ($cat === 'non_rutin') ? 'badge bg-warning text-dark' : 'badge bg-info text-white';
+                    return '<span class="' . $badgeClass . '">' . e($label) . '</span>';
+                },
+                'escaped' => false,
                 'orderable' => true,
             ],
             [
@@ -271,6 +298,21 @@ class ProformaInvoiceCrudController extends CrudController
                 'label'  => trans('backpack::crud.proforma_invoice.column.amount'),
                 'name' => 'price_total_include_ppn',
                 'type'  => 'text',
+                'orderable' => true,
+            ],
+            [
+                'label' => trans('backpack::crud.invoice_client.column.status') ?? 'Status',
+                'name'  => 'status',
+                'type'  => 'closure',
+                'function' => function ($entry) use ($status_file) {
+                    $st = $entry->status ?? 'Unpaid';
+                    if ($status_file !== null && $status_file !== '') {
+                        return $st;
+                    }
+                    $badgeClass = ($st === 'Paid') ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+                    return '<span class="' . $badgeClass . '">' . e($st) . '</span>';
+                },
+                'escaped' => false,
                 'orderable' => true,
             ],
             [
@@ -404,7 +446,7 @@ class ProformaInvoiceCrudController extends CrudController
 
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
-        // CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
+        CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
         CRUD::addButtonFromView('line', 'show', 'show', 'end');
         CRUD::addButtonFromView('line', 'update', 'update', 'end');
@@ -467,6 +509,22 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.column.category') ?? 'Kategori',
+            'name'  => 'category',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                $cat = $entry->category ?? 'rutin';
+                $label = ($cat === 'non_rutin') ? 'Non Rutin' : 'Rutin';
+                if ($status_file !== null && $status_file !== '') {
+                    return $label;
+                }
+                $badgeClass = ($cat === 'non_rutin') ? 'badge bg-warning text-dark' : 'badge bg-info text-white';
+                return '<span class="' . $badgeClass . '">' . e($label) . '</span>';
+            },
+            'escaped' => false,
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.proforma_invoice.column.subkon_name'),
             'type'      => 'closure',
             'name'      => 'subkon_name',
@@ -526,6 +584,21 @@ class ProformaInvoiceCrudController extends CrudController
             'function' => function ($entry) use ($status_file) {
                 return CustomHelper::formatCurrency($entry->price_total_include_ppn, $entry->currency_code ?? 'IDR', $status_file == 'excel');
             },
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.column.status') ?? 'Status',
+            'name'  => 'status',
+            'type'  => 'closure',
+            'function' => function ($entry) use ($status_file) {
+                $st = $entry->status ?? 'Unpaid';
+                if ($status_file !== null && $status_file !== '') {
+                    return $st;
+                }
+                $badgeClass = ($st === 'Paid') ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+                return '<span class="' . $badgeClass . '">' . e($st) . '</span>';
+            },
+            'escaped' => false,
         ]);
 
         CRUD::column([
@@ -719,6 +792,33 @@ class ProformaInvoiceCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.proforma_invoice.field.invoice_date.placeholder')
             ]
+        ]);
+
+        CRUD::addField([
+            'name'        => 'category',
+            'label'       => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'rutin'     => 'Rutin',
+                'non_rutin' => 'Non Rutin',
+            ],
+            'default'     => 'rutin',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'status',
+            'label'       => trans('backpack::crud.invoice_client.field.status.label') ?? 'Status',
+            'type'        => 'select_from_array',
+            'options'     => ['Unpaid' => 'Unpaid', 'Paid' => 'Paid'],
+            'default'     => 'Unpaid',
+            'allows_null' => false,
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
         ]);
 
         CRUD::addField([
@@ -1118,6 +1218,20 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'    => 'category',
+            'label'   => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'type'    => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
+            'name'    => 'status',
+            'label'   => trans('backpack::crud.invoice_client.field.status.label') ?? 'Status',
+            'type'    => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
             'name' => 'subkon_id',
             'label' => trans('backpack::crud.proforma_invoice.field.subkon_id.label'),
             'type' => 'select',
@@ -1214,6 +1328,27 @@ class ProformaInvoiceCrudController extends CrudController
             'name' => 'invoice_date',
             'type'  => 'date',
             'format' => $new_format_date,
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'name'     => 'category',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                return $entry->category === 'non_rutin' ? 'Non Rutin' : 'Rutin';
+            }
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.status.label') ?? 'Status',
+            'name'     => 'status',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $status = $entry->status ?? 'Unpaid';
+                $badgeClass = ($status === 'Paid') ? 'badge bg-success text-white' : 'badge bg-danger text-white';
+                return '<span class="' . $badgeClass . '">' . e($status) . '</span>';
+            },
+            'escaped'  => false,
         ]);
 
         CRUD::column([

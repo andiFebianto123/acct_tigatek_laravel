@@ -1198,7 +1198,7 @@ class ClientPoCrudController extends CrudController
             'type' => 'upload',
             'hint' => trans('backpack::crud.client_po.field.document_path.hint'),
             'attributes' => [
-                'accept' => '.pdf'
+                'accept' => '.pdf,.jpg,.jpeg,.png'
             ],
             'wrapper'   => [
                 'class' => 'form-group col-md-6 manual-segment'
@@ -1572,7 +1572,7 @@ class ClientPoCrudController extends CrudController
             'type' => 'upload',
             'hint' => trans('backpack::crud.client_po.field.document_path.hint'),
             'attributes' => [
-                'accept' => '.pdf'
+                'accept' => '.pdf,.jpg,.jpeg,.png'
             ],
             'wrapper'   => [
                 'class' => 'form-group col-md-6'

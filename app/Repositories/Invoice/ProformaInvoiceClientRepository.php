@@ -38,6 +38,10 @@ class ProformaInvoiceClientRepository
             $query->where('proforma_invoice_clients.status', $dto->filter_paid_status);
         }
 
+        if ($dto->category && $dto->category != 'all') {
+            $query->where('proforma_invoice_clients.category', $dto->category);
+        }
+
         if ($dto->filter_year && $dto->filter_year != 'all') {
             $query->whereYear('proforma_invoice_clients.invoice_date', $dto->filter_year);
         }
@@ -73,7 +77,9 @@ class ProformaInvoiceClientRepository
                 match ($name) {
                     'company' => $query->where('companies.name', 'like', "%{$value}%"),
                     'invoice_number' => $query->where('proforma_invoice_clients.invoice_number', 'like', "%{$value}%"),
-                    'invoice_date' => $query->where('proforma_invoice_clients.invoice_date', 'like', "%{$value}%"),
+                    'category' => $query->where('proforma_invoice_clients.category', 'like', "%{$value}%"),
+                    'status' => $query->where('proforma_invoice_clients.status', 'like', "%{$value}%"),
+                    'invoice_date' => $query->where('proforma_invoice_clients.invoice_date', 'like', "{$value}%"),
                     'description' => $query->where('proforma_invoice_clients.description', 'like', "%{$value}%"),
                     'client_name' => $query->where('clients.name', 'like', "%{$value}%"),
                     'price_total_exclude_ppn' => $query->where('proforma_invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
@@ -90,14 +96,16 @@ class ProformaInvoiceClientRepository
                 match ($index - $offset) {
                     1 => $query->where('proforma_invoice_clients.invoice_number', 'like', "%{$value}%"),
                     2 => $query->where('proforma_invoice_clients.invoice_date', 'like', "%{$value}%"),
-                    3 => $query->where('clients.name', 'like', "%{$value}%"),
-                    4 => $query->where('proforma_invoice_clients.currency_code', 'like', "%{$value}%"),
-                    5 => $query->where('proforma_invoice_clients.description', 'like', "%{$value}%"),
-                    6 => $query->where('proforma_invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
-                    7 => $query->where('proforma_invoice_clients.price_total_exclude_ppn_base', 'like', "%{$value}%"),
-                    8 => $query->where('proforma_invoice_clients.tax_ppn', 'like', "%{$value}%"),
-                    9 => $query->where('proforma_invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
-                    10 => $query->where('proforma_invoice_clients.note', 'like', "%{$value}%"),
+                    3 => $query->where('proforma_invoice_clients.category', 'like', "%{$value}%"),
+                    4 => $query->where('clients.name', 'like', "%{$value}%"),
+                    5 => $query->where('proforma_invoice_clients.currency_code', 'like', "%{$value}%"),
+                    6 => $query->where('proforma_invoice_clients.description', 'like', "%{$value}%"),
+                    7 => $query->where('proforma_invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
+                    8 => $query->where('proforma_invoice_clients.price_total_exclude_ppn_base', 'like', "%{$value}%"),
+                    9 => $query->where('proforma_invoice_clients.tax_ppn', 'like', "%{$value}%"),
+                    10 => $query->where('proforma_invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
+                    11 => $query->where('proforma_invoice_clients.status', 'like', "{$value}%"),
+                    12 => $query->where('proforma_invoice_clients.note', 'like', "%{$value}%"),
                     default => null
                 };
             }

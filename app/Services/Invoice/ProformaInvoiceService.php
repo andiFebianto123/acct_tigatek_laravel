@@ -25,7 +25,7 @@ class ProformaInvoiceService
                 $invoice->invoice_document = $path;
             }
 
-            $invoice->status = 'Unpaid';
+            $invoice->status = $dto->status ?? 'Unpaid';
             $invoice->save();
 
             $this->saveDetails($invoice, $dto->proforma_invoice_details);
@@ -104,6 +104,8 @@ class ProformaInvoiceService
         $invoice->term = $dto->term;
         $invoice->subkon_id = $dto->subkon_id;
         $invoice->pic = $dto->pic;
+        $invoice->category = $dto->category ?? ($invoice->category ?? 'rutin');
+        $invoice->status = $dto->status ?? ($invoice->status ?? 'Unpaid');
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float

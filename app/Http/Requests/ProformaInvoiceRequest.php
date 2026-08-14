@@ -44,6 +44,7 @@ class ProformaInvoiceRequest extends FormRequest
             'client_po_id' => 'nullable|exists:client_po,id',
             'currency_code' => 'nullable|in:IDR,USD',
             'status' => 'nullable|in:Paid,Unpaid',
+            'category' => 'nullable|in:rutin,non_rutin',
             'withholding_agent' => 'nullable|in:WAPU,NON WAPU',
             'account_source_id' => 'nullable|exists:cast_accounts,id',
             'note' => 'nullable|string|max:500',

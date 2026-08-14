@@ -1806,7 +1806,7 @@ class InvoiceClientCrudController extends CrudController
             'type'      => 'closure',
             'name'      => 'client_name',
             'function' => function ($entry) {
-                return $entry->client_po?->client?->name;
+                return $entry->client?->name ?? $entry->client_po?->client?->name;
             }
         ]);
 

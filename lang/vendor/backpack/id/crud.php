@@ -629,7 +629,7 @@ return [
             ],
             'document_path' => [
                 'label' => 'Upload Dokumen PO',
-                'hint' => 'Maksimal 35 MB (PDF)',
+                'hint' => 'Maksimal 35 MB (PDF, JPG, JPEG, PNG)',
             ],
             'date_invoice' => [
                 'label' => 'Tanggal Invoice',

@@ -30,6 +30,7 @@ class ProformaInvoiceClientRequest extends FormRequest
             'invoice_number' => 'required|min:3|max:50|unique:proforma_invoice_clients,invoice_number,' . $id,
             'invoice_date' => 'required',
             'status' => 'nullable|in:Paid,Unpaid',
+            'category' => 'nullable|in:rutin,non_rutin',
             'withholding_agent' => 'nullable|in:WAPU,NON WAPU',
             'account_source_id' => 'nullable|exists:cast_accounts,id',
             'note' => 'nullable|string|max:500',

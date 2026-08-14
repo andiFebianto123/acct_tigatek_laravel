@@ -48,7 +48,7 @@ class ClientPoRequest extends FormRequest
             'end_date' => 'nullable|date',
             'reimburse_type' => 'required|max:50',
             // 'price_total' => 'required|numeric',
-            'document_path' => ValidUpload::field('nullable')->file('mimes:pdf|max:35840'),
+            'document_path' => ValidUpload::field('nullable')->file('mimes:pdf,jpg,jpeg,png|max:35840'),
             'date_invoice' => 'nullable|date',
             'rap_value' => 'required|numeric',
             // 'price_after_year' => 'required|numeric',
@@ -67,7 +67,7 @@ class ClientPoRequest extends FormRequest
             'tax_ppn' => 'nullable|numeric',
             'reimburse_type' => 'nullable|max:50',
             'load_general_value' => 'nullable|numeric',
-            'document_path' => ValidUpload::field('nullable')->file('mimes:pdf|max:35840'),
+            'document_path' => ValidUpload::field('nullable')->file('mimes:pdf,jpg,jpeg,png|max:35840'),
             'category' => 'nullable',
         ];
 

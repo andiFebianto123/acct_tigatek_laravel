@@ -15,6 +15,7 @@ class ProformaInvoiceFilterData
         public readonly ?string $filter_paid_status = null,
         public readonly ?string $filter_year = null,
         public readonly ?int $company_id = null,
+        public readonly ?string $category = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -27,7 +28,8 @@ class ProformaInvoiceFilterData
             send_invoice_revision: $request->send_invoice_revision,
             filter_paid_status: $request->filter_paid_status,
             filter_year: $request->filter_year,
-            company_id: (int) $request->company_id,
+            company_id: $request->company_id ? (int) $request->company_id : null,
+            category: $request->category,
         );
     }
 }

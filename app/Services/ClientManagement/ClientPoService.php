@@ -26,10 +26,7 @@ class ClientPoService
                 // Auto generate work_code for Supplier PO
                 if (($attributes['po_type'] ?? null) === 'supplier') {
                     if (empty($attributes['work_code']) || !str_starts_with($attributes['work_code'], 'WRK-')) {
-                        do {
-                            $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
-                        } while (ClientPo::where('work_code', $uniqueCode)->exists());
-                        $attributes['work_code'] = $uniqueCode;
+                        $attributes['work_code'] = $this->generateUniqueWorkCode();
                     }
                 }
 
@@ -60,13 +57,14 @@ class ClientPoService
                 $attributes = $data->toArray();
 
                 // Populate from this specific quotation
+                $attributes['po_type'] = 'supplier';
+                $attributes['work_code'] = $this->generateUniqueWorkCode();
                 $attributes['client_id'] = $quotation->client_id;
                 $attributes['company_id'] = $quotation->company_id;
                 $attributes['job_name'] = $quotation->job_name;
                 $attributes['job_value'] = $quotation->job_value;
                 $attributes['rap_value'] = $quotation->rap_value;
                 $attributes['tax_ppn'] = $quotation->tax_ppn;
-                $attributes['work_code'] = $quotation->work_code;
                 $attributes['po_number'] = $quotation->po_number ?? '-';
                 $attributes['reimburse_type'] = $quotation->reimburse_type;
                 $attributes['category'] = $quotation->category;
@@ -76,13 +74,26 @@ class ClientPoService
                 $attributes['date_po'] = $quotation->date_po;
                 $attributes['document_path'] = $quotation->document_path;
 
+                // Sync and calculate multi-currency fields
+                $currencyCode = $quotation->currency_code ?? 'IDR';
+                $exchangeRate = (float) ($quotation->exchange_rate ?? 1.0);
+                if ($currencyCode === 'USD' && $exchangeRate <= 1.0) {
+                    $usdRate = \App\Models\Setting::first()->usd_rate ?? 16000;
+                    $exchangeRate = (float) $usdRate;
+                }
+
+                $attributes['currency_code'] = $currencyCode;
+                $attributes['exchange_rate'] = $exchangeRate;
+                $attributes['rap_value_base'] = ($quotation->rap_value ?? 0) * $exchangeRate;
+                $attributes['job_value_base'] = ($quotation->job_value ?? 0) * $exchangeRate;
+                $attributes['job_value_include_ppn'] = ($quotation->job_value ?? 0) + (($quotation->job_value ?? 0) * (($quotation->tax_ppn ?? 0) / 100));
+                $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+
                 // If user uploaded a new file in the form, use it instead of quotation's file
                 if ($data->document_path instanceof UploadedFile) {
                     $attributes['document_path'] = $this->handleFileUpload($data->document_path);
                 }
 
-                // Re-calculate or ensure values are set correctly
-                $attributes['job_value_include_ppn'] = $attributes['job_value'] + ($attributes['job_value'] * ($attributes['tax_ppn'] / 100));
                 $attributes['price_after_year'] = 0;
                 $attributes['price_total'] = 0;
                 $attributes['load_general_value'] = 0;
@@ -115,10 +126,7 @@ class ClientPoService
             // Auto generate work_code for Supplier PO
             if (($attributes['po_type'] ?? null) === 'supplier') {
                 if (empty($attributes['work_code']) || !str_starts_with($attributes['work_code'], 'WRK-')) {
-                    do {
-                        $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
-                    } while (ClientPo::where('work_code', $uniqueCode)->exists());
-                    $attributes['work_code'] = $uniqueCode;
+                    $attributes['work_code'] = $this->generateUniqueWorkCode();
                 }
             }
 
@@ -216,6 +224,18 @@ class ClientPoService
                 ->whereNull('client_po_id')
                 ->update(['client_po_id' => $clientPo->id]);
         }
+    }
+
+    /**
+     * Generate a unique work_code with prefix WRK-.
+     */
+    private function generateUniqueWorkCode(): string
+    {
+        do {
+            $uniqueCode = 'WRK-' . strtoupper(Str::random(8));
+        } while (ClientPo::where('work_code', $uniqueCode)->exists());
+
+        return $uniqueCode;
     }
 
     /**
