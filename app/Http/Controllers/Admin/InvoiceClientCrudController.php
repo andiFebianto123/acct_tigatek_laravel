@@ -1265,6 +1265,22 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'document_imei_iccid',
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
+            'type' => 'upload',
+            'upload' => true,
+            'disk' => 'public',
+            'prefix' => 'document_imei_iccid/',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'accept' => '.xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv',
+            ],
+            'hint' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.hint') ?? 'Format yang didukung: .xlsx, .xls, .csv (Maksimal 10MB)',
+        ]);
+
+        CRUD::addField([
             'name'        => 'type_device',
             'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
             'type'        => 'select_from_array',
@@ -1520,6 +1536,7 @@ class InvoiceClientCrudController extends CrudController
         $new_format_date = 'DD/MM/YYYY';
 
         $this->crud->query = $this->crud->query
+            ->with(['client', 'delivery_note', 'account_source', 'company'])
             ->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id');
         CRUD::addClause('select', [
             DB::raw("
@@ -1551,23 +1568,23 @@ class InvoiceClientCrudController extends CrudController
             ]);
         }
 
-        // --- FIELDS (LABELS) ---
+        // --- FIELDS (LABELS & GRID LAYOUT) ---
 
         CRUD::addField([
             'name' => 'invoice_number',
             'label' => trans('backpack::crud.invoice_client.field.invoice_number.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-12',
+                'class' => 'form-group col-md-6',
             ],
         ]);
 
         CRUD::addField([
-            'name' => 'name_label',
-            'label' => trans('backpack::crud.invoice_client.column.name'),
+            'name' => 'pic',
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-12',
+                'class' => 'form-group col-md-6',
             ],
         ]);
 
@@ -1581,11 +1598,38 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'        => 'category_label',
+            'label'       => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'type'        => 'text',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'client_name',
             'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'delivery_note_label',
+            'label'       => trans('backpack::crud.invoice_client.field.delivery_note_id.label'),
+            'type'        => 'text',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'name_label',
+            'label' => trans('backpack::crud.invoice_client.column.name'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
             ],
         ]);
 
@@ -1626,20 +1670,29 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'nominal_exclude_ppn',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
-            'type' => 'text',
-            'wrapper'   => [
+            'name'        => 'currency_code_label',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Mata Uang',
+            'type'        => 'text',
+            'wrapper'     => [
                 'class' => 'form-group col-md-6',
             ],
         ]);
 
         CRUD::addField([
-            'name' => 'dpp_other',
-            'label' => trans('backpack::crud.invoice_client.field.dpp_other.label'),
+            'name'        => 'type_device_label',
+            'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'type'        => 'text',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'nominal_exclude_ppn',
+            'label' => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-6'
+                'class' => 'form-group col-md-6',
             ],
         ]);
 
@@ -1676,6 +1729,24 @@ class InvoiceClientCrudController extends CrudController
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'nominal_information',
+            'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'dpp_other',
+            'label' => trans('backpack::crud.invoice_client.field.dpp_other.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
             ],
         ]);
 
@@ -1734,17 +1805,17 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'nominal_information',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
+            'name' => 'invoice_document_label',
+            'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-6',
+                'class' => 'form-group col-md-12',
             ],
         ]);
 
         CRUD::addField([
-            'name' => 'invoice_document_label',
-            'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
+            'name' => 'document_imei_iccid_label',
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
@@ -1770,53 +1841,70 @@ class InvoiceClientCrudController extends CrudController
             ],
         ]);
 
-        // --- COLUMNS (VALUES) ---
+        // --- COLUMNS (VALUES SINKRON 1-KE-1 DENGAN FIELDS) ---
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.invoice_number.label'),
-                'name' => 'invoice_number',
-                'type'  => 'text'
-            ],
-        );
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.invoice_number.label'),
+            'name' => 'invoice_number',
+            'type'  => 'text'
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.column.name'),
-                'name' => 'name',
-                'type'  => 'closure',
-                'width_box' => '100%',
-                'function' => function ($entry) {
-                    return $entry->client_po?->job_name;
-                }
-            ],
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'name'  => 'pic',
+            'type'  => 'text',
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.invoice_date.label'),
-                'name' => 'invoice_date',
-                'type'  => 'date',
-                'format' => $new_format_date,
-            ],
-        );
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.invoice_date.label'),
+            'name' => 'invoice_date',
+            'type'  => 'date',
+            'format' => $new_format_date,
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.category.label') ?? 'Kategori',
+            'name'     => 'category',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                return $entry->category === 'non_rutin' ? 'Non Rutin' : 'Rutin';
+            }
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.client_id.label'),
             'type'      => 'closure',
             'name'      => 'client_name',
             'function' => function ($entry) {
-                return $entry->client?->name ?? $entry->client_po?->client?->name;
+                return $entry->client?->name ?? $entry->client_po?->client?->name ?? '-';
             }
         ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.address.label'),
-                'name' => 'address_po',
-                'type'  => 'text'
-            ],
-        );
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.delivery_note_id.label'),
+            'name'     => 'delivery_note_id',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $dn = $entry->delivery_note ?? \App\Models\DeliveryNote::where('invoice_client_id', $entry->id)->first();
+                return $dn?->number ?? '-';
+            }
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.column.name'),
+            'name' => 'name',
+            'type'  => 'closure',
+            'width_box' => '100%',
+            'function' => function ($entry) {
+                return $entry->client_po?->job_name ?? '-';
+            }
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.address.label'),
+            'name' => 'address_po',
+            'type'  => 'text'
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.client_po_id.label'),
@@ -1827,161 +1915,157 @@ class InvoiceClientCrudController extends CrudController
             'model'     => "App\Models\ClientPo",
         ]);
 
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-                'name' => 'po_date_from_po',
-                'type' => 'date',
-                'format' => $new_format_date,
-            ]
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.description.label'),
-                'name' => 'description',
-                'type'  => 'closure',
-                'width_box' => '100%',
-                'function' => function ($entry) {
-                    return $entry->description;
-                },
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
-                'name' => 'price_total_exclude_ppn',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->price_total_exclude_ppn, $entry->currency_code ?? 'IDR');
-                },
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.dpp_other.label'),
-                'name' => 'price_dpp',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->price_dpp, $entry->currency_code ?? 'IDR');
-                },
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.tax_ppn.label'),
-                'name' => 'tax_ppn',
-                'type'  => 'number',
-                'suffix' => '%',
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.nominal_include_ppn.label'),
-                'name' => 'price_total_include_ppn',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->price_total_include_ppn, $entry->currency_code ?? 'IDR');
-                },
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.pph.label'),
-                'name' => 'pph',
-                'type'  => 'number',
-                'suffix' => '%',
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.invoice_client.field.discount_pph.label'),
-                'name' => 'discount_pph',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->discount_pph, $entry->currency_code ?? 'IDR');
-                },
-            ],
-        );
-
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
-                'name' => 'kdp',
-                'type' => 'text',
-            ]
-        );
-
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
-                'name' => 'withholding_agent',
-                'type' => 'text',
-            ]
-        );
-
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.send_invoice_normal.label'),
-                'name' => 'send_invoice_normal_date',
-                'type' => 'date',
-                'format' => $new_format_date,
-            ]
-        );
-
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.send_invoice_revision.label'),
-                'name' => 'send_invoice_revision_date',
-                'type' => 'date',
-                'format' => $new_format_date,
-            ]
-        );
-
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.status.label'),
-                'name' => 'status',
-                'type' => 'text',
-            ]
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
+            'name' => 'po_date_from_po',
+            'type' => 'date',
+            'format' => $new_format_date,
+        ]);
 
         CRUD::column([
-            'label'     => trans('backpack::crud.voucher.field.account_source_id.label'),
-            'type'      => 'wrap_text',
-            'name'      => 'account_source_label',
+            'label'  => trans('backpack::crud.invoice_client.field.description.label'),
+            'name' => 'description',
+            'type'  => 'closure',
+            'width_box' => '100%',
+            'function' => function ($entry) {
+                return $entry->description ?? '-';
+            },
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Mata Uang',
+            'name'     => 'currency_code',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $code = $entry->currency_code ?? 'IDR';
+                $badgeClass = ($code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
+                return '<span class="' . $badgeClass . '">' . e($code) . '</span>';
+            },
+            'escaped'  => false,
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'name'     => 'type_device',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                return match ($entry->type_device) {
+                    'App\Models\DeviceStock'    => 'Persediaan',
+                    'App\Models\BillingDevice'  => 'Billing Device',
+                    'App\Models\BillingSimcard' => 'Billing SIMCARD',
+                    default                     => '-',
+                };
+            }
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.nominal_exclude_ppn.label'),
+            'name' => 'price_total_exclude_ppn',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->price_total_exclude_ppn, $entry->currency_code ?? 'IDR');
+            },
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.tax_ppn.label'),
+            'name' => 'tax_ppn',
+            'type'  => 'number',
+            'suffix' => '%',
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.nominal_include_ppn.label'),
+            'name' => 'price_total_include_ppn',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->price_total_include_ppn, $entry->currency_code ?? 'IDR');
+            },
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.pph.label'),
+            'name' => 'pph',
+            'type'  => 'number',
+            'suffix' => '%',
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.discount_pph.label'),
+            'name' => 'discount_pph',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->discount_pph, $entry->currency_code ?? 'IDR');
+            },
         ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'name' => 'price_total',
             'type' => 'closure',
-            // 'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : 'Rp.',
-            // 'decimals'      => 2,
-            // 'dec_point'     => ',',
-            // 'thousands_sep' => '.',
             'function' => function ($entry) {
-                if ($entry->withholding_agent == "NON WAPU" || $entry->withholding_agent == "" || $entry->withholding_agent == null) {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total);
-                } else if ($entry->withholding_agent == "WAPU") {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total_exclude_ppn - $entry->discount_pph);
-                } else {
-                    return CustomHelper::formatRupiahWithCurrency($entry->price_total);
-                }
+                $total = ($entry->withholding_agent == "WAPU")
+                    ? ($entry->price_total_exclude_ppn - $entry->discount_pph)
+                    : $entry->price_total;
+                return CustomHelper::formatCurrency($total, $entry->currency_code ?? 'IDR');
             }
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
-            'name' => 'term',
-            'type'  => 'custom_html',
-            'value' => $this->crud->getCurrentEntry()?->term,
+            'label'  => trans('backpack::crud.invoice_client.field.dpp_other.label'),
+            'name' => 'price_dpp',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->price_dpp, $entry->currency_code ?? 'IDR');
+            },
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
+            'name' => 'kdp',
+            'type' => 'text',
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
+            'name' => 'withholding_agent',
+            'type' => 'text',
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.send_invoice_normal.label'),
+            'name' => 'send_invoice_normal_date',
+            'type' => 'date',
+            'format' => $new_format_date,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.send_invoice_revision.label'),
+            'name' => 'send_invoice_revision_date',
+            'type' => 'date',
+            'format' => $new_format_date,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.status.label'),
+            'name' => 'status',
+            'type' => 'closure',
+            'function' => function ($entry) {
+                $status = $entry->status ?? 'Unpaid';
+                $badgeClass = match ($status) {
+                    'Paid'    => 'badge bg-success text-white',
+                    'Partial' => 'badge bg-warning text-dark',
+                    default   => 'badge bg-danger text-white',
+                };
+                return '<span class="' . $badgeClass . '">' . e($status) . '</span>';
+            },
+            'escaped' => false,
+        ]);
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'      => 'wrap_text',
+            'name'      => 'account_source_label',
         ]);
 
         CRUD::column([
@@ -1993,20 +2077,41 @@ class InvoiceClientCrudController extends CrudController
                 if ($entry->invoice_document) {
                     $url = asset('storage/' . $entry->invoice_document);
                     $filename = basename($entry->invoice_document);
-                    return '<a href="' . $url . '" target="_blank"><i class="la la-file-pdf"></i> ' . $filename . '</a>';
+                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-danger"><i class="la la-file-pdf"></i> ' . e($filename) . '</a>';
                 }
-                return '';
+                return '-';
             },
             'escaped' => false,
         ]);
 
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.field.item.label'),
-                'name' => 'list_invoice',
-                'type' => 'list-invoice',
-            ]
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
+            'name' => 'document_imei_iccid',
+            'type' => 'closure',
+            'width_box' => '400px',
+            'function' => function ($entry) {
+                if ($entry->document_imei_iccid) {
+                    $url = asset('storage/' . $entry->document_imei_iccid);
+                    $filename = basename($entry->document_imei_iccid);
+                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="la la-file-excel"></i> ' . e($filename) . '</a>';
+                }
+                return '-';
+            },
+            'escaped' => false,
+        ]);
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.item.label'),
+            'name' => 'list_invoice',
+            'type' => 'list-invoice',
+        ]);
     }
 
     public function show($id)

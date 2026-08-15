@@ -2498,6 +2498,10 @@ return [
             'term' => [
                 'label' => 'Keterangan Term',
                 'placeholder' => 'Masukan keterangan term',
+            ],
+            'document_imei_iccid' => [
+                'label' => 'Upload Dokumen IMEI/ICCID',
+                'hint'  => 'Format yang didukung: .xlsx, .xls, .csv (Maksimal 10MB)',
             ]
         ],
     ],

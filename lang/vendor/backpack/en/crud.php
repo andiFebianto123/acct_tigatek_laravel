@@ -741,4 +741,45 @@ return [
             'delivery_status' => 'Delivery Status',
         ],
     ],
+    'proforma_invoice' => [
+        'title_header' => 'Proforma Invoice',
+        'title_modal_create' => 'Proforma Invoice Data',
+        'title_modal_edit' => 'Proforma Invoice Data',
+        'title_modal_delete' => 'Proforma Invoice',
+        'column' => [
+            'invoice_number' => 'PI No.',
+            'invoice_date' => 'Date',
+            'subkon_name' => 'Subcon Name',
+            'unit_price' => 'Unit Price',
+            'ppn' => 'PPN',
+            'amount' => 'Amount',
+            'note' => 'Notes',
+        ],
+        'field' => [
+            'invoice_number' => [
+                'label' => 'PI No.',
+                'placeholder' => 'Enter PI number',
+            ],
+            'invoice_date' => [
+                'label' => 'Date',
+                'placeholder' => 'Select date',
+            ],
+            'subkon_id' => [
+                'label' => 'Subcon Name',
+                'placeholder' => '- SELECT SUBCON',
+            ],
+            'note' => [
+                'label' => 'Notes',
+                'placeholder' => 'Enter additional notes',
+            ],
+            'term' => [
+                'label' => 'Term Details',
+                'placeholder' => 'Enter term details',
+            ],
+            'document_imei_iccid' => [
+                'label' => 'Upload Dokumen IMEI/ICCID',
+                'hint'  => 'Supported format: .xlsx, .xls, .csv (Max 10MB)',
+            ],
+        ],
+    ],
 ];

@@ -129,6 +129,12 @@ class InvoiceClientService
                 $invoice->invoice_document = $path;
             }
 
+            if ($dto->document_imei_iccid) {
+                $filename = time() . '_' . $dto->document_imei_iccid->getClientOriginalName();
+                $path = $dto->document_imei_iccid->storeAs('document_imei_iccid', $filename, 'public');
+                $invoice->document_imei_iccid = $path;
+            }
+
             $invoice->status = 'Unpaid';
             $invoice->save();
 
@@ -267,6 +273,15 @@ class InvoiceClientService
                 $invoice->invoice_document = $path;
             }
 
+            if ($dto->document_imei_iccid) {
+                if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
+                    Storage::disk('public')->delete($invoice->document_imei_iccid);
+                }
+                $filename = time() . '_' . $dto->document_imei_iccid->getClientOriginalName();
+                $path = $dto->document_imei_iccid->storeAs('document_imei_iccid', $filename, 'public');
+                $invoice->document_imei_iccid = $path;
+            }
+
             $invoice->save();
 
             // Revert mutasi stok FIFO invoice lama sebelum simpan detail baru
@@ -312,6 +327,13 @@ class InvoiceClientService
             // Revert stok FIFO jika invoice menggunakan Persediaan
             if ($invoice->type_device === \App\Models\DeviceStock::class) {
                 $this->revertFifoStock($invoice);
+            }
+
+            if ($invoice->invoice_document && Storage::disk('public')->exists($invoice->invoice_document)) {
+                Storage::disk('public')->delete($invoice->invoice_document);
+            }
+            if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
+                Storage::disk('public')->delete($invoice->document_imei_iccid);
             }
 
             $clientPo = ClientPo::where('id', $invoice->client_po_id)->first();

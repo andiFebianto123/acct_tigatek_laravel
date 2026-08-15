@@ -895,6 +895,22 @@ class ProformaInvoiceClientCrudController extends CrudController
             ],
         ]);
 
+        CRUD::addField([
+            'name' => 'document_imei_iccid',
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
+            'type' => 'upload',
+            'upload' => true,
+            'disk' => 'public',
+            'prefix' => 'document_imei_iccid/',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'accept' => '.xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv',
+            ],
+            'hint' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.hint') ?? 'Format yang didukung: .xlsx, .xls, .csv (Maksimal 10MB)',
+        ]);
+
         $id = request()->segment(4);
 
         if ($id && $id != 'create') {
@@ -1240,6 +1256,15 @@ class ProformaInvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'document_imei_iccid',
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
+            'type' => 'text',
+            'wrapper' => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'price_total',
             'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
             'type' => 'text',
@@ -1339,6 +1364,22 @@ class ProformaInvoiceClientCrudController extends CrudController
             'name' => 'term',
             'type'  => 'custom_html',
             'value' => $this->crud->getCurrentEntry()?->term,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.label') ?? 'Upload Dokumen IMEI/ICCID',
+            'name' => 'document_imei_iccid',
+            'type' => 'closure',
+            'width_box' => '400px',
+            'function' => function ($entry) {
+                if ($entry->document_imei_iccid) {
+                    $url = asset('storage/' . $entry->document_imei_iccid);
+                    $filename = basename($entry->document_imei_iccid);
+                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="la la-file-excel"></i> ' . e($filename) . '</a>';
+                }
+                return '-';
+            },
+            'escaped' => false,
         ]);
 
         CRUD::column([

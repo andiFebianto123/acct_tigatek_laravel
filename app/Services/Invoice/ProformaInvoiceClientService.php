@@ -25,6 +25,12 @@ class ProformaInvoiceClientService
                 $invoice->invoice_document = $path;
             }
 
+            if ($dto->document_imei_iccid) {
+                $filename = time() . '_' . $dto->document_imei_iccid->getClientOriginalName();
+                $path = $dto->document_imei_iccid->storeAs('document_imei_iccid', $filename, 'public');
+                $invoice->document_imei_iccid = $path;
+            }
+
             $invoice->status = $dto->status ?? 'Unpaid';
             $invoice->save();
 
@@ -53,6 +59,15 @@ class ProformaInvoiceClientService
                 $invoice->invoice_document = $path;
             }
 
+            if ($dto->document_imei_iccid) {
+                if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
+                    Storage::disk('public')->delete($invoice->document_imei_iccid);
+                }
+                $filename = time() . '_' . $dto->document_imei_iccid->getClientOriginalName();
+                $path = $dto->document_imei_iccid->storeAs('document_imei_iccid', $filename, 'public');
+                $invoice->document_imei_iccid = $path;
+            }
+
             $invoice->save();
 
             ProformaInvoiceClientDetail::where('proforma_invoice_client_id', $id)->delete();
@@ -68,6 +83,9 @@ class ProformaInvoiceClientService
             $invoice = ProformaInvoiceClient::findOrFail($id);
             if ($invoice->invoice_document && Storage::disk('public')->exists($invoice->invoice_document)) {
                 Storage::disk('public')->delete($invoice->invoice_document);
+            }
+            if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
+                Storage::disk('public')->delete($invoice->document_imei_iccid);
             }
             $invoice->delete();
         });

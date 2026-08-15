@@ -40,6 +40,7 @@ class ProformaInvoiceClientRequest extends FormRequest
             'pic' => 'required|string|max:150',
             'client_quotation_id' => 'nullable|exists:client_quotations,id',
             'client_id' => 'required|exists:clients,id',
+            'document_imei_iccid' => 'nullable|file|mimes:xlsx,xls,csv|max:10240',
         ];
 
         $currencyCode = request()->input('currency_code', 'IDR');
