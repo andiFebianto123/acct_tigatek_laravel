@@ -2195,28 +2195,20 @@ class InvoiceClientCrudController extends CrudController
 
         if ($attachmentPath) {
             try {
+                // Initialize mPDF with margins matching @page CSS (margin-top: 50mm = 5cm, bottom: 30px ~ 8mm, sides: 45px ~ 12mm)
                 $mpdf = new \Mpdf\Mpdf([
                     'mode' => 'utf-8',
                     'format' => 'A4',
-                    'margin_top' => 0,
-                    'margin_bottom' => 0,
-                    'margin_left' => 0,
-                    'margin_right' => 0,
+                    'margin_top' => 50,
+                    'margin_bottom' => 8,
+                    'margin_left' => 12,
+                    'margin_right' => 12,
+                    'autoPageBreak' => true,
                 ]);
 
-                // 1. Import pages from generated DomPDF invoice
-                $dompdfContent = $pdf->output();
-                $tempMainPdf = tempnam(sys_get_temp_dir(), 'inv_main_') . '.pdf';
-                file_put_contents($tempMainPdf, $dompdfContent);
-
-                $mainPageCount = $mpdf->setSourceFile($tempMainPdf);
-                for ($i = 1; $i <= $mainPageCount; $i++) {
-                    $templateId = $mpdf->importPage($i);
-                    $size = $mpdf->getTemplateSize($templateId);
-                    $mpdf->AddPage($size['orientation'], '', '', '', '', 0, 0, 0, 0, 0, 0);
-                    $mpdf->useTemplate($templateId);
-                }
-                @unlink($tempMainPdf);
+                // 1. Render invoice HTML directly into mPDF (no FPDI parsing needed for invoice)
+                $html = view('exports.invoice-client-single-pdf', $data)->render();
+                $mpdf->WriteHTML($html);
 
                 // 2. Import pages from IMEI / ICCID PDF attachment
                 $attachmentPageCount = $mpdf->setSourceFile($attachmentPath);
