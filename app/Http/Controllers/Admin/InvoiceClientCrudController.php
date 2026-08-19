@@ -2093,7 +2093,7 @@ class InvoiceClientCrudController extends CrudController
                 if ($entry->document_imei_iccid) {
                     $url = asset('storage/' . $entry->document_imei_iccid);
                     $filename = basename($entry->document_imei_iccid);
-                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="la la-file-excel"></i> ' . e($filename) . '</a>';
+                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-danger"><i class="la la-file-pdf"></i> ' . e($filename) . '</a>';
                 }
                 return '-';
             },
