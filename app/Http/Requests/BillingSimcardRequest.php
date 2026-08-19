@@ -25,6 +25,7 @@ class BillingSimcardRequest extends FormRequest
     {
         return [
             'company_id' => backpack_user()->hasRole('Super Admin') ? 'nullable|exists:companies,id' : 'nullable',
+            'client_id' => 'nullable|exists:clients,id',
             'product' => 'nullable|string|max:100',
             'device_name' => 'nullable|string|max:150',
             'technology' => 'nullable|string|max:50',

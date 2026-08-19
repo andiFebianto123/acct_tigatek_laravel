@@ -13,7 +13,7 @@ class BillingSimcardRepository
      */
     public function getFilteredData(BillingSimcardFilterData $filters)
     {
-        $query = BillingSimcard::query()->with(['company']);
+        $query = BillingSimcard::query()->with(['company', 'client']);
 
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
@@ -38,6 +38,23 @@ class BillingSimcardRepository
         if ($isSuperAdmin) {
             $filterMap = [
                 1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+                2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+                3 => ['field' => 'product', 'type' => 'like'],
+                4 => ['field' => 'device_name', 'type' => 'like'],
+                5 => ['field' => 'technology', 'type' => 'like'],
+                6 => ['field' => 'device_profile_id', 'type' => 'like'],
+                7 => ['field' => 'iccid', 'type' => 'like'],
+                8 => ['field' => 'msisdn', 'type' => 'like'],
+                9 => ['field' => 'status', 'type' => 'like'],
+                10 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
+                11 => ['field' => 'rate_plan', 'type' => 'like'],
+                12 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
+                13 => ['field' => 'installation_date', 'type' => 'like'],
+                14 => ['field' => 'expired_date', 'type' => 'like'],
+            ];
+        } else {
+            $filterMap = [
+                1 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
                 2 => ['field' => 'product', 'type' => 'like'],
                 3 => ['field' => 'device_name', 'type' => 'like'],
                 4 => ['field' => 'technology', 'type' => 'like'],
@@ -50,21 +67,6 @@ class BillingSimcardRepository
                 11 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
                 12 => ['field' => 'installation_date', 'type' => 'like'],
                 13 => ['field' => 'expired_date', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'product', 'type' => 'like'],
-                2 => ['field' => 'device_name', 'type' => 'like'],
-                3 => ['field' => 'technology', 'type' => 'like'],
-                4 => ['field' => 'device_profile_id', 'type' => 'like'],
-                5 => ['field' => 'iccid', 'type' => 'like'],
-                6 => ['field' => 'msisdn', 'type' => 'like'],
-                7 => ['field' => 'status', 'type' => 'like'],
-                8 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
-                9 => ['field' => 'rate_plan', 'type' => 'like'],
-                10 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-                11 => ['field' => 'installation_date', 'type' => 'like'],
-                12 => ['field' => 'expired_date', 'type' => 'like'],
             ];
         }
 

@@ -8,6 +8,7 @@ class BillingDeviceData
 {
     public function __construct(
         public ?int $company_id,
+        public ?int $client_id,
         public string $device_id,
         public ?string $phone,
         public ?string $vehicle_uid,
@@ -27,6 +28,7 @@ class BillingDeviceData
     {
         return new self(
             company_id: $request->input('company_id') ? (int) $request->input('company_id') : null,
+            client_id: $request->input('client_id') ? (int) $request->input('client_id') : null,
             device_id: $request->input('device_id'),
             phone: $request->input('phone'),
             vehicle_uid: $request->input('vehicle_uid'),
@@ -47,6 +49,7 @@ class BillingDeviceData
     {
         return [
             'company_id' => $this->company_id,
+            'client_id' => $this->client_id,
             'device_id' => $this->device_id,
             'phone' => $this->phone,
             'vehicle_uid' => $this->vehicle_uid,

@@ -8,6 +8,7 @@ class BillingSimcardData
 {
     public function __construct(
         public ?int $company_id,
+        public ?int $client_id,
         public ?string $product,
         public ?string $device_name,
         public ?string $technology,
@@ -26,6 +27,7 @@ class BillingSimcardData
     {
         return new self(
             company_id: $request->input('company_id') ? (int) $request->input('company_id') : null,
+            client_id: $request->input('client_id') ? (int) $request->input('client_id') : null,
             product: $request->input('product'),
             device_name: $request->input('device_name'),
             technology: $request->input('technology'),
@@ -45,6 +47,7 @@ class BillingSimcardData
     {
         return [
             'company_id' => $this->company_id,
+            'client_id' => $this->client_id,
             'product' => $this->product,
             'device_name' => $this->device_name,
             'technology' => $this->technology,

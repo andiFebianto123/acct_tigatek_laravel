@@ -31,6 +31,24 @@ class BillingDeviceImport implements OnEachRow, WithHeadingRow
             return;
         }
 
+        $clientId = null;
+        $clientName = trim($data['client'] ?? ($data['nama_client'] ?? ($data['client_name'] ?? '')));
+        if (!empty($clientName)) {
+            $clientQuery = \App\Models\Client::whereRaw('LOWER(TRIM(name)) = ?', [strtolower($clientName)]);
+            if ($this->companyId) {
+                $clientQuery->where(function ($q) {
+                    $q->where('company_id', $this->companyId)
+                      ->orWhereNull('company_id');
+                });
+            }
+            $client = $clientQuery->first();
+
+            if (!$client) {
+                throw new \Exception("Klien '{$clientName}' tidak ditemukan atau tidak sesuai dengan perusahaan yang dipilih (Baris {$row->getIndex()}).");
+            }
+            $clientId = $client->id;
+        }
+
         $subscriptionExpiryDate = $this->transformDate($data['subscription_expiry_date'] ?? null);
         $installationDate = $this->transformDate($data['installation_date'] ?? null);
         $expiredDate = $this->transformDate($data['expired_date'] ?? null);
@@ -41,6 +59,7 @@ class BillingDeviceImport implements OnEachRow, WithHeadingRow
                 'company_id' => $this->companyId,
             ],
             [
+                'client_id' => $clientId,
                 'phone' => isset($data['phone']) ? trim($data['phone']) : null,
                 'vehicle_uid' => isset($data['vehicle_uid']) ? trim($data['vehicle_uid']) : null,
                 'vehicle_name' => isset($data['vehicle_name']) ? trim($data['vehicle_name']) : null,

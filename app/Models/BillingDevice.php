@@ -30,4 +30,9 @@ class BillingDevice extends Model
     {
         return $this->belongsTo(Company::class, 'company_id');
     }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
+    }
 }

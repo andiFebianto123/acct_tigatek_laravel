@@ -617,6 +617,7 @@ return [
     'billing_device' => [
         'title_header' => 'Billing Device',
         'column' => [
+            'client' => 'Client',
             'device_id' => 'Device Id',
             'phone' => 'Phone',
             'vehicle_uid' => 'Vehicle Uid',
@@ -635,6 +636,7 @@ return [
     'billing_simcard' => [
         'title_header' => 'Billing SIMCARD',
         'column' => [
+            'client' => 'Client',
             'product' => 'Product',
             'device_name' => 'Device Name',
             'technology' => 'Technology',

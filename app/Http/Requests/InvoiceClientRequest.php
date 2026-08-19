@@ -120,7 +120,7 @@ class InvoiceClientRequest extends FormRequest
             'client_po_id' => 'nullable|exists:client_po,id',
             'status' => 'nullable|in:Paid,Unpaid',
             'invoice_document' => 'nullable|file|mimes:pdf|max:30720', // 30MB = 30720 KB
-            'document_imei_iccid' => 'nullable|file|mimes:xlsx,xls,csv|max:10240',
+            'document_imei_iccid' => 'nullable|file|mimes:pdf|max:30720',
             'withholding_agent' => 'required|in:WAPU,NON WAPU',
             'account_source_id' => 'required|exists:cast_accounts,id',
             'type_device' => 'nullable|in:App\Models\BillingDevice,App\Models\BillingSimcard,App\Models\DeviceStock',

@@ -16,6 +16,7 @@ class BillingSimcard extends Model
 
     protected $fillable = [
         'company_id',
+        'client_id',
         'product',
         'device_name',
         'technology',
@@ -47,6 +48,14 @@ class BillingSimcard extends Model
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    /**
+     * Relationship to Client.
+     */
+    public function client()
+    {
+        return $this->belongsTo(Client::class, 'client_id');
     }
 
     /**

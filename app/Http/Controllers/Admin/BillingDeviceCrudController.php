@@ -103,6 +103,11 @@ class BillingDeviceCrudController extends CrudController
 
         $columns = array_merge($columns, [
             [
+                'name'  => 'client.name',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
+            ],
+            [
                 'name'  => 'device_id',
                 'type'  => 'text',
                 'label' => trans('backpack::crud.billing_device.column.device_id') ?? 'Device Id',
@@ -249,6 +254,15 @@ class BillingDeviceCrudController extends CrudController
                 'model'     => "App\Models\Company",
             ]);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
+            'type'      => 'select',
+            'name'      => 'client_id',
+            'entity'    => 'client',
+            'attribute' => 'name',
+            'model'     => "App\Models\Client",
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.billing_device.column.device_id') ?? 'Device Id',
@@ -507,6 +521,15 @@ class BillingDeviceCrudController extends CrudController
         }
 
         CRUD::column([
+            'label'     => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
+            'type'      => 'select',
+            'name'      => 'client_id',
+            'entity'    => 'client',
+            'attribute' => 'name',
+            'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.billing_device.column.device_id') ?? 'Device Id',
             'name'  => 'device_id',
             'type'  => 'text'
@@ -597,17 +620,35 @@ class BillingDeviceCrudController extends CrudController
         CRUD::setValidation(\App\Http\Requests\BillingDeviceRequest::class);
 
         if (backpack_user()->hasRole('Super Admin')) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
-                'label'   => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'    => 'select2_array',
-                'name'    => 'company_id',
-                'options' => ['' => 'All (Semua Perusahaan)'] + $companies,
-                'wrapper' => [
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+                'wrapper'   => [
                     'class' => 'form-group col-md-6',
                 ],
             ]);
         }
+
+        CRUD::addField([
+            'label'                   => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
+            'type'                    => 'select2_ajax_custom',
+            'name'                    => 'client_id',
+            'entity'                  => 'client',
+            'attribute'               => 'name',
+            'model'                   => "App\Models\Client",
+            'data_source'             => backpack_url('client/select2-client'),
+            'dependencies'            => ['company_id'],
+            'include_all_form_fields' => true,
+            'minimum_input_length'    => 0,
+            'placeholder'             => '- Pilih Klien -',
+            'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
         CRUD::addField([
             'name'  => 'device_id',
@@ -891,6 +932,7 @@ class BillingDeviceCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
 
         $columns = [
+            ['label' => 'client'],
             ['label' => 'device_id'],
             ['label' => 'phone'],
             ['label' => 'vehicle_uid'],
@@ -907,6 +949,7 @@ class BillingDeviceCrudController extends CrudController
 
         $data = [
             [
+                'PT Client Contoh',
                 'DEV-1001',
                 '6281234567890',
                 'VEH-9921',

@@ -4,7 +4,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         @page {
-            margin: 30px 45px;
+            margin-top: 5cm;
+            margin-bottom: 30px;
+            margin-left: 45px;
+            margin-right: 45px;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;

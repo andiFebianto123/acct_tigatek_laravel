@@ -103,6 +103,11 @@ class BillingSimcardCrudController extends CrudController
 
         $columns = array_merge($columns, [
             [
+                'name'  => 'client.name',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.billing_simcard.column.client') ?? 'Klien',
+            ],
+            [
                 'name'  => 'product',
                 'type'  => 'text',
                 'label' => trans('backpack::crud.billing_simcard.column.product') ?? 'Produk',
@@ -249,6 +254,15 @@ class BillingSimcardCrudController extends CrudController
                 'model'     => "App\Models\Company",
             ]);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.billing_simcard.column.client') ?? 'Klien',
+            'type'      => 'select',
+            'name'      => 'client_id',
+            'entity'    => 'client',
+            'attribute' => 'name',
+            'model'     => "App\Models\Client",
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.billing_simcard.column.product') ?? 'Produk',
@@ -505,6 +519,15 @@ class BillingSimcardCrudController extends CrudController
         }
 
         CRUD::column([
+            'label'     => trans('backpack::crud.billing_simcard.column.client') ?? 'Klien',
+            'type'      => 'select',
+            'name'      => 'client_id',
+            'entity'    => 'client',
+            'attribute' => 'name',
+            'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.billing_simcard.column.product') ?? 'Produk',
             'name'  => 'product',
             'type'  => 'text'
@@ -593,17 +616,35 @@ class BillingSimcardCrudController extends CrudController
     protected function setupCreateOperation()
     {
         if (backpack_user()->hasRole('Super Admin')) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
-                'label'   => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'    => 'select2_array',
-                'name'    => 'company_id',
-                'options' => ['' => 'All (Semua Perusahaan)'] + $companies,
-                'wrapper' => [
+                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+                'wrapper'   => [
                     'class' => 'form-group col-md-6',
                 ],
             ]);
         }
+
+        CRUD::addField([
+            'label'                   => trans('backpack::crud.billing_simcard.column.client') ?? 'Klien',
+            'type'                    => 'select2_ajax_custom',
+            'name'                    => 'client_id',
+            'entity'                  => 'client',
+            'attribute'               => 'name',
+            'model'                   => "App\Models\Client",
+            'data_source'             => backpack_url('client/select2-client'),
+            'dependencies'            => ['company_id'],
+            'include_all_form_fields' => true,
+            'minimum_input_length'    => 0,
+            'placeholder'             => '- Pilih Klien -',
+            'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
         CRUD::addField([
             'name'  => 'product',
@@ -876,6 +917,7 @@ class BillingSimcardCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
 
         $columns = [
+            ['label' => 'client'],
             ['label' => 'product'],
             ['label' => 'device_name'],
             ['label' => 'technology'],
@@ -891,6 +933,7 @@ class BillingSimcardCrudController extends CrudController
 
         $data = [
             [
+                'PT Client Contoh',
                 'Telkomsel IoT',
                 'Device Tracker A',
                 '4G / LTE',

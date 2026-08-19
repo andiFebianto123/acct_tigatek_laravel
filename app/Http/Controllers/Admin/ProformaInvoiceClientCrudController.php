@@ -906,9 +906,9 @@ class ProformaInvoiceClientCrudController extends CrudController
                 'class' => 'form-group col-md-12',
             ],
             'attributes' => [
-                'accept' => '.xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv',
+                'accept' => '.pdf, application/pdf',
             ],
-            'hint' => trans('backpack::crud.proforma_invoice.field.document_imei_iccid.hint') ?? 'Format yang didukung: .xlsx, .xls, .csv (Maksimal 10MB)',
+            'hint' => 'Format yang didukung: .pdf (Maksimal 30MB) - Dokumen akan otomatis digabungkan sebagai lampiran saat cetak PDF.',
         ]);
 
         $id = request()->segment(4);
@@ -1492,6 +1492,68 @@ class ProformaInvoiceClientCrudController extends CrudController
         $pdf = Pdf::loadView('exports.invoice-client-proforma-single-pdf', $data);
         $fileName = 'Proforma-Invoice-Client-' . ($data['header']->invoice_number ?? $id) . '.pdf';
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
+
+        // Check if an IMEI/ICCID PDF attachment exists
+        $imeiDocument = $data['header']->document_imei_iccid ?? null;
+        $attachmentPath = null;
+        if ($imeiDocument) {
+            $possiblePaths = [
+                storage_path('app/public/' . $imeiDocument),
+                public_path('storage/' . $imeiDocument),
+                storage_path('app/' . $imeiDocument),
+            ];
+            foreach ($possiblePaths as $path) {
+                if (file_exists($path) && strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf') {
+                    $attachmentPath = $path;
+                    break;
+                }
+            }
+        }
+
+        if ($attachmentPath) {
+            try {
+                $mpdf = new \Mpdf\Mpdf([
+                    'mode' => 'utf-8',
+                    'format' => 'A4',
+                    'margin_top' => 0,
+                    'margin_bottom' => 0,
+                    'margin_left' => 0,
+                    'margin_right' => 0,
+                ]);
+
+                // 1. Import pages from generated DomPDF proforma invoice
+                $dompdfContent = $pdf->output();
+                $tempMainPdf = tempnam(sys_get_temp_dir(), 'pi_main_') . '.pdf';
+                file_put_contents($tempMainPdf, $dompdfContent);
+
+                $mainPageCount = $mpdf->setSourceFile($tempMainPdf);
+                for ($i = 1; $i <= $mainPageCount; $i++) {
+                    $templateId = $mpdf->importPage($i);
+                    $size = $mpdf->getTemplateSize($templateId);
+                    $mpdf->AddPage($size['orientation'], '', '', '', '', 0, 0, 0, 0, 0, 0);
+                    $mpdf->useTemplate($templateId);
+                }
+                @unlink($tempMainPdf);
+
+                // 2. Import pages from IMEI / ICCID PDF attachment
+                $attachmentPageCount = $mpdf->setSourceFile($attachmentPath);
+                for ($i = 1; $i <= $attachmentPageCount; $i++) {
+                    $templateId = $mpdf->importPage($i);
+                    $size = $mpdf->getTemplateSize($templateId);
+                    $mpdf->AddPage($size['orientation'], '', '', '', '', 0, 0, 0, 0, 0, 0);
+                    $mpdf->useTemplate($templateId);
+                }
+
+                return response($mpdf->Output($safeFileName, \Mpdf\Output\Destination::STRING_RETURN), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . $safeFileName . '"',
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Proforma PDF merge attachment failed: ' . $e->getMessage());
+                // Fallback to DomPDF output if merge fails
+                return $pdf->stream($safeFileName);
+            }
+        }
 
         return $pdf->stream($safeFileName);
     }
