@@ -935,6 +935,9 @@ class PurchaseOrderCrudController extends CrudController
                 'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
                 'type' => 'repeatable',
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'wrapper' => [
+                    'class' => 'form-group col-md-12',
+                ],
                 'fields' => [
                     [
                         'name' => 'reference_id',
@@ -979,6 +982,9 @@ class PurchaseOrderCrudController extends CrudController
                 'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
                 'type' => 'repeatable',
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'wrapper' => [
+                    'class' => 'form-group col-md-12',
+                ],
                 'fields' => [
                     [
                         'name' => 'reference_id',
@@ -1176,53 +1182,51 @@ class PurchaseOrderCrudController extends CrudController
         // remove row number
         // CRUD::column('row_number')->remove();
 
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'name'  => 'pic',
+            'type'  => 'text',
+        ]);
+
         if (backpack_user()->hasRole('Super Admin')) {
             CRUD::column([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'closure',
                 'function' => function ($entry) {
-                    return $entry->company->name;
+                    return $entry->company?->name ?? '-';
                 }
             ]);
         }
 
         CRUD::column([
             // 1-n relationship
-            'label' => trans('backpack::crud.subkon.column.name'),
+            'label'     => trans('backpack::crud.subkon.column.name'),
             'type'      => 'select',
             'name'      => 'subkon_id', // the column that contains the ID of that connected entity;
             'entity'    => 'subkon', // the method that defines the relationship in your Model
             'attribute' => 'name', // foreign key attribute that is shown to user
             'model'     => "App\Models\Subkon", // foreign key model
-            // OPTIONAL
-            // 'limit' => 32, // Limit the number of characters shown
         ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.po_number'),
-                'name' => 'po_number',
-                'type'  => 'text'
-            ],
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.po.column.po_number'),
+            'name'  => 'po_number',
+            'type'  => 'text',
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.date_po'),
-                'name' => 'date_po',
-                'type'  => 'date',
-                'format' => $new_format_date,
-            ],
-        );
+        CRUD::column([
+            'label'  => trans('backpack::crud.po.column.date_po'),
+            'name'   => 'date_po',
+            'type'   => 'date',
+            'format' => $new_format_date,
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.field.work_code.label'),
-                'name' => 'work_code',
-                'type'  => 'text'
-            ],
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.client_po.field.work_code.label'),
+            'name'  => 'work_code',
+            'type'  => 'text',
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.client_quotation.column.currency_code'),
@@ -1235,112 +1239,122 @@ class PurchaseOrderCrudController extends CrudController
             ]
         ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.job_name'),
-                'name' => 'job_name',
-                'type'  => 'wrap_text',
-                'limit' => 600,
-                'width_box' => '350px',
-            ],
-        );
+        CRUD::column([
+            'label'     => trans('backpack::crud.po.column.job_name'),
+            'name'      => 'job_name',
+            'type'      => 'wrap_text',
+            'limit'     => 600,
+            'width_box' => '350px',
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.job_description'),
-                'name' => 'job_description',
-                'type'  => 'wrap_text',
-                'limit' => 600,
-                'width_box' => '400px',
-            ],
-        );
+        CRUD::column([
+            'label'     => trans('backpack::crud.po.column.job_description'),
+            'name'      => 'job_description',
+            'type'      => 'wrap_text',
+            'limit'     => 600,
+            'width_box' => '400px',
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.job_value'),
-                'name' => 'job_value',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR');
-                },
-            ]
-        );
+        CRUD::column([
+            'label'    => trans('backpack::crud.po.column.job_value'),
+            'name'     => 'job_value',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code ?? 'IDR');
+            },
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.po.column.tax_ppn'),
-            'name' => 'tax_ppn',
-            'type'  => 'number',
+            'name'   => 'tax_ppn',
+            'type'   => 'number',
             'suffix' => '%',
         ]);
 
-        // CRUD::column([
-        //     'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
-        //     'name'   => 'job_value_base',
-        //     'type'   => 'closure',
-        //     'function' => function ($entry) {
-        //         return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
-        //     },
-        // ]);
-
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.total_value_with_tax'),
-                'name' => 'total_value_with_tax',
-                'type'  => 'closure',
-                'function' => function ($entry) {
-                    return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR');
-                },
-            ]
-        );
+        CRUD::column([
+            'label'    => trans('backpack::crud.po.column.total_value_with_tax'),
+            'name'     => 'total_value_with_tax',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->total_value_with_tax, $entry->currency_code ?? 'IDR');
+            },
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.po.column.due_date'),
-            'name' => 'due_date',
-            'type'  => 'date',
+            'name'   => 'due_date',
+            'type'   => 'date',
             'format' => $new_format_date,
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.po.column.status'),
-            'name' => 'status',
-            'type'  => 'closure',
+            'label'    => trans('backpack::crud.po.column.status'),
+            'name'     => 'status',
+            'type'     => 'closure',
             'function' => function ($entry) {
                 return strtoupper($entry->status);
             }
         ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.document_path'),
-                'name' => 'document_path',
-                'type'  => 'text',
-                'wrapper'   => [
-                    'element' => 'a', // the element will default to "a" so you can skip it here
-                    'href' => function ($crud, $column, $entry, $related_key) {
-                        if ($entry->document_path != '') {
-                            return url("storage/" . $entry->document_path);
-                        }
-                        return "javascript:void(0)";
-                    },
-                    'target' => '_blank',
-                    // 'class' => 'some-class',
-                ],
+        CRUD::column([
+            'label'   => trans('backpack::crud.po.column.document_path'),
+            'name'    => 'document_path',
+            'type'    => 'text',
+            'wrapper' => [
+                'element' => 'a', // the element will default to "a" so you can skip it here
+                'href' => function ($crud, $column, $entry, $related_key) {
+                    if ($entry->document_path != '') {
+                        return url("storage/" . $entry->document_path);
+                    }
+                    return "javascript:void(0)";
+                },
+                'target' => '_blank',
             ],
-        );
+        ]);
 
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.po.column.additional_info'),
-                'name' => 'additional_info',
-                'type'  => 'textarea'
-            ],
-        );
+        CRUD::column([
+            'label' => trans('backpack::crud.po.column.additional_info'),
+            'name'  => 'additional_info',
+            'type'  => 'textarea'
+        ]);
+
+        $detailsFieldName = request()->segment(4) && request()->segment(4) != 'create' ? 'purchase_order_details_edit' : 'purchase_order_details';
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
+            'name'     => $detailsFieldName,
+            'type'     => 'closure',
+            'width_box' => '100%',
+            'function' => function ($entry) {
+                $details = $entry->purchase_order_details;
+                if (!$details || $details->isEmpty()) {
+                    return '<span class="text-muted">-</span>';
+                }
+                $curr = $entry->currency_code ?? 'IDR';
+                $html = '<div class="table-responsive"><table class="table table-sm table-bordered table-striped mt-1 mb-0 w-100">';
+                $html .= '<thead class="table-light"><tr><th>Nama Barang</th><th class="text-center" width="80">QTY</th><th class="text-end" width="150">Harga Satuan</th><th class="text-end" width="180">Subtotal</th></tr></thead><tbody>';
+                foreach ($details as $d) {
+                    $itemPrice = (float) $d->price;
+                    $itemQty = (int) $d->qty;
+                    $itemSubtotal = $itemPrice * $itemQty;
+                    $itemName = $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ')') : ($d->name ?? '-');
+                    $html .= '<tr>';
+                    $html .= '<td>' . e($itemName) . '</td>';
+                    $html .= '<td class="text-center">' . $itemQty . '</td>';
+                    $html .= '<td class="text-end">' . CustomHelper::formatCurrency($itemPrice, $curr) . '</td>';
+                    $html .= '<td class="text-end fw-bold">' . CustomHelper::formatCurrency($itemSubtotal, $curr) . '</td>';
+                    $html .= '</tr>';
+                }
+                $html .= '</tbody></table></div>';
+                return $html;
+            },
+            'escaped'  => false,
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
-            'name' => 'term',
-            'type'  => 'custom_html',
-            'value' => $this->crud->getCurrentEntry()?->term,
+            'name'   => 'term',
+            'type'   => 'custom_html',
+            'value'  => $this->crud->getCurrentEntry()?->term,
         ]);
     }
 
