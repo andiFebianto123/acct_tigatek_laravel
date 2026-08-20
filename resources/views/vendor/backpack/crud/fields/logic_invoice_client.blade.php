@@ -58,9 +58,9 @@
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
                     var str = val.toString().trim();
-                    if (str.indexOf('.') !== -1 && !str.includes(',')) {
+                    // Jika data awal dari DB mengandung format desimal murni .00 atau .0000 (tanpa pemisah ribuan)
+                    if (isInitial && str.indexOf('.') !== -1 && !str.includes(',')) {
                         var parts = str.split('.');
-                        // Jika setelah titik adalah nol semua (.0, .00, .0000), buang desimalnya
                         if (parts.length === 2 && /^0+$/.test(parts[1])) {
                             str = parts[0];
                         }
