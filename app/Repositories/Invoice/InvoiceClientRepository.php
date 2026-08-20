@@ -31,7 +31,18 @@ class InvoiceClientRepository
         }
 
         if ($dto->po_date) {
-            $query->where('client_po.date_po', $dto->po_date);
+            $query->where(function ($q) use ($dto) {
+                $q->where('client_po.date_po', $dto->po_date)
+                  ->orWhereHas('delivery_note', function ($dn) use ($dto) {
+                      $dn->where(function ($sub) use ($dto) {
+                          $sub->where('delivery_notes.reference_type', 'client_po')
+                              ->whereHas('client_po', fn($p) => $p->where('date_po', $dto->po_date));
+                      })->orWhere(function ($sub) use ($dto) {
+                          $sub->whereNotNull('delivery_notes.client_po_id')
+                              ->whereHas('client_po', fn($p) => $p->where('date_po', $dto->po_date));
+                      });
+                  });
+            });
         }
 
         if ($dto->send_invoice_normal) {
@@ -89,10 +100,34 @@ class InvoiceClientRepository
                     'kdp' => $query->where('invoice_clients.kdp', 'like', "%{$value}%"),
                     'name' => $query->whereHas('client_po', fn($q) => $q->where('job_name', 'like', "%{$value}%")),
                     'description' => $query->where('invoice_clients.description', 'like', "%{$value}%"),
-                    'client_po_id' => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
+                    'client_po_id' => $query->where(function ($q) use ($value) {
+                        $q->whereHas('client_po', fn($sub) => $sub->where('po_number', 'like', "%{$value}%"))
+                          ->orWhereHas('delivery_note', function ($dn) use ($value) {
+                              $dn->where(function ($sub) use ($value) {
+                                  $sub->where('delivery_notes.reference_type', 'client_po')
+                                      ->whereHas('client_po', fn($p) => $p->where('po_number', 'like', "%{$value}%"));
+                              })->orWhere(function ($sub) use ($value) {
+                                  $sub->whereNotNull('delivery_notes.client_po_id')
+                                      ->whereHas('client_po', fn($p) => $p->where('po_number', 'like', "%{$value}%"));
+                              });
+                          });
+                    }),
+                    'po_date_from_po' => $query->where(function ($q) use ($value) {
+                        $q->where('client_po.date_po', 'like', "%{$value}%")
+                          ->orWhereHas('delivery_note', function ($dn) use ($value) {
+                              $dn->where(function ($sub) use ($value) {
+                                  $sub->where('delivery_notes.reference_type', 'client_po')
+                                      ->whereHas('client_po', fn($p) => $p->where('date_po', 'like', "%{$value}%"));
+                              })->orWhere(function ($sub) use ($value) {
+                                  $sub->whereNotNull('delivery_notes.client_po_id')
+                                      ->whereHas('client_po', fn($p) => $p->where('date_po', 'like', "%{$value}%"));
+                              });
+                          });
+                    }),
                     'client_name' => $query->where(function ($q) use ($value) {
                         $q->whereHas('client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
-                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
+                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
+                          ->orWhereHas('delivery_note.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
                     }),
                     'price_total_exclude_ppn' => $query->where('invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),
                     'price_total_include_ppn' => $query->where('invoice_clients.price_total_include_ppn', 'like', "%{$value}%"),
@@ -112,11 +147,34 @@ class InvoiceClientRepository
                     4 => $query->where('invoice_clients.description', 'like', "%{$value}%"),
                     5 => $query->where('invoice_clients.invoice_date', 'like', "%{$value}%"),
                     6 => $query->where('invoice_clients.category', 'like', "%{$value}%"),
-                    7 => $query->whereHas('client_po', fn($q) => $q->where('po_number', 'like', "%{$value}%")),
-                    8 => $query->where('client_po.date_po', 'like', "%{$value}%"),
+                    7 => $query->where(function ($q) use ($value) {
+                        $q->whereHas('client_po', fn($sub) => $sub->where('po_number', 'like', "%{$value}%"))
+                          ->orWhereHas('delivery_note', function ($dn) use ($value) {
+                              $dn->where(function ($sub) use ($value) {
+                                  $sub->where('delivery_notes.reference_type', 'client_po')
+                                      ->whereHas('client_po', fn($p) => $p->where('po_number', 'like', "%{$value}%"));
+                              })->orWhere(function ($sub) use ($value) {
+                                  $sub->whereNotNull('delivery_notes.client_po_id')
+                                      ->whereHas('client_po', fn($p) => $p->where('po_number', 'like', "%{$value}%"));
+                              });
+                          });
+                    }),
+                    8 => $query->where(function ($q) use ($value) {
+                        $q->where('client_po.date_po', 'like', "%{$value}%")
+                          ->orWhereHas('delivery_note', function ($dn) use ($value) {
+                              $dn->where(function ($sub) use ($value) {
+                                  $sub->where('delivery_notes.reference_type', 'client_po')
+                                      ->whereHas('client_po', fn($p) => $p->where('date_po', 'like', "%{$value}%"));
+                              })->orWhere(function ($sub) use ($value) {
+                                  $sub->whereNotNull('delivery_notes.client_po_id')
+                                      ->whereHas('client_po', fn($p) => $p->where('date_po', 'like', "%{$value}%"));
+                              });
+                          });
+                    }),
                     9 => $query->where(function ($q) use ($value) {
                         $q->whereHas('client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
-                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
+                          ->orWhereHas('client_po.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"))
+                          ->orWhereHas('delivery_note.client', fn($sub) => $sub->where('name', 'like', "%{$value}%"));
                     }),
                     10 => $query->where('invoice_clients.currency_code', 'like', "%{$value}%"),
                     11 => $query->where('invoice_clients.price_total_exclude_ppn', 'like', "%{$value}%"),

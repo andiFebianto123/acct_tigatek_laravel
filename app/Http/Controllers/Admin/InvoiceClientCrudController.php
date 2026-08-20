@@ -87,8 +87,12 @@ class InvoiceClientCrudController extends CrudController
 
         $query = \App\Models\ClientPo::select(['id', 'po_number']);
 
-        if ($request->has('company_id')) {
+        if ($request->has('company_id') && !empty($company_id)) {
             $query->where('company_id', $company_id);
+        }
+
+        if ($request->has('client_id') && !empty($request->input('client_id'))) {
+            $query->where('client_id', $request->input('client_id'));
         }
 
         $dataset = $query->where(function ($q) use ($search) {
@@ -552,23 +556,27 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.column.client_po_id'),
-            'type'      => 'select',
-            'name'      => 'client_po_id',
-            'entity'    => 'client_po',
-            'attribute' => 'po_number',
-            'model'     => "App\Models\ClientPo",
-            'limit' => 40,
+            'label'    => trans('backpack::crud.invoice_client.column.client_po_id'),
+            'type'     => 'closure',
+            'name'     => 'client_po_id',
+            'function' => function ($entry) {
+                return $entry->client_po_number;
+            },
+            'limit'    => 40,
         ]);
 
-        CRUD::column(
-            [
-                'label' => trans('backpack::crud.invoice_client.column.po_date'),
-                'name' => 'po_date_from_po',
-                'type' => 'date',
-                'format' => $new_format_date,
-            ]
-        );
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.column.po_date'),
+            'name'     => 'po_date_from_po',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $po = $entry->resolved_client_po;
+                if ($po && $po->date_po) {
+                    return \Carbon\Carbon::parse($po->date_po)->format('d/m/Y');
+                }
+                return '-';
+            },
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.column.client_id'),
@@ -1164,6 +1172,23 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'label'                   => trans('backpack::crud.invoice_client.field.client_po_id.label') ?? 'No Client PO',
+            'type'                    => 'select2_ajax_custom',
+            'name'                    => 'client_po_id',
+            'entity'                  => 'client_po',
+            'attribute'               => 'po_number',
+            'data_source'             => backpack_url('invoice-client/select2-client-po'),
+            'dependencies'            => ['company_id', 'client_id'],
+            'include_all_form_fields' => true,
+            'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes'              => [
+                'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder') ?? 'Pilih No Client PO',
+            ],
+        ]);
+
+        CRUD::addField([
             'name'        => 'withholding_agent',
             'label'       => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
             'type'        => 'select_from_array',
@@ -1644,24 +1669,6 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name'        => 'client_po_id',
-            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'        => "text",
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'po_date',
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-            'type'  => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6'
-            ],
-        ]);
-
-        CRUD::addField([
             'name' => 'description',
             'label' => trans('backpack::crud.invoice_client.field.description.label'),
             'type' => 'text',
@@ -1757,6 +1764,24 @@ class InvoiceClientCrudController extends CrudController
             'type' => 'text',
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'client_po_id',
+            'label'       => trans('backpack::crud.invoice_client.field.client_po_id.label'),
+            'type'        => "text",
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'po_date',
+            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
+            'type'  => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
             ],
         ]);
 
@@ -1908,22 +1933,6 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.client_po_id.label'),
-            'type'      => 'select',
-            'name'      => 'client_po_id',
-            'entity'    => 'client_po',
-            'attribute' => 'po_number',
-            'model'     => "App\Models\ClientPo",
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.invoice_client.field.po_date.label'),
-            'name' => 'po_date_from_po',
-            'type' => 'date',
-            'format' => $new_format_date,
-        ]);
-
-        CRUD::column([
             'label'  => trans('backpack::crud.invoice_client.field.description.label'),
             'name' => 'description',
             'type'  => 'closure',
@@ -2025,6 +2034,28 @@ class InvoiceClientCrudController extends CrudController
             'label' => trans('backpack::crud.invoice_client.field.kdp.label'),
             'name' => 'kdp',
             'type' => 'text',
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.client_po_id.label'),
+            'type'     => 'closure',
+            'name'     => 'client_po_id',
+            'function' => function ($entry) {
+                return $entry->client_po_number;
+            },
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.po_date.label'),
+            'name'     => 'po_date_from_po',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $po = $entry->resolved_client_po;
+                if ($po && $po->date_po) {
+                    return \Carbon\Carbon::parse($po->date_po)->format('d/m/Y');
+                }
+                return '-';
+            },
         ]);
 
         CRUD::column([

@@ -90,6 +90,35 @@ class InvoiceClient extends Model
         return '[' . $this->account_source->no_account . '] - ' . $this->account_source->name;
     }
 
+    /**
+     * Resolusi Model ClientPo berdasarkan kondisi type_device:
+     * - Jika bukan Persediaan: ambil langsung dari relasi client_po ($this->client_po).
+     * - Jika Persediaan: ambil dari delivery_note (jika reference_type == 'client_po' menggunakan reference_id, atau fallback client_po_id).
+     */
+    public function getResolvedClientPoAttribute()
+    {
+        if ($this->type_device === 'App\Models\DeviceStock') {
+            if ($this->delivery_note) {
+                if ($this->delivery_note->reference_type === 'client_po' && $this->delivery_note->reference_id) {
+                    return ClientPo::find($this->delivery_note->reference_id);
+                }
+                if ($this->delivery_note->client_po_id) {
+                    return $this->delivery_note->client_po;
+                }
+            }
+        }
+
+        return $this->client_po;
+    }
+
+    /**
+     * Ambil Nomor PO Klien yang sudah terselesaikan.
+     */
+    public function getClientPoNumberAttribute()
+    {
+        return $this->resolved_client_po?->po_number ?? '-';
+    }
+
     /*
     |--------------------------------------------------------------------------
     | MUTATORS

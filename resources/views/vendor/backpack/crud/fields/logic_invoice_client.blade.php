@@ -58,12 +58,7 @@
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
                     var str = val.toString().trim();
-                    if (isInitial && str.includes('.')) {
-                        var num = parseFloat(str);
-                        if (!isNaN(num)) {
-                            return Math.round(num).toString();
-                        }
-                    }
+                    str = str.replace(/\.00$/, '');
                     return str.replace(/[^\d-]/g, '');
                 }
 
@@ -234,7 +229,18 @@
                     $(form + ' input[name="pph"]').val(entry.pph || 0);
 
                     if (entry.company_id) $(form + ' select[name="company_id"]').val(entry.company_id).trigger('change');
-                    if (entry.client_po_id) $(form + ' input[name="client_po_id"]').val(entry.client_po_id);
+                    if (entry.client_po_id) {
+                        var $poSelect = $(form + ' select[name="client_po_id"]');
+                        if ($poSelect.length) {
+                            var poNumber = (entry.client_po && entry.client_po.po_number)
+                                ? entry.client_po.po_number
+                                : (entry.client_po_number || ('ID: ' + entry.client_po_id));
+                            var poOption = new Option(poNumber, entry.client_po_id, true, true);
+                            $poSelect.empty().append(poOption);
+                        } else {
+                            $(form + ' input[name="client_po_id"]').val(entry.client_po_id);
+                        }
+                    }
                     if (entry.address_po) $(form + ' input[name="address_po"]').val(entry.address_po);
                     if (entry.description) $(form + ' textarea[name="description"], ' + form + ' input[name="description"]').val(entry.description);
                     if (entry.withholding_agent) $(form + ' select[name="withholding_agent"]').val(entry.withholding_agent).trigger('change');
@@ -577,12 +583,37 @@
                 }
 
                 /**
+                 * Update status tampilan dan validasi client_po_id berdasarkan mode type_device.
+                 * Jika Persediaan (DeviceStock): sembunyikan dan hilangkan required.
+                 * Jika Bukan Persediaan: tampilkan dan aktifkan required.
+                 */
+                syncClientPoField() {
+                    var form = this.form;
+                    var isStock = this.isDeviceStockMode();
+                    var $poWrapper = $(form + ' select[name="client_po_id"], ' + form + ' input[name="client_po_id"]').closest('.form-group');
+                    var $poSelect = $(form + ' select[name="client_po_id"]');
+
+                    if (isStock) {
+                        $poWrapper.hide();
+                        $poSelect.removeAttr('required');
+                        if ($poSelect.length) {
+                            $poSelect.val(null).trigger('change');
+                        }
+                    } else {
+                        $poWrapper.show();
+                        $poSelect.attr('required', 'required');
+                    }
+                }
+
+                /**
                  * Konversi semua text input `name` pada repeatable menjadi Select2 AJAX.
                  */
                 activateDeviceStockMode() {
                     var self = this;
                     var form = this.form;
                     this._isDeviceStock = true;
+
+                    this.syncClientPoField();
 
                     $(form + ' .repeatable-element').each(function() {
                         self._convertRowToSelect2($(this));
@@ -596,6 +627,8 @@
                     var self = this;
                     var form = this.form;
                     this._isDeviceStock = false;
+
+                    this.syncClientPoField();
 
                     $(form + ' .repeatable-element').each(function() {
                         self._convertRowToText($(this));
@@ -736,6 +769,14 @@
                             self.activateDeviceStockMode();
                         } else {
                             self.deactivateDeviceStockMode();
+                        }
+                    });
+
+                    // Reset No Client PO jika Client diubah
+                    $(form + ' select[name="client_id"]').on('change', function() {
+                        var $poSelect = $(form + ' select[name="client_po_id"]');
+                        if ($poSelect.length && !self.isDeviceStockMode()) {
+                            $poSelect.val(null).trigger('change');
                         }
                     });
 

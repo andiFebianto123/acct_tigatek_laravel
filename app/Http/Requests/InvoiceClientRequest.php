@@ -109,6 +109,11 @@ class InvoiceClientRequest extends FormRequest
         };
         $nominal_exclude_ppn = $cleanNominal(request()->nominal_exclude_ppn);
 
+        $typeDevice = request()->input('type_device');
+        $clientPoRule = ($typeDevice === \App\Models\DeviceStock::class)
+            ? 'nullable|exists:client_po,id'
+            : 'required|exists:client_po,id';
+
         $rule = [
             // 'name' => 'required|min:5|max:255'
             // 'job_value' => 'required|numeric|min:1000',
@@ -117,7 +122,7 @@ class InvoiceClientRequest extends FormRequest
             'invoice_date' => 'required',
             'category' => 'required|in:rutin,non_rutin',
             'client_id' => 'required|exists:clients,id',
-            'client_po_id' => 'nullable|exists:client_po,id',
+            'client_po_id' => $clientPoRule,
             'status' => 'nullable|in:Paid,Unpaid',
             'invoice_document' => 'nullable|file|mimes:pdf|max:30720', // 30MB = 30720 KB
             'document_imei_iccid' => 'nullable|file|mimes:pdf|max:30720',

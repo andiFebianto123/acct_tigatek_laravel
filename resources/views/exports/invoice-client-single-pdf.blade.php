@@ -308,7 +308,7 @@
             <table>
                 <tr>
                     <td class="label">No PO</td>
-                    <td>: &nbsp; {{ $header->client_po->po_number ?? '-' }}</td>
+                    <td>: &nbsp; {{ $header->client_po_number ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">No</td>
