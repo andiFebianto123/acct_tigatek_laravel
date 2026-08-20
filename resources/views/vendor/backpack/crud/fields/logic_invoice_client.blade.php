@@ -58,7 +58,13 @@
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
                     var str = val.toString().trim();
-                    str = str.replace(/\.00$/, '');
+                    if (str.indexOf('.') !== -1 && !str.includes(',')) {
+                        var parts = str.split('.');
+                        // Jika setelah titik adalah nol semua (.0, .00, .0000), buang desimalnya
+                        if (parts.length === 2 && /^0+$/.test(parts[1])) {
+                            str = parts[0];
+                        }
+                    }
                     return str.replace(/[^\d-]/g, '');
                 }
 
@@ -148,11 +154,8 @@
                         var $hidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
                         
                         var priceVal = 0;
-                        if ($hidden.length && parseFloat($hidden.val())) {
-                            priceVal = parseFloat($hidden.val());
-                        } else if ($masked.length && $masked.val()) {
-                            priceVal = parseFloat(self.cleanValue($masked.val(), curr, false)) || 0;
-                        }
+                        var rawValue = ($hidden.length && $hidden.val() !== '') ? $hidden.val() : ($masked.length ? $masked.val() : '0');
+                        priceVal = parseFloat(self.cleanValue(rawValue, curr, false)) || 0;
 
                         var qtyVal = parseFloat($row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1) || 1;
 
@@ -443,10 +446,10 @@
                         this.loadNotificationPrefill(entry, form);
                     } else if (entry != null) {
                         setTimeout(() => {
-                            instance.total_price = entry.nominal_exclude_ppn;
                             instance.formManager.populateFormData(entry);
-                            instance.logicFormulaNoPO();
-                        }, 300);
+                            instance.repeatableManager.initHandlers();
+                            countTotalPrice();
+                        }, 100);
                     }
 
                     // AJAX Listener Subkon
@@ -528,16 +531,12 @@
                     }
 
                     // Inisialisasi Repeatable Handlers
-                    if (form == '#form-edit' || (form == '#form-create' && hasNotificationId && entry != null)) {
+                    instance.repeatableManager.initHandlers();
+                    countTotalPrice();
+                    setTimeout(() => {
+                        instance.repeatableManager.initHandlers();
                         countTotalPrice();
-                        setTimeout(() => {
-                            instance.repeatableManager.initHandlers();
-                        }, 100);
-                    } else {
-                        setTimeout(() => {
-                            instance.repeatableManager.initHandlers();
-                        }, 100);
-                    }
+                    }, 200);
 
                     // Listener Hapus & Tambah Item
                     $(document).on("click", ".delete-element", function() {
