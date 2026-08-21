@@ -493,6 +493,72 @@
                         countTotalPrice();
                     });
 
+                    // Event listener client_po_id untuk auto-fill Mata Uang, Nominal Exclude PPn, dan PPn
+                    $(form).off('select2:select.po_select change.po_select', 'select[name="client_po_id"]')
+                           .on('select2:select.po_select change.po_select', 'select[name="client_po_id"]', function(e) {
+                        var poId = $(this).val();
+                        if (!poId && e && e.params && e.params.data) {
+                            poId = e.params.data.id;
+                        }
+                        if (!poId) return;
+
+                        $.ajax({
+                            url: '{!! backpack_url("invoice-client/get-client-po") !!}',
+                            method: 'GET',
+                            data: { id: poId },
+                            success: function(res) {
+                                if (!res || !res.result) return;
+                                var poData = res.result;
+
+                                // 1. Update Mata Uang jika ada
+                                var newCurr = poData.currency_code || 'IDR';
+                                var $currSelect = $(form + ' select[name="currency_code"]');
+                                if ($currSelect.length && $currSelect.val() !== newCurr) {
+                                    $currSelect.val(newCurr).trigger('change');
+                                    previousCurrency = newCurr;
+                                }
+
+                                var activeCurr = $(form + ' select[name="currency_code"]').val() || newCurr;
+
+                                // 2. Update Nominal Exclude PPn dari job_value
+                                var rawJobValue = (poData.job_value !== undefined && poData.job_value !== null) ? poData.job_value : 0;
+                                var cleanJobValue = (activeCurr === 'IDR') ? Math.round(parseFloat(rawJobValue) || 0) : (parseFloat(rawJobValue) || 0);
+
+                                var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+                                var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+
+                                if ($hiddenExc.length) $hiddenExc.val(cleanJobValue);
+                                if ($maskedExc.length) {
+                                    $maskedExc.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(cleanJobValue, activeCurr) : cleanJobValue);
+                                }
+
+                                // 3. Update PPn
+                                if (poData.tax_ppn !== undefined && poData.tax_ppn !== null) {
+                                    $(form + ' input[name="tax_ppn"]').val(poData.tax_ppn);
+                                }
+
+                                // 4. Update Deskripsi / Job Name jika kosong
+                                if (poData.job_name) {
+                                    var $desc = $(form + ' textarea[name="description"], ' + form + ' input[name="description"]');
+                                    if ($desc.length && !$desc.val()) {
+                                        $desc.val(poData.job_name);
+                                    }
+                                }
+
+                                // 5. Update Alamat jika ada
+                                if (poData.address) {
+                                    $(form + ' input[name="address_po"]').val(poData.address);
+                                }
+
+                                // 6. Hitung ulang total include PPn & Diskon PPh
+                                instance.logicFormulaNoPO();
+                            },
+                            error: function(xhr) {
+                                console.warn('[InvoiceClient] Error fetching Client PO details:', xhr);
+                            }
+                        });
+                    });
+
                     // Event listener nominal utama, PPN, dan PPh
                     $(form + ' #nominal_exclude_ppn_masked').on('keyup input change', function() {
                         instance.logicFormulaNoPO();
@@ -583,8 +649,7 @@
 
                 /**
                  * Update status tampilan dan validasi client_po_id berdasarkan mode type_device.
-                 * Jika Persediaan (DeviceStock): sembunyikan dan hilangkan required.
-                 * Jika Bukan Persediaan: tampilkan dan aktifkan required.
+                 * Field client_po_id selalu ditampilkan (show) agar fleksibel.
                  */
                 syncClientPoField() {
                     var form = this.form;
@@ -592,14 +657,10 @@
                     var $poWrapper = $(form + ' select[name="client_po_id"], ' + form + ' input[name="client_po_id"]').closest('.form-group');
                     var $poSelect = $(form + ' select[name="client_po_id"]');
 
+                    $poWrapper.show();
                     if (isStock) {
-                        $poWrapper.hide();
                         $poSelect.removeAttr('required');
-                        if ($poSelect.length) {
-                            $poSelect.val(null).trigger('change');
-                        }
                     } else {
-                        $poWrapper.show();
                         $poSelect.attr('required', 'required');
                     }
                 }
@@ -645,106 +706,116 @@
                     // Jika sudah ada Select2, skip
                     if ($row.find('.invoice-device-select2').length) return;
 
-                    var currentVal = $textInput.val() || '';
-                    var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+                    var currentVal = $textInput.val();
+                    var currentStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]').val();
 
-                    // Sembunyikan text input asli
+                    // Buat element <select> pengganti
+                    var $select = $('<select class="form-control select2_field invoice-device-select2" style="width: 100%;"></select>');
+                    $select.attr('placeholder', '{{ trans("backpack::crud.invoice_client.field.item.items.name.placeholder") ?: "Pilih Barang Persediaan" }}');
+
+                    // Sembunyikan text input
                     $textInput.hide();
+                    $textInput.after($select);
 
-                    // Buat elemen Select2
-                    var $select2Container = $('<div class="invoice-device-select2-wrapper" style="flex:1;min-width:0;"></div>');
-                    var $select2 = $('<select class="form-control invoice-device-select2" style="width:100%"></select>');
-
-                    // Jika sudah ada nilai lama (edit form), buat option awal
-                    if (currentVal && $hiddenDeviceStockId.val()) {
-                        var initialOption = new Option(currentVal, $hiddenDeviceStockId.val(), true, true);
-                        $select2.append(initialOption);
-                    }
-
-                    $select2Container.append($select2);
-                    $textInput.closest('.form-group').append($select2Container);
-
-                    // Init Select2 AJAX
-                    $select2.select2({
+                    // Inisialisasi Select2 AJAX
+                    $select.select2({
+                        theme: 'bootstrap',
+                        placeholder: 'Pilih Barang Persediaan',
+                        allowClear: true,
                         ajax: {
                             url: self.ajaxUrl,
                             dataType: 'json',
-                            delay: 300,
+                            delay: 250,
                             data: function(params) {
-                                return { q: params.term || '' };
+                                return {
+                                    q: params.term || '',
+                                    page: params.page || 1,
+                                    company_id: $(self.form + ' select[name="company_id"]').val() || ''
+                                };
                             },
-                            processResults: function(data) {
-                                return { results: data.results };
+                            processResults: function(data, params) {
+                                params.page = params.page || 1;
+                                return {
+                                    results: data.results || [],
+                                    pagination: {
+                                        more: (params.page * 20) < (data.total || 0)
+                                    }
+                                };
                             },
                             cache: true
                         },
-                        placeholder: '{{ trans("backpack::crud.invoice_client.field.item.items.name.placeholder") ?: "Pilih Nama Barang" }}',
-                        minimumInputLength: 0,
-                        allowClear: true,
-                        dropdownParent: $(self.form),
-                        templateResult: function(data) {
-                            if (!data.id) return data.text;
-                            return $('<span><strong>' + data.name + '</strong> <small class="text-muted">(Stok: ' + (data.qty_available || 0) + ')</small></span>');
-                        },
-                        templateSelection: function(data) {
-                            return data.name || data.text;
-                        }
+                        minimumInputLength: 0
                     });
 
-                    // Event: saat item dipilih dari Select2
-                    $select2.on('select2:select', function(e) {
-                        var selected = e.params.data;
+                    // Event saat barang dipilih dari Select2
+                    $select.on('select2:select', function(e) {
+                        var selectedData = e.params.data;
+                        var stockName = selectedData.name || selectedData.text || '';
+                        var sellPrice = parseFloat(selectedData.sell_price || 0);
 
-                        // Update hidden input name dengan nama device terpilih
-                        $textInput.val(selected.name || selected.text);
+                        $textInput.val(stockName).trigger('change');
 
-                        // Update hidden device_stock_id
-                        if ($hiddenDeviceStockId.length) {
-                            $hiddenDeviceStockId.val(selected.id);
+                        // Set device_stock_id hidden field
+                        var $stockIdField = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+                        if ($stockIdField.length) {
+                            $stockIdField.val(selectedData.id);
                         }
 
-                        // Auto-prefill harga jual ke kolom price hanya jika dipicu manual oleh user (bukan dari Delivery Note)
-                        if (selected.sell_price !== undefined && (!e.params || !e.params.isDeliveryNotePrefill)) {
-                            var $priceHidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"]').last();
-                            var $priceMasked = $row.find('input[data-alt="price_masked"]');
-                            var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
+                        // Auto-fill harga jual ke field price
+                        var activeCurr = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
+                        var cleanPrice = (activeCurr === 'IDR') ? Math.round(sellPrice) : sellPrice;
+                        var formattedPrice = (typeof window.formatCurrency === 'function')
+                            ? window.formatCurrency(cleanPrice, activeCurr)
+                            : cleanPrice;
 
-                            var priceVal = parseFloat(selected.sell_price) || 0;
-                            var cleanSellPrice = (activeCurrency === 'IDR') ? Math.round(priceVal) : priceVal;
-                            if ($priceHidden.length) $priceHidden.val(cleanSellPrice);
-                            if ($priceMasked.length && typeof window.formatCurrency === 'function') {
-                                $priceMasked.val(window.formatCurrency(cleanSellPrice, activeCurrency));
-                            }
+                        var $priceMasked = $row.find('input[data-alt="price_masked"]');
+                        var $priceHidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+
+                        if ($priceHidden.length) $priceHidden.val(cleanPrice);
+                        if ($priceMasked.length) {
+                            $priceMasked.val(formattedPrice).trigger('input');
                         }
+
+                        // Trigger kalkulasi total invoice
+                        $(self.form + ' #nominal_exclude_ppn_masked').trigger('change');
                     });
 
-                    // Event: saat dibersihkan (clear)
-                    $select2.on('select2:clear', function() {
-                        $textInput.val('');
-                        if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                    // Event saat barang di-clear
+                    $select.on('select2:clear', function() {
+                        $textInput.val('').trigger('change');
+                        $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]').val('');
                     });
+
+                    // Set nilai awal jika sudah ada (misal pada form Edit atau prefill)
+                    if (currentStockId) {
+                        var initialText = currentVal || ('ID: ' + currentStockId);
+                        var opt = new Option(initialText, currentStockId, true, true);
+                        $select.append(opt).trigger('change');
+                    } else if (currentVal) {
+                        // Coba cari option dengan teks yang sama atau set sebagai text option sementara
+                        var opt = new Option(currentVal, '', true, true);
+                        $select.append(opt);
+                    }
                 }
 
                 /**
                  * Kembalikan satu baris repeatable: Select2 AJAX → text input biasa.
                  */
                 _convertRowToText($row) {
-                    var $select2Wrapper = $row.find('.invoice-device-select2-wrapper');
                     var $select2 = $row.find('.invoice-device-select2');
                     var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
-                    var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
 
-                    // Ambil teks yang dipilih sebelumnya (jika ada)
-                    var selectedText = '';
                     if ($select2.length) {
-                        try { selectedText = $select2.select2('data')[0]?.text || ''; } catch(e) {}
                         $select2.select2('destroy');
+                        $select2.remove();
                     }
-                    $select2Wrapper.remove();
 
-                    // Kembalikan text input dan reset device_stock_id
-                    $textInput.val(selectedText).show();
-                    if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                    if ($textInput.length) {
+                        $textInput.show();
+                    }
+
+                    // Kosongkan device_stock_id jika bukan mode Persediaan
+                    $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]').val('');
                 }
 
                 /**
@@ -853,7 +924,19 @@
                                     }
                                 }
 
-                                // 2. Prefill Alamat & Deskripsi
+                                // 2. Prefill Client PO jika Surat Jalan terhubung ke Client PO
+                                if (res.client_po_id) {
+                                    var $poSelect = $(form + ' select[name="client_po_id"]');
+                                    var poText = res.client_po_number || ('PO ID: ' + res.client_po_id);
+                                    if ($poSelect.length) {
+                                        var poOpt = new Option(poText, res.client_po_id, true, true);
+                                        $poSelect.empty().append(poOpt).trigger('change');
+                                    } else {
+                                        $(form + ' input[name="client_po_id"]').val(res.client_po_id);
+                                    }
+                                }
+
+                                // 3. Prefill Alamat & Deskripsi
                                 if (res.address) {
                                     $(form + ' input[name="address_po"]').val(res.address);
                                 }
@@ -864,7 +947,7 @@
                                     }
                                 }
 
-                                // 3. Set Tipe Barang -> DeviceStock (Persediaan)
+                                // 4. Set Tipe Barang -> DeviceStock (Persediaan)
                                 var $typeDevice = $(form + ' select[name="type_device"]');
                                 var isTypeDeviceChanged = false;
                                 if ($typeDevice.length && $typeDevice.val() !== 'App\\Models\\DeviceStock') {
@@ -872,7 +955,7 @@
                                     isTypeDeviceChanged = true;
                                 }
 
-                                // 4. Prefill items ke form repeatable setelah mode persediaan aktif
+                                // 5. Prefill items ke form repeatable setelah mode persediaan aktif
                                 var delayMs = isTypeDeviceChanged ? 150 : 0;
                                 setTimeout(function() {
                                     if (res.items && res.items.length) {

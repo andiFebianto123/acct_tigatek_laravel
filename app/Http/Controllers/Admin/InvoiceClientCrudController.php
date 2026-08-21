@@ -2697,7 +2697,7 @@ class InvoiceClientCrudController extends CrudController
         }
 
         $deliveryNoteId = (int) request()->input('delivery_note_id');
-        $deliveryNote   = \App\Models\DeliveryNote::with(['details.device_stock', 'client'])->find($deliveryNoteId);
+        $deliveryNote   = \App\Models\DeliveryNote::with(['details.device_stock', 'client', 'client_po'])->find($deliveryNoteId);
 
         if (!$deliveryNote) {
             return response()->json(['success' => false, 'message' => 'Surat Jalan tidak ditemukan'], 404);
@@ -2718,12 +2718,14 @@ class InvoiceClientCrudController extends CrudController
         }
 
         return response()->json([
-            'success'     => true,
-            'client_id'   => $deliveryNote->client_id ?? '',
-            'client_name' => $deliveryNote->client?->name ?? '',
-            'address'     => $deliveryNote->address ?? $deliveryNote->client?->address ?? '',
-            'description' => $deliveryNote->description ?? '',
-            'items'       => $items,
+            'success'          => true,
+            'client_id'        => $deliveryNote->client_id ?? '',
+            'client_name'      => $deliveryNote->client?->name ?? '',
+            'client_po_id'     => $deliveryNote->client_po_id ?? null,
+            'client_po_number' => $deliveryNote->client_po?->po_number ?? null,
+            'address'          => $deliveryNote->address ?? $deliveryNote->client?->address ?? '',
+            'description'      => $deliveryNote->description ?? '',
+            'items'            => $items,
         ]);
     }
 }
