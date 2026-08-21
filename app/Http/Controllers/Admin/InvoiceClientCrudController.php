@@ -121,7 +121,8 @@ class InvoiceClientCrudController extends CrudController
         $entry->date_po_str = ($entry->date_po) ? Carbon::createFromFormat('Y-m-d', $entry->date_po)->format('d/m/Y') : Carbon::now()->format('d/m/Y');
         // $entry->job_value = CustomHelper::formatRupiah($entry->job_value);
         // $entry->total_value_with_tax = CustomHelper::formatRupiah($entry->job_value_include_ppn);
-        $entry->client_name = $entry->client->name;
+        $entry->client_name = $entry->client?->name;
+        $entry->address     = $entry->address ?? $entry->client?->address ?? '';
         return response()->json([
             'result' => $entry,
         ]);
