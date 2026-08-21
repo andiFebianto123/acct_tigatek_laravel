@@ -842,14 +842,6 @@
                         }
                     });
 
-                    // Reset No Client PO jika Client diubah
-                    $(form + ' select[name="client_id"]').on('change', function() {
-                        var $poSelect = $(form + ' select[name="client_po_id"]');
-                        if ($poSelect.length && !self.isDeviceStockMode()) {
-                            $poSelect.val(null).trigger('change');
-                        }
-                    });
-
                     // Handler untuk baris baru yang ditambah via tombol "Tambah Item"
                     $(form + ' .add-repeatable-element-button').on('click', function() {
                         if (self._isDeviceStock) {

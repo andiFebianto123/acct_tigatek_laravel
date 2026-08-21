@@ -1020,6 +1020,38 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'label'       => trans('backpack::crud.invoice_client.field.delivery_note_id.label'),
+            'type'        => 'select2_ajax_custom',
+            'name'        => 'delivery_note_id',
+            'entity'      => false,
+            'attribute'   => 'text',
+            'data_source' => backpack_url('invoice-client/select2-delivery-note'),
+            'dependencies' => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'     => ['class' => 'form-group col-md-6'],
+            'attributes'  => [
+                'placeholder' => trans('backpack::crud.invoice_client.field.delivery_note_id.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
+            'label'                   => trans('backpack::crud.invoice_client.field.client_po_id.label') ?? 'No Client PO',
+            'type'                    => 'select2_ajax_custom',
+            'name'                    => 'client_po_id',
+            'entity'                  => 'client_po',
+            'attribute'               => 'po_number',
+            'data_source'             => backpack_url('invoice-client/select2-client-po'),
+            'dependencies'            => ['company_id'],
+            'include_all_form_fields' => true,
+            'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes'              => [
+                'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder') ?? 'Pilih No Client PO',
+            ],
+        ]);
+
+        CRUD::addField([
             'label'       => trans('backpack::crud.invoice_client.field.client_id.label') ?? 'Nama Client',
             'type'        => "select2_ajax_custom",
             'name'        => 'client_id',
@@ -1172,23 +1204,6 @@ class InvoiceClientCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'label'                   => trans('backpack::crud.invoice_client.field.client_po_id.label') ?? 'No Client PO',
-            'type'                    => 'select2_ajax_custom',
-            'name'                    => 'client_po_id',
-            'entity'                  => 'client_po',
-            'attribute'               => 'po_number',
-            'data_source'             => backpack_url('invoice-client/select2-client-po'),
-            'dependencies'            => ['company_id', 'client_id'],
-            'include_all_form_fields' => true,
-            'wrapper'                 => [
-                'class' => 'form-group col-md-6',
-            ],
-            'attributes'              => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.client_po_id.placeholder') ?? 'Pilih No Client PO',
-            ],
-        ]);
-
-        CRUD::addField([
             'name'        => 'withholding_agent',
             'label'       => trans('backpack::crud.invoice_client.field.withholding_agent.label'),
             'type'        => 'select_from_array',
@@ -1318,21 +1333,6 @@ class InvoiceClientCrudController extends CrudController
             'allows_null' => true,
             'wrapper'   => [
                 'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'label'       => trans('backpack::crud.invoice_client.field.delivery_note_id.label'),
-            'type'        => 'select2_ajax_custom',
-            'name'        => 'delivery_note_id',
-            'entity'      => false,
-            'attribute'   => 'text',
-            'data_source' => backpack_url('invoice-client/select2-delivery-note'),
-            'dependencies' => ['company_id', 'client_id'],
-            'include_all_form_fields' => true,
-            'wrapper'     => ['class' => 'form-group col-md-6'],
-            'attributes'  => [
-                'placeholder' => trans('backpack::crud.invoice_client.field.delivery_note_id.placeholder'),
             ],
         ]);
 
@@ -2703,6 +2703,16 @@ class InvoiceClientCrudController extends CrudController
             return response()->json(['success' => false, 'message' => 'Surat Jalan tidak ditemukan'], 404);
         }
 
+        // Cari Client PO baik dari kolom client_po_id langsung maupun dari reference_type / reference_id
+        $clientPoId = $deliveryNote->client_po_id;
+        $clientPoNumber = $deliveryNote->client_po?->po_number;
+
+        if (!$clientPoId && $deliveryNote->reference_type === 'client_po' && $deliveryNote->reference_id) {
+            $clientPoId = (int) $deliveryNote->reference_id;
+            $refPo = \App\Models\ClientPo::find($clientPoId);
+            $clientPoNumber = $refPo?->po_number;
+        }
+
         $items = [];
         foreach ($deliveryNote->details as $detail) {
             $items[] = [
@@ -2721,8 +2731,8 @@ class InvoiceClientCrudController extends CrudController
             'success'          => true,
             'client_id'        => $deliveryNote->client_id ?? '',
             'client_name'      => $deliveryNote->client?->name ?? '',
-            'client_po_id'     => $deliveryNote->client_po_id ?? null,
-            'client_po_number' => $deliveryNote->client_po?->po_number ?? null,
+            'client_po_id'     => $clientPoId,
+            'client_po_number' => $clientPoNumber,
             'address'          => $deliveryNote->address ?? $deliveryNote->client?->address ?? '',
             'description'      => $deliveryNote->description ?? '',
             'items'            => $items,
