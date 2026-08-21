@@ -911,10 +911,11 @@
                                     var currentDnText = $dnSelect.find('option:selected').text() || '';
 
                                     if ($clientSelect.length) {
+                                        var clientName = res.client_name || ('Client ID: ' + res.client_id);
                                         if ($clientSelect.find('option[value="' + res.client_id + '"]').length) {
                                             $clientSelect.val(res.client_id);
-                                        } else if (res.client_name) {
-                                            var opt = new Option(res.client_name, res.client_id, true, true);
+                                        } else {
+                                            var opt = new Option(clientName, res.client_id, true, true);
                                             $clientSelect.append(opt);
                                         }
                                     }

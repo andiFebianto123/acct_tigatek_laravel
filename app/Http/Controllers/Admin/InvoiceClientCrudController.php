@@ -2707,12 +2707,17 @@ class InvoiceClientCrudController extends CrudController
         // Cari Client PO baik dari kolom client_po_id langsung maupun dari reference_type / reference_id
         $clientPoId = $deliveryNote->client_po_id;
         $clientPoNumber = $deliveryNote->client_po?->po_number;
+        $poClient = $deliveryNote->client_po?->client;
 
         if (!$clientPoId && $deliveryNote->reference_type === 'client_po' && $deliveryNote->reference_id) {
             $clientPoId = (int) $deliveryNote->reference_id;
-            $refPo = \App\Models\ClientPo::find($clientPoId);
+            $refPo = \App\Models\ClientPo::with('client')->find($clientPoId);
             $clientPoNumber = $refPo?->po_number;
+            $poClient = $refPo?->client;
         }
+
+        $clientId = $deliveryNote->client_id ?? $poClient?->id ?? '';
+        $clientName = $deliveryNote->client?->name ?? $poClient?->name ?? '';
 
         $items = [];
         foreach ($deliveryNote->details as $detail) {
@@ -2730,11 +2735,11 @@ class InvoiceClientCrudController extends CrudController
 
         return response()->json([
             'success'          => true,
-            'client_id'        => $deliveryNote->client_id ?? '',
-            'client_name'      => $deliveryNote->client?->name ?? '',
+            'client_id'        => $clientId,
+            'client_name'      => $clientName,
             'client_po_id'     => $clientPoId,
             'client_po_number' => $clientPoNumber,
-            'address'          => $deliveryNote->address ?? $deliveryNote->client?->address ?? '',
+            'address'          => $deliveryNote->address ?? $deliveryNote->client?->address ?? $poClient?->address ?? '',
             'description'      => $deliveryNote->description ?? '',
             'items'            => $items,
         ]);
