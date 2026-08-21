@@ -520,7 +520,21 @@
 
                                 var activeCurr = $(form + ' select[name="currency_code"]').val() || newCurr;
 
-                                // 2. Update Nominal Exclude PPn dari job_value
+                                // 2. Auto-select Client (client_id)
+                                if (poData.client_id) {
+                                    var $clientSelect = $(form + ' select[name="client_id"]');
+                                    if ($clientSelect.length) {
+                                        var clientName = poData.client_name || (poData.client ? poData.client.name : ('ID: ' + poData.client_id));
+                                        if ($clientSelect.find('option[value="' + poData.client_id + '"]').length) {
+                                            $clientSelect.val(poData.client_id);
+                                        } else {
+                                            var clientOpt = new Option(clientName, poData.client_id, true, true);
+                                            $clientSelect.append(clientOpt);
+                                        }
+                                    }
+                                }
+
+                                // 3. Update Nominal Exclude PPn dari job_value
                                 var rawJobValue = (poData.job_value !== undefined && poData.job_value !== null) ? poData.job_value : 0;
                                 var cleanJobValue = (activeCurr === 'IDR') ? Math.round(parseFloat(rawJobValue) || 0) : (parseFloat(rawJobValue) || 0);
 
@@ -532,12 +546,12 @@
                                     $maskedExc.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(cleanJobValue, activeCurr) : cleanJobValue);
                                 }
 
-                                // 3. Update PPn
+                                // 4. Update PPn
                                 if (poData.tax_ppn !== undefined && poData.tax_ppn !== null) {
                                     $(form + ' input[name="tax_ppn"]').val(poData.tax_ppn);
                                 }
 
-                                // 4. Update Deskripsi / Job Name jika kosong
+                                // 5. Update Deskripsi / Job Name jika kosong
                                 if (poData.job_name) {
                                     var $desc = $(form + ' textarea[name="description"], ' + form + ' input[name="description"]');
                                     if ($desc.length && !$desc.val()) {
@@ -545,12 +559,12 @@
                                     }
                                 }
 
-                                // 5. Update Alamat jika ada
-                                if (poData.address) {
-                                    $(form + ' input[name="address_po"]').val(poData.address);
+                                // 6. Update Alamat jika ada
+                                if (poData.address || poData.address_po) {
+                                    $(form + ' input[name="address_po"]').val(poData.address || poData.address_po);
                                 }
 
-                                // 6. Hitung ulang total include PPn & Diskon PPh
+                                // 7. Hitung ulang total include PPn & Diskon PPh
                                 instance.logicFormulaNoPO();
                             },
                             error: function(xhr) {
