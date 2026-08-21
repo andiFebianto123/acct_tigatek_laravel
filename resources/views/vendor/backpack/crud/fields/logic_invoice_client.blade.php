@@ -494,13 +494,15 @@
                     });
 
                     // Event listener client_po_id untuk auto-fill Mata Uang, Nominal Exclude PPn, dan PPn
-                    $(form).off('select2:select.po_select change.po_select', 'select[name="client_po_id"]')
-                           .on('select2:select.po_select change.po_select', 'select[name="client_po_id"]', function(e) {
+                    var lastFetchedPoId = null;
+                    $(form).off('change.po_select', 'select[name="client_po_id"]')
+                           .on('change.po_select', 'select[name="client_po_id"]', function(e) {
                         var poId = $(this).val();
                         if (!poId && e && e.params && e.params.data) {
                             poId = e.params.data.id;
                         }
-                        if (!poId) return;
+                        if (!poId || poId == lastFetchedPoId) return;
+                        lastFetchedPoId = poId;
 
                         $.ajax({
                             url: '{!! backpack_url("invoice-client/get-client-po") !!}',
