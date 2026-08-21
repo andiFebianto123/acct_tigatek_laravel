@@ -527,12 +527,8 @@
                                     var $clientSelect = $(form + ' select[name="client_id"]');
                                     if ($clientSelect.length) {
                                         var clientName = poData.client_name || (poData.client ? poData.client.name : ('ID: ' + poData.client_id));
-                                        if ($clientSelect.find('option[value="' + poData.client_id + '"]').length) {
-                                            $clientSelect.val(poData.client_id);
-                                        } else {
-                                            var clientOpt = new Option(clientName, poData.client_id, true, true);
-                                            $clientSelect.append(clientOpt);
-                                        }
+                                        var clientOpt = new Option(clientName, poData.client_id, true, true);
+                                        $clientSelect.empty().append(clientOpt).trigger('change');
                                     }
                                 }
 
@@ -912,12 +908,8 @@
 
                                     if ($clientSelect.length) {
                                         var clientName = res.client_name || ('Client ID: ' + res.client_id);
-                                        if ($clientSelect.find('option[value="' + res.client_id + '"]').length) {
-                                            $clientSelect.val(res.client_id);
-                                        } else {
-                                            var opt = new Option(clientName, res.client_id, true, true);
-                                            $clientSelect.append(opt);
-                                        }
+                                        var opt = new Option(clientName, res.client_id, true, true);
+                                        $clientSelect.empty().append(opt).trigger('change');
                                     }
 
                                     // Restore pilihan delivery_note_id yang baru terpilih agar tidak tereset oleh dependency select2
