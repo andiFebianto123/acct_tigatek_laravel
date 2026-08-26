@@ -234,6 +234,13 @@
                 <td class="colon">:</td>
                 <td class="value"><strong>{{ $entry->client->name ?? '-' }}</strong></td>
             </tr>
+            @if(!empty($entry->pic))
+            <tr>
+                <td class="label">Attn / PIC</td>
+                <td class="colon">:</td>
+                <td class="value">{{ $entry->pic }}</td>
+            </tr>
+            @endif
             <tr>
                 <td class="label">No. Telp</td>
                 <td class="colon">:</td>

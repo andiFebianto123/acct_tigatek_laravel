@@ -666,6 +666,7 @@ return [
             'number' => 'Nomer',
             'date' => 'Tanggal',
             'client_id' => 'Nama Client',
+            'pic' => 'PIC',
             'reference_type' => 'Jenis Referensi',
             'description' => 'Deskripsi',
             'information' => 'Keterangan',
@@ -696,6 +697,10 @@ return [
             'client_id' => [
                 'label' => 'Kirim Ke',
                 'placeholder' => '- PILIH CLIENT',
+            ],
+            'pic' => [
+                'label' => 'PIC',
+                'placeholder' => 'Masukkan nama PIC',
             ],
             'address' => [
                 'label' => 'Alamat',
@@ -741,6 +746,7 @@ return [
             'number' => 'Nomer',
             'date' => 'Tanggal',
             'client_id' => 'Nama Client',
+            'pic' => 'PIC',
             'first_party' => 'Penyerah',
             'description' => 'Description',
             'qty' => 'Qty',
@@ -762,6 +768,10 @@ return [
             'client_id' => [
                 'label' => 'Pihak Ke 2',
                 'placeholder' => '- PILIH CLIENT',
+            ],
+            'pic' => [
+                'label' => 'PIC',
+                'placeholder' => 'Masukkan nama PIC',
             ],
             'address' => [
                 'label' => 'Alamat Pihak Ke 2',

@@ -277,6 +277,12 @@
                                     $(form + ' textarea[name="address"]').val(res.address);
                                 }
 
+                                // Prefill PIC (hanya jika kosong)
+                                var currentDnPic = $(form + ' input[name="pic"]').val();
+                                if ((!currentDnPic || currentDnPic.trim() === '') && res.pic) {
+                                    $(form + ' input[name="pic"]').val(res.pic);
+                                }
+
                                 // Prefill Deskripsi Header (hanya jika kosong)
                                 if (res.description && !$(form + ' input[name="description"]').val()) {
                                     $(form + ' input[name="description"]').val(res.description);

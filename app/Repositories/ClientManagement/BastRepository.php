@@ -50,20 +50,22 @@ class BastRepository
                 2 => ['field' => 'number', 'type' => 'like'],
                 3 => ['field' => 'date', 'type' => 'like'],
                 4 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                5 => ['field' => 'first_party', 'type' => 'like'],
-                6 => ['field' => 'description', 'type' => 'like'],
-                7 => ['field' => 'qty', 'type' => 'like'],
-                8 => ['field' => 'information', 'type' => 'like'],
+                5 => ['field' => 'pic', 'type' => 'like'],
+                6 => ['field' => 'first_party', 'type' => 'like'],
+                7 => ['field' => 'description', 'type' => 'like'],
+                8 => ['field' => 'qty', 'type' => 'like'],
+                9 => ['field' => 'information', 'type' => 'like'],
             ];
         } else {
             $filterMap = [
                 1 => ['field' => 'number', 'type' => 'like'],
                 2 => ['field' => 'date', 'type' => 'like'],
                 3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                4 => ['field' => 'first_party', 'type' => 'like'],
-                5 => ['field' => 'description', 'type' => 'like'],
-                6 => ['field' => 'qty', 'type' => 'like'],
-                7 => ['field' => 'information', 'type' => 'like'],
+                4 => ['field' => 'pic', 'type' => 'like'],
+                5 => ['field' => 'first_party', 'type' => 'like'],
+                6 => ['field' => 'description', 'type' => 'like'],
+                7 => ['field' => 'qty', 'type' => 'like'],
+                8 => ['field' => 'information', 'type' => 'like'],
             ];
         }
 

@@ -23,6 +23,7 @@ class DeliveryNoteRequest extends FormRequest
 
         $rules = [
             'client_id'         => 'required|exists:clients,id',
+            'pic'               => 'nullable|string|max:150',
             'invoice_client_id' => 'nullable|exists:invoice_clients,id',
             'client_po_id'      => 'nullable|exists:client_po,id',
             'reference_type'    => 'nullable|in:quotation,proforma_invoice,client_po,invoice_client',

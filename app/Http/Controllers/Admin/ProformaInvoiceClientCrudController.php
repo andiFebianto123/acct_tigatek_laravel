@@ -1094,8 +1094,6 @@ class ProformaInvoiceClientCrudController extends CrudController
             DB::beginTransaction();
 
             $dto = ProformaInvoiceClientSaveData::fromRequest($request);
-            
-
 
             $id = $request->input('id');
             $invoice = $this->service->updateInvoice((int) $id, $dto);

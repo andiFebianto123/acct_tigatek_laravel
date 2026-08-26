@@ -84,6 +84,10 @@
                                         if (response.address) {
                                             $(form + ' textarea[name="address"]').val(response.address);
                                         }
+                                        let currentPoPic = $(form + ' input[name="pic"]').val();
+                                        if ((!currentPoPic || currentPoPic.trim() === '') && response.pic) {
+                                            $(form + ' input[name="pic"]').val(response.pic);
+                                        }
                                         if (response.job_name) {
                                             $(form + ' input[name="description"]').val(response.job_name);
                                         }
@@ -114,6 +118,10 @@
                                         }
                                         if (response.address) {
                                             $(form + ' textarea[name="address"]').val(response.address);
+                                        }
+                                        let currentProformaPic = $(form + ' input[name="pic"]').val();
+                                        if ((!currentProformaPic || currentProformaPic.trim() === '') && response.pic) {
+                                            $(form + ' input[name="pic"]').val(response.pic);
                                         }
                                         if (response.job_name) {
                                             $(form + ' input[name="description"]').val(response.job_name);

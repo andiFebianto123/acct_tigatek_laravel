@@ -1466,6 +1466,7 @@ class ClientQuotationCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
+        $entry->loadMissing(['details.deviceStock', 'client', 'company']);
         $settings = Setting::first();
 
         $pdf = Pdf::loadView('exports.client-quotation-pdf', [

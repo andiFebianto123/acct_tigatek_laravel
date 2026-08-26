@@ -506,6 +506,7 @@ return [
             'number'         => 'Number',
             'date'           => 'Date',
             'client_id'      => 'Client Name',
+            'pic'            => 'PIC',
             'reference_type' => 'Reference Type',
             'description'    => 'Description',
             'information'    => 'Information',
@@ -536,6 +537,10 @@ return [
             'client_id' => [
                 'label' => 'Ship To',
                 'placeholder' => '- SELECT CLIENT -',
+            ],
+            'pic' => [
+                'label' => 'PIC',
+                'placeholder' => 'Enter PIC name',
             ],
             'address' => [
                 'label' => 'Address',
@@ -568,6 +573,7 @@ return [
             'number' => 'Number',
             'date' => 'Date',
             'client_id' => 'Client Name',
+            'pic' => 'PIC',
             'first_party' => 'Penyerah',
             'description' => 'Description',
             'qty' => 'Qty',
@@ -589,6 +595,10 @@ return [
             'client_id' => [
                 'label' => 'Second Party',
                 'placeholder' => '- SELECT CLIENT -',
+            ],
+            'pic' => [
+                'label' => 'PIC',
+                'placeholder' => 'Enter PIC name',
             ],
             'address' => [
                 'label' => 'Second Party Address',

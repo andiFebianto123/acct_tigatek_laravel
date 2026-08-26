@@ -141,6 +141,12 @@ class DeliveryNoteCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'name'      => 'pic',
+                'type'      => 'text',
+                'label'     => trans('backpack::crud.delivery_note.column.pic'),
+                'orderable' => true,
+            ],
+            [
                 'name'      => 'reference_type',
                 'type'      => 'text',
                 'label'     => trans('backpack::crud.delivery_note.column.reference_type'),
@@ -526,6 +532,12 @@ class DeliveryNoteCrudController extends CrudController
             'model'     => "App\Models\Client",
         ]);
 
+        CRUD::column([
+            'label'  => trans('backpack::crud.delivery_note.column.pic'),
+            'name'   => 'pic',
+            'type'   => 'text',
+        ]);
+
         // Badge Jenis Referensi — selaras dengan $columns di index()
         CRUD::column([
             'label'    => trans('backpack::crud.delivery_note.column.reference_type'),
@@ -625,6 +637,16 @@ class DeliveryNoteCrudController extends CrudController
             'wrapper'   => ['class' => 'form-group col-md-6'],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.delivery_note.field.client_id.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'pic',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.delivery_note.field.pic.label'),
+            'wrapper'   => ['class' => 'form-group col-md-6'],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.delivery_note.field.pic.placeholder'),
             ],
         ]);
 
@@ -786,6 +808,12 @@ class DeliveryNoteCrudController extends CrudController
             'entity'    => 'client',
             'attribute' => 'name',
             'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.delivery_note.field.pic.label'),
+            'name'      => 'pic',
+            'type'      => 'text',
         ]);
 
         CRUD::column([
@@ -971,6 +999,7 @@ class DeliveryNoteCrudController extends CrudController
             'success'      => true,
             'client_id'    => $quotation->client_id ?? '',
             'client_name'  => $quotation->client?->name ?? '',
+            'pic'          => $quotation->pic ?? '',
             'address'      => $quotation->client?->address ?? '',
             'description'  => $quotation->job_name ?? '',
             'items'        => $items,
@@ -1007,6 +1036,7 @@ class DeliveryNoteCrudController extends CrudController
             'success'      => true,
             'client_id'    => $invoice->client_id ?? '',
             'client_name'  => $invoice->client?->name ?? '',
+            'pic'          => $invoice->pic ?? '',
             'address'      => $invoice->address_po ?? $invoice->client?->address ?? '',
             'description'  => $invoice->description ?? '',
             'items'        => $items,
@@ -1043,6 +1073,7 @@ class DeliveryNoteCrudController extends CrudController
             'success'      => true,
             'client_id'    => $invoice->client_id ?? '',
             'client_name'  => $invoice->client?->name ?? '',
+            'pic'          => $invoice->pic ?? '',
             'address'      => $invoice->address_po ?? $invoice->client?->address ?? '',
             'description'  => $invoice->description ?? '',
             'items'        => $items,
@@ -1087,6 +1118,7 @@ class DeliveryNoteCrudController extends CrudController
             'success'     => true,
             'client_id'   => $po->client_id ?? '',
             'client_name' => $po->client?->name ?? '',
+            'pic'         => $po->pic ?? $po->quotations?->first()?->pic ?? '',
             'address'     => $po->client?->address ?? '',
             'description' => $po->job_name ?? '',
             'items'       => $items,
@@ -1098,10 +1130,14 @@ class DeliveryNoteCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
         $id = request()->input('po_id');
         $po = $this->clientPoRepository->findWithClient((int) $id);
+        if ($po) {
+            $po->loadMissing('quotations');
+        }
 
         return response()->json([
             'client_id'   => $po?->client_id ?? '',
             'client_name' => $po?->client?->name ?? '',
+            'pic'         => $po?->pic ?? $po?->quotations?->first()?->pic ?? '',
             'address'     => $po?->client?->address ?? '',
             'job_name'    => $po?->job_name ?? '',
         ]);

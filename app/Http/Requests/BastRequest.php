@@ -23,6 +23,7 @@ class BastRequest extends FormRequest
 
         $rules = [
             'client_id' => 'required|exists:clients,id',
+            'pic' => 'nullable|string|max:150',
             'reference_type' => 'required|in:client_po,proforma_invoice',
             'client_po_id' => 'required_if:reference_type,client_po|nullable|exists:client_po,id',
             'proforma_invoice_client_id' => 'required_if:reference_type,proforma_invoice|nullable|exists:proforma_invoice_clients,id',

@@ -141,6 +141,12 @@ class BastCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'name'      => 'pic',
+                'type'      => 'text',
+                'label'     => trans('backpack::crud.bast.column.pic'),
+                'orderable' => true,
+            ],
+            [
                 'name'      => 'first_party',
                 'type'      => 'text',
                 'label'     => trans('backpack::crud.bast.column.first_party'),
@@ -533,6 +539,12 @@ class BastCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'  => trans('backpack::crud.bast.column.pic'),
+            'name'   => 'pic',
+            'type'   => 'text'
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.bast.column.first_party'),
             'name'   => 'first_party',
             'type'   => 'text'
@@ -676,6 +688,18 @@ class BastCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.bast.field.client_id.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'name'  => 'pic',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.bast.field.pic.label'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.bast.field.pic.placeholder'),
             ]
         ]);
 
@@ -940,6 +964,12 @@ class BastCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'  => trans('backpack::crud.bast.field.pic.label'),
+            'name'   => 'pic',
+            'type'   => 'text',
+        ]);
+
+        CRUD::column([
             'name'  => 'address',
             'type'  => 'textarea',
             'label' => trans('backpack::crud.bast.field.address.label'),
@@ -997,10 +1027,14 @@ class BastCrudController extends CrudController
         $this->crud->hasAccessOrFail('create');
         $id = request()->input('po_id');
         $po = $this->clientPoRepository->findWithClient((int) $id);
+        if ($po) {
+            $po->loadMissing('quotations');
+        }
 
         return response()->json([
             'client_id' => $po?->client_id ?? '',
             'client_name' => $po?->client?->name ?? '',
+            'pic' => $po?->pic ?? $po?->quotations?->first()?->pic ?? '',
             'address' => $po?->client?->address ?? '',
             'job_name' => $po?->job_name ?? ''
         ]);
@@ -1039,11 +1073,12 @@ class BastCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('create');
         $id = request()->input('proforma_id');
-        $proforma = \App\Models\ProformaInvoiceClient::with(['client', 'client_po'])->find((int) $id);
+        $proforma = \App\Models\ProformaInvoiceClient::with(['client', 'client_po.quotations'])->find((int) $id);
 
         return response()->json([
             'client_id' => $proforma?->client_id ?? '',
             'client_name' => $proforma?->client?->name ?? '',
+            'pic' => $proforma?->pic ?? $proforma?->client_po?->quotations?->first()?->pic ?? '',
             'address' => $proforma?->client?->address ?? '',
             'job_name' => $proforma?->client_po?->job_name ?? ''
         ]);

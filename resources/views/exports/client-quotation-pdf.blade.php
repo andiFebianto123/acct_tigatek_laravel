@@ -235,10 +235,21 @@
         $decPoint = $isUsd ? '.' : ',';
         $thousandsSep = $isUsd ? ',' : '.';
 
-        $subtotal = $entry->job_value ?? 0;
-        $ppn_percent = $entry->tax_ppn ?? 11;
-        $ppn_nominal = ($subtotal * $ppn_percent) / 100;
-        $grand_total = $entry->job_value_include_ppn ?? ($subtotal + $ppn_nominal);
+        $details = $entry->details;
+        $hasDetails = $details && $details->count() > 0;
+
+        if ($hasDetails) {
+            $subtotal = (float) $details->sum('total_price');
+        } else {
+            $subtotal = (float) ($entry->job_value ?? 0);
+        }
+
+        $ppn_percent = (float) ($entry->tax_ppn ?? 11);
+        $ppn_nominal = (float) ($subtotal * $ppn_percent / 100);
+        $grand_total = (float) ($entry->job_value_include_ppn ?? ($subtotal + $ppn_nominal));
+        if ($hasDetails && (!$entry->job_value_include_ppn || $entry->job_value_include_ppn == 0)) {
+            $grand_total = $subtotal + $ppn_nominal;
+        }
     @endphp
 
     <div class="header">
@@ -276,6 +287,9 @@
         <div class="client-info">
             <b>Quotation to :</b>
             <div class="client-name">{{ $entry->client->name ?? '-' }}</div>
+            {{-- @if(!empty($entry->pic))
+                <div class="client-pic">Attn / PIC: {{ $entry->pic }}</div>
+            @endif --}}
             <div style="width: 80%;">
                 {!! nl2br(e($entry->client->address ?? 'Jakarta, Indonesia')) !!}
             </div>
@@ -308,49 +322,72 @@
             <thead>
                 <tr>
                     <th width="8%">No.</th>
-                    <th width="52%" style="text-align: left;">Desc</th>
-                    <th width="8%">QTY</th>
+                    <th width="48%" style="text-align: left;">Desc</th>
+                    <th width="12%">QTY</th>
                     <th width="16%">Unit price</th>
                     <th width="16%">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td class="text-center">1</td>
-                    <td style="text-align: left;">
-                        {{ $entry->job_name ?? '-' }}
-                    </td>
-                    <td class="text-center">1</td>
-                    <td class="text-right">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
-                    </td>
-                    <td class="text-right">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
-                    </td>
-                </tr>
+                @if($hasDetails)
+                    @foreach($details as $index => $detail)
+                        @php
+                            $qty = (float) $detail->qty;
+                            $unitPrice = (float) ($detail->unit_price ?? $detail->price ?? 0);
+                            $totalPrice = (float) ($detail->total_price ?? ($qty * $unitPrice));
+                            $itemName = $detail->item_name ?? optional($detail->deviceStock)->name ?? '-';
+                        @endphp
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td style="text-align: left;">
+                                {!! nl2br(e($itemName)) !!}
+                            </td>
+                            <td class="text-center">{{ $qty }} {{ $detail->unit ?? '' }}</td>
+                            <td class="text-right">
+                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($unitPrice, $decimals, $decPoint, $thousandsSep) }}
+                            </td>
+                            <td class="text-right">
+                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($totalPrice, $decimals, $decPoint, $thousandsSep) }}
+                            </td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td class="text-center">1</td>
+                        <td style="text-align: left;">
+                            {{ $entry->job_name ?? '-' }}
+                        </td>
+                        <td class="text-center">1</td>
+                        <td class="text-right">
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                        </td>
+                        <td class="text-right">
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                        </td>
+                    </tr>
+                @endif
             </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #000;">
+                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right" style="padding: 6px 5px;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
+                    <td class="text-right" style="padding: 4px 5px;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
+                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+            </tfoot>
         </table>
-        
-        <div class="totals-table-container">
-            <table class="totals-table">
-                <tr>
-                    <td class="label">TOTAL</td>
-                    <td style="width: 15%;">{{ $symbol }}</td>
-                    <td class="text-right">{{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">PPN {{ $ppn_percent }}%</td>
-                    <td>{{ $symbol }}</td>
-                    <td class="text-right">{{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-                <tr>
-                    <td class="label-bold">GRAND TOTAL</td>
-                    <td class="val-bold">{{ $symbol }}</td>
-                    <td class="val-bold">{{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-            </table>
-            <div class="clearfix"></div>
-        </div>
     </div>
 
     <div class="bottom-section">
