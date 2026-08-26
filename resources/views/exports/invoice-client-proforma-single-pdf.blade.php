@@ -108,15 +108,13 @@
             width: 100%;
             border-collapse: collapse;
         }
-        .items-table thead tr {
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
-        }
         .items-table th {
             padding: 8px 5px;
             text-align: center;
             font-size: 10.5pt;
             font-weight: bold;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
         }
         .items-table td {
             padding: 12px 5px;
@@ -240,10 +238,23 @@
         $decPoint = $isUsd ? '.' : ',';
         $thousandsSep = $isUsd ? ',' : '.';
 
-        $subtotal = $header->price_total_exclude_ppn ?? 0;
-        $grand_total = $header->price_total_include_ppn ?? 0;
-        $ppn_nominal = $grand_total - $subtotal;
-        $ppn_percent = $subtotal > 0 ? round(($ppn_nominal / $subtotal) * 100) : 11;
+        $subtotal = (float) ($header->price_total_exclude_ppn ?? 0);
+        $grand_total = (float) ($header->price_total_include_ppn ?? 0);
+        
+        if (isset($header->tax_ppn) && $header->tax_ppn !== null && $header->tax_ppn !== '') {
+            $ppn_percent = (float) $header->tax_ppn;
+        } elseif ($subtotal > 0 && $grand_total > $subtotal) {
+            $ppn_percent = round((($grand_total - $subtotal) / $subtotal) * 100, 2);
+        } else {
+            $ppn_percent = 11;
+        }
+
+        $ppn_nominal = $grand_total > $subtotal ? ($grand_total - $subtotal) : (($subtotal * $ppn_percent) / 100);
+        if ($grand_total == 0 && $subtotal > 0) {
+            $grand_total = $subtotal + $ppn_nominal;
+        }
+        
+        $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
         
         $items = [];
         if (isset($details) && count($details) > 0) {
@@ -372,21 +383,21 @@
                 @endforeach
             </tbody>
             <tfoot>
-                <tr style="border-top: 2px solid #000;">
-                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: normal;">TOTAL</td>
-                    <td class="text-right" style="padding: 6px 5px;">
+                <tr>
+                    <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 5px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right" style="border-top: 2px solid #000; padding: 6px 5px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
+                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
                     <td class="text-right" style="padding: 4px 5px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
-                <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
-                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
-                    <td class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">
+                <tr>
+                    <td colspan="4" class="text-right" style="border-top: 0px solid #000; border-bottom: 0px solid #000; padding: 6px 5px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td class="text-right" style="border-top: 0px solid #000; border-bottom: 0px solid #000; padding: 6px 5px; font-weight: bold; font-size: 11pt;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
@@ -403,7 +414,7 @@
                 </div>
             @else
                 <ol class="terms-list">
-                    <li>Include PPN {{ $ppn_percent }}%</li>
+                    <li>Include PPN {{ $ppn_percent_display }}%</li>
                     <li>Include shipping costs</li>
                     <li>Terms Of Payment :
                         <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% before device delivered

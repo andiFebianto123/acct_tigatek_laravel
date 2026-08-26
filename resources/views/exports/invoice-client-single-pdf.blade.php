@@ -240,10 +240,23 @@
         $decPoint = $isUsd ? '.' : ',';
         $thousandsSep = $isUsd ? ',' : '.';
 
-        $subtotal = $header->price_total_exclude_ppn ?? 0;
-        $grand_total = $header->price_total_include_ppn ?? 0;
-        $ppn_nominal = $grand_total - $subtotal;
-        $ppn_percent = $subtotal > 0 ? round(($ppn_nominal / $subtotal) * 100) : 11;
+        $subtotal = (float) ($header->price_total_exclude_ppn ?? 0);
+        $grand_total = (float) ($header->price_total_include_ppn ?? 0);
+        
+        if (isset($header->tax_ppn) && $header->tax_ppn !== null && $header->tax_ppn !== '') {
+            $ppn_percent = (float) $header->tax_ppn;
+        } elseif ($subtotal > 0 && $grand_total > $subtotal) {
+            $ppn_percent = round((($grand_total - $subtotal) / $subtotal) * 100, 2);
+        } else {
+            $ppn_percent = 11;
+        }
+
+        $ppn_nominal = $grand_total > $subtotal ? ($grand_total - $subtotal) : (($subtotal * $ppn_percent) / 100);
+        if ($grand_total == 0 && $subtotal > 0) {
+            $grand_total = $subtotal + $ppn_nominal;
+        }
+        
+        $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
         
         // Consolidate details
         $items = [];
@@ -386,7 +399,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
+                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
                     <td class="text-right" style="padding: 4px 5px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
@@ -410,7 +423,7 @@
                 </div>
             @else
                 <ol class="terms-list">
-                    <li>Include PPN {{ $ppn_percent }}%</li>
+                    <li>Include PPN {{ $ppn_percent_display }}%</li>
                     <li>Include shipping costs</li>
                     <li>Terms Of Payment :
                         <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% before device delivered
