@@ -378,28 +378,27 @@
                     </tr>
                 @endforeach
             </tbody>
+            <tfoot>
+                <tr style="border-top: 2px solid #000;">
+                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right" style="padding: 6px 5px;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
+                    <td class="text-right" style="padding: 4px 5px;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
+                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+            </tfoot>
         </table>
-        
-        <div class="totals-table-container">
-            <table class="totals-table">
-                <tr>
-                    <td class="label">TOTAL</td>
-                    <td style="width: 15%;">{{ $symbol }}</td>
-                    <td class="text-right">{{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-                <tr>
-                    <td class="label">PPN {{ $ppn_percent }}%</td>
-                    <td>{{ $symbol }}</td>
-                    <td class="text-right">{{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-                <tr>
-                    <td class="label-bold">GRAND TOTAL</td>
-                    <td class="val-bold">{{ $symbol }}</td>
-                    <td class="val-bold">{{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}</td>
-                </tr>
-            </table>
-            <div class="clearfix"></div>
-        </div>
     </div>
 
     <div class="bottom-section">
