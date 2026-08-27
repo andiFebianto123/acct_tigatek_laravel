@@ -108,11 +108,9 @@
             width: 100%;
             border-collapse: collapse;
         }
-        .items-table thead tr {
+        .items-table th {
             border-top: 2px solid #000;
             border-bottom: 2px solid #000;
-        }
-        .items-table th {
             padding: 8px 5px;
             text-align: center;
             font-size: 10.5pt;
@@ -386,9 +384,9 @@
                 @endforeach
             </tbody>
             <tfoot>
-                <tr style="border-top: 2px solid #000;">
-                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: normal;">TOTAL</td>
-                    <td class="text-right" style="padding: 6px 5px;">
+                <tr>
+                    <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 5px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right" style="border-top: 2px solid #000; padding: 6px 5px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
