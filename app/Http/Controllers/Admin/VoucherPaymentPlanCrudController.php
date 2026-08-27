@@ -260,7 +260,7 @@ class VoucherPaymentPlanCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             array_splice($columns, 2, 0, [[
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company_name',
@@ -414,7 +414,7 @@ class VoucherPaymentPlanCrudController extends CrudController
             'orderable' => false,
         ])->makeFirstColumn();
         
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addColumn([
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name'  => 'company_name',
@@ -507,7 +507,7 @@ class VoucherPaymentPlanCrudController extends CrudController
             'wrapper'   => ['element' => 'strong']
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addColumn([
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name'  => 'company_name',

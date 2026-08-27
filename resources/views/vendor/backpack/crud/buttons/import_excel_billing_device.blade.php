@@ -15,7 +15,7 @@
             <form id="formImportExcel" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    @if (backpack_user()->hasRole('Super Admin'))
+                    @if (backpack_user() && backpack_user()->canAccessAllCompanies())
                         <div class="form-group mb-3">
                             <label class="form-label" for="import_company_id">Milik Perusahaan <span class="text-danger">*</span></label>
                             <select name="company_id" id="import_company_id" class="form-select" required>

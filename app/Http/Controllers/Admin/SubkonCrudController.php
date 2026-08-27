@@ -114,7 +114,7 @@ class SubkonCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addColumn([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -399,7 +399,7 @@ class SubkonCrudController extends CrudController
     {
         CRUD::setValidation(SubkonRequest::class);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'name'      => 'company_id',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -493,7 +493,7 @@ class SubkonCrudController extends CrudController
     protected function setupShowOperation()
     {
         // column
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -599,7 +599,7 @@ class SubkonCrudController extends CrudController
         ]);
 
         // column
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addColumn([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),

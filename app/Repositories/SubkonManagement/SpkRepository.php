@@ -38,7 +38,7 @@ class SpkRepository
      */
     public function applySearchFilters($query, SpkFilterData $filters)
     {
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
 
         $filterMap = [];
         if ($isSuperAdmin) {

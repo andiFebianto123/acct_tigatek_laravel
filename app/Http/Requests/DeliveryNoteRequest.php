@@ -41,7 +41,7 @@ class DeliveryNoteRequest extends FormRequest
             'delivery_note_details.*.qty' => 'required_with:delivery_note_details|integer|min:1',
         ];
 
-        if (backpack_user() && backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
             $rules['company_id'] = 'required|exists:companies,id';
         } else {
             $rules['company_id'] = 'nullable|exists:companies,id';

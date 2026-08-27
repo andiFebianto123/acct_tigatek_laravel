@@ -102,7 +102,7 @@ class SpkCrudController extends CrudController
                 'label'     => 'No',
                 'orderable' => false,
             ],
-            ...(backpack_user()->hasRole('Super Admin') ? [[
+            ...(backpack_user()->canAccessAllCompanies() ? [[
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
                 'name'      => 'company_id',
@@ -438,7 +438,7 @@ class SpkCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -609,7 +609,7 @@ class SpkCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'closure',
@@ -826,7 +826,7 @@ class SpkCrudController extends CrudController
             }
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'name'      => 'company_id',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -1097,7 +1097,7 @@ class SpkCrudController extends CrudController
         CRUD::field('company_id')->remove();
         CRUD::field('logic_spk')->remove();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),

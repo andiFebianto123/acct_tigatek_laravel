@@ -37,7 +37,7 @@ class PurchaseOrderRepository
      */
     public function applySearchFilters($query, PurchaseOrderFilterData $filters)
     {
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
 
         // Mapping index columns to database fields
         $filterMap = [];

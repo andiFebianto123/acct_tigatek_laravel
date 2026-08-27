@@ -58,4 +58,17 @@ class User extends Authenticatable
         return $this->roles;
     }
 
+    public function canAccessAllCompanies(): bool
+    {
+        if ($this->hasRole('Super Admin')) {
+            return true;
+        }
+
+        try {
+            return $this->hasPermissionTo('BUKA SEMUA PILIHAN PERUSAHAAN');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
 }

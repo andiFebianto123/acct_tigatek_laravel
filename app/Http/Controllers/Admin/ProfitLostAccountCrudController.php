@@ -580,7 +580,7 @@ class ProfitLostAccountCrudController extends CrudController
             CRUD::setValidation(ProfitLostRequest::class);
             CRUD::setModel(ProjectProfitLost::class);
 
-            if (backpack_user()->hasRole('Super Admin')) {
+            if (backpack_user()->canAccessAllCompanies()) {
                 $companies = \App\Models\Company::pluck('name', 'id')->toArray();
                 CRUD::addField([
                     'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',

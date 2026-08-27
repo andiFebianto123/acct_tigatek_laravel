@@ -56,7 +56,7 @@ class ProformaInvoiceClientRepository
         if (empty($columns) || !is_array($columns)) return;
 
         $isDatatable = isset($columns[0]['search']);
-        $offset = (backpack_user()->hasRole('Super Admin')) ? 1 : 0;
+        $offset = (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 1 : 0;
 
         foreach ($columns as $index => $column) {
             $value = '';

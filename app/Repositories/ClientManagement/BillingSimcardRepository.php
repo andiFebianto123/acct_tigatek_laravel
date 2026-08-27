@@ -18,7 +18,7 @@ class BillingSimcardRepository
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
             $query->where('company_id', $filters->company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 
@@ -33,7 +33,7 @@ class BillingSimcardRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
 
         if ($isSuperAdmin) {
             $filterMap = [

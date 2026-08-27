@@ -34,7 +34,7 @@ class ClientRepository
         if (empty($filters->columnFilters)) return $query;
 
         // Map indeks kolom ke field database (sesuaikan dengan urutan di setupListOperation)
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
         
         if ($isSuperAdmin) {
             $filterMap = [

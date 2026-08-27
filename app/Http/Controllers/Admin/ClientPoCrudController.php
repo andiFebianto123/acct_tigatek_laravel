@@ -127,7 +127,7 @@ class ClientPoCrudController extends CrudController
                         'label'     => 'No',
                         'orderable' => false,
                     ],
-                    ...(backpack_user()->hasRole('Super Admin') ? [[
+                    ...(backpack_user()->canAccessAllCompanies() ? [[
                         'label' => trans('backpack::crud.subkon.column.company'),
                         'type'      => 'text',
                         'name'      => 'company.name',
@@ -478,7 +478,7 @@ class ClientPoCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -871,7 +871,7 @@ class ClientPoCrudController extends CrudController
             '
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -1247,7 +1247,7 @@ class ClientPoCrudController extends CrudController
             $work_code_disabled = ['disabled' => true];
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -1631,7 +1631,7 @@ class ClientPoCrudController extends CrudController
         $settings = Setting::first();
         $new_format_date = 'DD/MM/YYYY';
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',

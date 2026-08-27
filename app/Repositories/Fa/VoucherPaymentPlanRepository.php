@@ -226,7 +226,7 @@ class VoucherPaymentPlanRepository
         $search = $this->extractFilterValues($columns);
         if (empty($search)) return $query;
 
-        $isSuperAdmin = backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
         $offset = $isSuperAdmin ? 1 : 0;
 
         $filters = [
@@ -412,7 +412,7 @@ class VoucherPaymentPlanRepository
         $search = $this->extractFilterValues($columns);
         if (empty($search)) return $query;
 
-        $isSuperAdmin = backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
         $offset = $isSuperAdmin ? 1 : 0;
 
         $filters = [

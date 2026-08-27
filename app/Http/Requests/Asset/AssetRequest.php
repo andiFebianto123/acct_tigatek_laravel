@@ -23,7 +23,7 @@ class AssetRequest extends FormRequest
             'economic_age' => 'required|numeric',
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
             $rules['company_id'] = 'nullable|exists:companies,id';
         }
 

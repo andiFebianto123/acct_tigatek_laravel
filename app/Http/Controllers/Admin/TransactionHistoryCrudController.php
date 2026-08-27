@@ -95,7 +95,7 @@ class TransactionHistoryCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'  => 'text',
@@ -224,7 +224,7 @@ class TransactionHistoryCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -361,7 +361,7 @@ class TransactionHistoryCrudController extends CrudController
             'file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB limit
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $rules['company_id'] = 'required|integer|exists:companies,id';
         }
 
@@ -371,7 +371,7 @@ class TransactionHistoryCrudController extends CrudController
             DB::beginTransaction();
 
             $companyId = null;
-            if (backpack_user()->hasRole('Super Admin')) {
+            if (backpack_user()->canAccessAllCompanies()) {
                 $companyId = (int) $request->input('company_id');
             } else {
                 $companyId = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
@@ -429,7 +429,7 @@ class TransactionHistoryCrudController extends CrudController
     {
         $this->setupCreateOperation();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -510,7 +510,7 @@ class TransactionHistoryCrudController extends CrudController
     {
         CRUD::setValidation(TransactionHistoryRequest::class);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'   => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',

@@ -1078,7 +1078,7 @@ class CastAccountsCrudController extends CrudController
             ]);
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',

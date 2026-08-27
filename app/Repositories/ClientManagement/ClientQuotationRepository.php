@@ -27,7 +27,7 @@ class ClientQuotationRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
 
         if ($isSuperAdmin) {
             $filterMap = [

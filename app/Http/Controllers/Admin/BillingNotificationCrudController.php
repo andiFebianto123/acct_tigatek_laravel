@@ -75,7 +75,7 @@ class BillingNotificationCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
                 'type'  => 'text',
@@ -164,7 +164,7 @@ class BillingNotificationCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -303,7 +303,7 @@ class BillingNotificationCrudController extends CrudController
     {
         $this->setupCreateOperation();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -345,7 +345,7 @@ class BillingNotificationCrudController extends CrudController
      */
     protected function setupCreateOperation()
     {
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'   => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
@@ -404,7 +404,7 @@ class BillingNotificationCrudController extends CrudController
         if (backpack_user()) {
             $permissions = backpack_user()->getPermissionsViaRoles()->pluck('name');
             if ($permissions->contains('MENU INDEX CLIENT NOTIFIKASI TAGIHAN')) {
-                $count = backpack_user()->hasRole('Super Admin')
+                $count = backpack_user()->canAccessAllCompanies()
                     ? \App\Models\BillingNotification::count()
                     : \App\Models\BillingNotification::where('company_id', backpack_user()->company_id)->count();
             }

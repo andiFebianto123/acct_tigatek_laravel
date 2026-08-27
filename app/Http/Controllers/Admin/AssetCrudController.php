@@ -110,7 +110,7 @@ class AssetCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addColumn([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -622,7 +622,7 @@ class AssetCrudController extends CrudController
     {
         CRUD::setValidation(AssetRequest::class);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',

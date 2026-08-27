@@ -42,7 +42,7 @@ class SpkData
             status: $request->input('status'),
             document_path: $request->file('document_path') ?? $request->input('document_path'),
             additional_info: $request->input('additional_info'),
-            company_id: backpack_user()->hasRole('Super Admin') ? $request->input('company_id') : backpack_user()->company_id,
+            company_id: (backpack_user() && backpack_user()->canAccessAllCompanies()) ? $request->input('company_id') : backpack_user()?->company_id,
             currency_code: $request->input('currency_code', 'IDR'),
             pic: $request->input('pic'),
         );

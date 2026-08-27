@@ -179,7 +179,7 @@ class ClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -289,7 +289,7 @@ class ClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'closure',
@@ -484,7 +484,7 @@ class ClientCrudController extends CrudController
          * - CRUD::field('price')->type('number');
          */
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',

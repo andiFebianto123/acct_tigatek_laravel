@@ -113,7 +113,7 @@ class BastCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'text',
@@ -376,7 +376,7 @@ class BastCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 
@@ -511,7 +511,7 @@ class BastCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -593,7 +593,7 @@ class BastCrudController extends CrudController
             'type' => 'logic_bast',
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -869,7 +869,7 @@ class BastCrudController extends CrudController
 
         $is_superadmin = 0;
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $is_superadmin = 1;
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -1083,7 +1083,7 @@ class BastCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 

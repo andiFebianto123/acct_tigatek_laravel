@@ -20,7 +20,7 @@
                 refresh: function(){
                     var instance = this;
                     setTimeout(() => {
-                        @if(!backpack_user()->hasRole('Super Admin'))
+                        @if(!backpack_user() || !backpack_user()->canAccessAllCompanies())
                             $("#crudTable-invoice thead tr.filters th").eq(4).children('input').remove();
                             $("#crudTable-invoice thead tr.filters th").eq(6).children('input').remove();
                             $("#crudTable-invoice thead tr.filters th").eq(11).children('input').remove();

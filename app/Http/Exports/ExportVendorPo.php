@@ -143,7 +143,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             trans('backpack::crud.po.column.status'),
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             array_splice($headings, 3, 0, [trans('backpack::crud.subkon.column.company')]);
         }
 
@@ -184,7 +184,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
             $status,
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             array_splice($data, 3, 0, [$entry->company->name ?? '-']);
         }
 
@@ -193,7 +193,7 @@ class ExportVendorPo implements FromCollection, WithHeadings, WithMapping, Shoul
 
     public function styles(Worksheet $sheet)
     {
-        $highestColumn = backpack_user()->hasRole('Super Admin') ? 'M' : 'L'; // Ganti jika jumlah kolom berubah
+        $highestColumn = backpack_user()->canAccessAllCompanies() ? 'M' : 'L'; // Ganti jika jumlah kolom berubah
 
         $sheet->getStyle("A1:{$highestColumn}" . ($this->rowNumber + 1))->applyFromArray([
             'borders' => [

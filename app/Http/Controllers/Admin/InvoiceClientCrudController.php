@@ -140,7 +140,7 @@ class InvoiceClientCrudController extends CrudController
 
     private function getComponent()
     {
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $this->crud->filter('company_id11crudTable-invoice')
                 ->label('Milik Perusahaan')
                 ->type('select2')
@@ -180,7 +180,7 @@ class InvoiceClientCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company',
@@ -479,7 +479,7 @@ class InvoiceClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company_name',
@@ -950,7 +950,7 @@ class InvoiceClientCrudController extends CrudController
         }
         // CRUD::setFromDb(); // set fields from db columns.
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
@@ -1572,7 +1572,7 @@ class InvoiceClientCrudController extends CrudController
             ")
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -2364,7 +2364,7 @@ class InvoiceClientCrudController extends CrudController
             ]);
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
@@ -2652,7 +2652,7 @@ class InvoiceClientCrudController extends CrudController
 
         if ($companyId) {
             $query->where('company_id', $companyId);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 

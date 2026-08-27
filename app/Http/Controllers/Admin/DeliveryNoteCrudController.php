@@ -113,7 +113,7 @@ class DeliveryNoteCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'text',
@@ -372,7 +372,7 @@ class DeliveryNoteCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 
@@ -505,7 +505,7 @@ class DeliveryNoteCrudController extends CrudController
             'wrapper'   => ['element' => 'strong'],
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -595,7 +595,7 @@ class DeliveryNoteCrudController extends CrudController
             'type' => 'logic_delivery_note',
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -788,7 +788,7 @@ class DeliveryNoteCrudController extends CrudController
         CRUD::removeField('logic_delivery_note');
         CRUD::removeField('invoice_items_table');
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
@@ -922,7 +922,7 @@ class DeliveryNoteCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 
@@ -948,7 +948,7 @@ class DeliveryNoteCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 
@@ -980,7 +980,7 @@ class DeliveryNoteCrudController extends CrudController
 
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
-        } else if (backpack_user() && !backpack_user()->hasRole('Super Admin')) {
+        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
             $query->where('company_id', backpack_user()->company_id);
         }
 

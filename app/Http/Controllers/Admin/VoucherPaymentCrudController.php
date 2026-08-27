@@ -84,7 +84,7 @@ class VoucherPaymentCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('list');
 
-        $isSuperAdmin = backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user()->canAccessAllCompanies();
         $companyColumn = [
             'label' => trans('backpack::crud.subkon.column.company'),
             'type'  => 'text',
@@ -461,7 +461,7 @@ class VoucherPaymentCrudController extends CrudController
         ]);
 
         // 3. Column: Milik Perusahaan (Conditional for Super Admin)
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'name'  => 'company_name',
                 'label' => trans('backpack::crud.subkon.column.company'),

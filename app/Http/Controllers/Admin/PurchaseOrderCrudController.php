@@ -122,7 +122,7 @@ class PurchaseOrderCrudController extends CrudController
                 'label'     => 'No',
                 'orderable' => false,
             ],
-            ...(backpack_user()->hasRole('Super Admin') ? [[
+            ...(backpack_user()->canAccessAllCompanies() ? [[
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
                 'name'      => 'company_id',
@@ -449,7 +449,7 @@ class PurchaseOrderCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $app->addColumn([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -675,7 +675,7 @@ class PurchaseOrderCrudController extends CrudController
             }
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'name'      => 'company_id',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -1125,7 +1125,7 @@ class PurchaseOrderCrudController extends CrudController
             ],
         ])->before('po_number');
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),
@@ -1188,7 +1188,7 @@ class PurchaseOrderCrudController extends CrudController
             'type'  => 'text',
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'name'      => 'company',
                 'label'     => trans('backpack::crud.subkon.column.company'),

@@ -24,7 +24,7 @@ class BillingDeviceRequest extends FormRequest
     public function rules()
     {
         return [
-            'company_id' => backpack_user()->hasRole('Super Admin') ? 'nullable|exists:companies,id' : 'nullable',
+            'company_id' => (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 'nullable|exists:companies,id' : 'nullable',
             'client_id' => 'nullable|exists:clients,id',
             'device_id' => 'required|string|max:100',
             'phone' => 'nullable|string|max:50',

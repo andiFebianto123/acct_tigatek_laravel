@@ -231,7 +231,7 @@ class VoucherPaymentRepository
 
     private function applyFilters($query, array $columns)
     {
-        $isSuperAdmin = backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
         $offset = $isSuperAdmin ? 1 : 0;
 
         $filterMap = [
@@ -350,7 +350,7 @@ class VoucherPaymentRepository
                     ->orWhere('spk.no_spk', 'like', "%{$search}%")
                     ->orWhere('vouchers.payment_description', 'like', "%{$search}%")
                     ->orWhere('purchase_orders.po_number', 'like', "%{$search}%");
-                if (backpack_user()->hasRole('Super Admin')) {
+                if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
                     $q->orWhere('companies.name', 'like', "%{$search}%");
                 }
             });

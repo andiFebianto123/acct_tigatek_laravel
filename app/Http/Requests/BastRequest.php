@@ -38,7 +38,7 @@ class BastRequest extends FormRequest
             'information' => 'nullable|string',
         ];
 
-        if (backpack_user() && backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
             $rules['company_id'] = 'required|exists:companies,id';
         } else {
             $rules['company_id'] = 'nullable|exists:companies,id';

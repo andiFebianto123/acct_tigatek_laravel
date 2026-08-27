@@ -31,7 +31,7 @@
                 <th>No</th>
                 <th>{{trans('backpack::crud.po.column.po_number')}}</th>
                 <th>{{trans('backpack::crud.po.column.date_po')}}</th>
-                @if(backpack_user()->hasRole('Super Admin'))
+                @if(backpack_user() && backpack_user()->canAccessAllCompanies())
                     <th>{{trans('backpack::crud.subkon.column.company')}}</th>
                 @endif
                 <th>{{trans('backpack::crud.subkon.column.name')}}</th>
@@ -54,7 +54,7 @@
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $item->po_number ?? '-' }}</td>
                 <td>{{ $item->date_po ? \Carbon\Carbon::parse($item->date_po)->translatedFormat("d/m/Y") : '-' }}</td>
-                @if(backpack_user()->hasRole('Super Admin'))
+                @if(backpack_user() && backpack_user()->canAccessAllCompanies())
                     <td>{{ $item->company->name ?? '-' }}</td>
                 @endif
                 <td>{{ $item->subkon->name ?? '-' }}</td>

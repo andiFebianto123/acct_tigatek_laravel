@@ -26,6 +26,7 @@ class PermissionSeeder extends Seeder
             'AKSES SEMUA DAFTAR PENAWARAN PROJECT',
             'AKSES SEMUA DATA PROYEKSI PEKERJAAN PROJECT',
             'EDIT KOLOM PROGRES DAN KETERANGAN DAFTAR PROJECT',
+            'BUKA SEMUA PILIHAN PERUSAHAAN',
         ];
 
         foreach ($permissions as $permission) {

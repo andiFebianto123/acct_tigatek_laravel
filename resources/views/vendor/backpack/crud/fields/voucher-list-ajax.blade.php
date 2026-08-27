@@ -22,7 +22,7 @@
                     <th>
                         <input type="checkbox" class="form-check-input select-all-vouchers">
                     </th>
-                    @if (backpack_user()->hasRole('Super Admin'))
+                    @if (backpack_user() && backpack_user()->canAccessAllCompanies())
                         <th>{{ trans('backpack::crud.subkon.column.company') }}</th>
                     @endif
                     <th>{{ trans('backpack::crud.voucher.column.voucher.no_voucher.label') }}</th>
@@ -189,7 +189,7 @@
                         return `<input type="checkbox" class="form-check-input voucher-checkbox" value="${data}" ${checked}>`;
                     }
                 },
-                @if (backpack_user()->hasRole('Super Admin'))
+                @if (backpack_user() && backpack_user()->canAccessAllCompanies())
                 { data: 'company_name', orderable: false },
                 @endif
                 { data: 'no_voucher', orderable: false },

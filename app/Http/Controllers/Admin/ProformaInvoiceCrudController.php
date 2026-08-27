@@ -99,7 +99,7 @@ class ProformaInvoiceCrudController extends CrudController
         $search = request()->input('q');
         $company_id = request()->input('company_id');
 
-        if (backpack_user()->hasRole('Super Admin') && !$company_id) {
+        if (backpack_user()->canAccessAllCompanies() && !$company_id) {
             return response()->json(['results' => []]);
         }
 
@@ -177,7 +177,7 @@ class ProformaInvoiceCrudController extends CrudController
 
     private function getComponent()
     {
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $this->crud->filter('company_id11crudTable-invoice')
                 ->label('Milik Perusahaan')
                 ->type('select2')
@@ -220,7 +220,7 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company',
@@ -483,7 +483,7 @@ class ProformaInvoiceCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company_name',
@@ -741,7 +741,7 @@ class ProformaInvoiceCrudController extends CrudController
             $defaultProformaInvoiceNumber = $this->repository->generateNextNumber();
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
@@ -1176,7 +1176,7 @@ class ProformaInvoiceCrudController extends CrudController
             ")
         ]);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',

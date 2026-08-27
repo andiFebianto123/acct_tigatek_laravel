@@ -260,7 +260,7 @@ class ProformaInvoiceClientCrudController extends CrudController
 
     private function getComponent()
     {
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $this->crud->filter('company_id11crudTable-invoice')
                 ->label('Milik Perusahaan')
                 ->type('select2')
@@ -301,7 +301,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company',
@@ -497,7 +497,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label' => trans('backpack::crud.subkon.column.company'),
                 'name' => 'company_name',
@@ -633,7 +633,7 @@ class ProformaInvoiceClientCrudController extends CrudController
             $defaultProformaInvoiceNumber = $this->repository->generateNextNumber();
         }
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $companies = \App\Models\Company::pluck('name', 'id')->toArray();
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
@@ -1141,7 +1141,7 @@ class ProformaInvoiceClientCrudController extends CrudController
 
 
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::field([
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',

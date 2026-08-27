@@ -93,7 +93,7 @@ class BillingDeviceCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $columns[] = [
                 'label' => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'  => 'text',
@@ -244,7 +244,7 @@ class BillingDeviceCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -410,7 +410,7 @@ class BillingDeviceCrudController extends CrudController
             'file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB limit
         ];
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             $rules['company_id'] = 'required|integer|exists:companies,id';
         }
 
@@ -420,7 +420,7 @@ class BillingDeviceCrudController extends CrudController
             DB::beginTransaction();
 
             $companyId = null;
-            if (backpack_user()->hasRole('Super Admin')) {
+            if (backpack_user()->canAccessAllCompanies()) {
                 $companyId = (int) $request->input('company_id');
             } else {
                 $companyId = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
@@ -509,7 +509,7 @@ class BillingDeviceCrudController extends CrudController
         ]);
 
         // Ensure columns match the exact sequence as the setup fields
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::column([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',
@@ -619,7 +619,7 @@ class BillingDeviceCrudController extends CrudController
     {
         CRUD::setValidation(\App\Http\Requests\BillingDeviceRequest::class);
 
-        if (backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user()->canAccessAllCompanies()) {
             CRUD::addField([
                 'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
                 'type'      => 'select',

@@ -51,7 +51,7 @@ class ClientPoRepository
         if (empty($filters->columnFilters)) return $query;
 
         // Mendeteksi apakah user adalah Super Admin (kolom bergeser)
-        $isSuperAdmin = backpack_user() && backpack_user()->hasRole('Super Admin');
+        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
 
         if ($isSuperAdmin) {
             $filterMap = [

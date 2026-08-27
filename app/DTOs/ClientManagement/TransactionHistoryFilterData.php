@@ -34,7 +34,7 @@ class TransactionHistoryFilterData
         }
 
         $company_id = null;
-        if (backpack_user() && backpack_user()->hasRole('Super Admin')) {
+        if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
             $company_id = $request->input('company_id') ? (int) $request->input('company_id') : null;
         } else if (backpack_user()) {
             $company_id = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
