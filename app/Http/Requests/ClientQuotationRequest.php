@@ -97,6 +97,7 @@ class ClientQuotationRequest extends FormRequest
 
         $rule['date_po'] = 'nullable|date';
         $rule['pic'] = 'required|string|max:150';
+        $rule['term'] = 'nullable|string';
         $rule['items'] = 'nullable|array';
         $rule['items.*.item_name'] = 'nullable|string';
         $rule['items.*.qty'] = 'nullable';

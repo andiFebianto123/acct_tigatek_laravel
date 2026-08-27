@@ -179,6 +179,14 @@
             padding-left: 15px;
             margin-bottom: 15px;
         }
+        .terms-content ul, .terms-content ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+        .terms-content p {
+            margin: 0 0 5px 0;
+        }
         .payment-title {
             font-weight: bold;
             margin-bottom: 5px;
@@ -294,16 +302,31 @@
                 {!! nl2br(e($entry->client->address ?? 'Jakarta, Indonesia')) !!}
             </div>
         </div>
+        @php
+            $validityDays = null;
+            if (!empty($entry->start_date) && !empty($entry->end_date)) {
+                $start = \Carbon\Carbon::parse($entry->start_date);
+                $end = \Carbon\Carbon::parse($entry->end_date);
+                $validityDays = $start->diffInDays($end);
+            }
+        @endphp
+
         <div class="po-meta">
             <table>
                 <tr>
-                    <td class="label">Quotation</td>
-                    <td>: &nbsp; {{ $entry->work_code ?? '-' }}</td>
+                    <td class="label">Nomor</td>
+                    <td>: &nbsp; {{ $entry->po_number ?? $entry->work_code ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Date</td>
                     <td>: &nbsp; {{ $entry->date_po ? \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') : \Carbon\Carbon::parse($entry->created_at)->format('d / m / Y') }}</td>
                 </tr>
+                @if($validityDays !== null)
+                <tr>
+                    <td class="label">Valid</td>
+                    <td>: &nbsp; {{ $validityDays }} hari</td>
+                </tr>
+                @endif
                 <tr>
                     <td class="label">Currency</td>
                     <td>: &nbsp; {{ $currencyCode }}</td>
@@ -393,13 +416,19 @@
     <div class="bottom-section">
         <div class="terms-section">
             <div class="terms-title">Terms :</div>
-            <ol class="terms-list">
-                <li>FOB Jabodetabek</li>
-                <li>Include PPN {{ $ppn_percent }}%</li>
-                <li>Terms Of Payment :
-                    <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% After Invoice Submitted
-                </li>
-            </ol>
+            @if(!empty($entry->term))
+                <div class="terms-content">
+                    {!! $entry->term !!}
+                </div>
+            @else
+                <ol class="terms-list">
+                    <li>FOB Jabodetabek</li>
+                    <li>Include PPN {{ $ppn_percent }}%</li>
+                    <li>Terms Of Payment :
+                        <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% After Invoice Submitted
+                    </li>
+                </ol>
+            @endif
             
             <div class="payment-title">Payment to be made to</div>
             <table class="payment-table">

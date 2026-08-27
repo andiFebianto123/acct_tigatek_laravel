@@ -147,6 +147,12 @@ class BastCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'name'      => 'phone',
+                'type'      => 'text',
+                'label'     => trans('backpack::crud.bast.column.phone'),
+                'orderable' => true,
+            ],
+            [
                 'name'      => 'first_party',
                 'type'      => 'text',
                 'label'     => trans('backpack::crud.bast.column.first_party'),
@@ -545,6 +551,12 @@ class BastCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'  => trans('backpack::crud.bast.column.phone'),
+            'name'   => 'phone',
+            'type'   => 'text'
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.bast.column.first_party'),
             'name'   => 'first_party',
             'type'   => 'text'
@@ -700,6 +712,18 @@ class BastCrudController extends CrudController
             ],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.bast.field.pic.placeholder'),
+            ]
+        ]);
+
+        CRUD::addField([
+            'name'  => 'phone',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.bast.field.phone.label'),
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.bast.field.phone.placeholder'),
             ]
         ]);
 
@@ -970,6 +994,12 @@ class BastCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'  => trans('backpack::crud.bast.field.phone.label'),
+            'name'   => 'phone',
+            'type'   => 'text',
+        ]);
+
+        CRUD::column([
             'name'  => 'address',
             'type'  => 'textarea',
             'label' => trans('backpack::crud.bast.field.address.label'),
@@ -1035,6 +1065,7 @@ class BastCrudController extends CrudController
             'client_id' => $po?->client_id ?? '',
             'client_name' => $po?->client?->name ?? '',
             'pic' => $po?->pic ?? $po?->quotations?->first()?->pic ?? '',
+            'phone' => $po?->client?->phone ?? '',
             'address' => $po?->client?->address ?? '',
             'job_name' => $po?->job_name ?? ''
         ]);
@@ -1079,6 +1110,7 @@ class BastCrudController extends CrudController
             'client_id' => $proforma?->client_id ?? '',
             'client_name' => $proforma?->client?->name ?? '',
             'pic' => $proforma?->pic ?? $proforma?->client_po?->quotations?->first()?->pic ?? '',
+            'phone' => $proforma?->client?->phone ?? '',
             'address' => $proforma?->client?->address ?? '',
             'job_name' => $proforma?->client_po?->job_name ?? ''
         ]);

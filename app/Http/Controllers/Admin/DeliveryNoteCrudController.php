@@ -147,6 +147,12 @@ class DeliveryNoteCrudController extends CrudController
                 'orderable' => true,
             ],
             [
+                'name'      => 'phone',
+                'type'      => 'text',
+                'label'     => trans('backpack::crud.delivery_note.column.phone'),
+                'orderable' => true,
+            ],
+            [
                 'name'      => 'reference_type',
                 'type'      => 'text',
                 'label'     => trans('backpack::crud.delivery_note.column.reference_type'),
@@ -538,6 +544,12 @@ class DeliveryNoteCrudController extends CrudController
             'type'   => 'text',
         ]);
 
+        CRUD::column([
+            'label'  => trans('backpack::crud.delivery_note.column.phone'),
+            'name'   => 'phone',
+            'type'   => 'text',
+        ]);
+
         // Badge Jenis Referensi — selaras dengan $columns di index()
         CRUD::column([
             'label'    => trans('backpack::crud.delivery_note.column.reference_type'),
@@ -647,6 +659,16 @@ class DeliveryNoteCrudController extends CrudController
             'wrapper'   => ['class' => 'form-group col-md-6'],
             'attributes' => [
                 'placeholder' => trans('backpack::crud.delivery_note.field.pic.placeholder'),
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'phone',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.delivery_note.field.phone.label'),
+            'wrapper'   => ['class' => 'form-group col-md-6'],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.delivery_note.field.phone.placeholder'),
             ],
         ]);
 
@@ -813,6 +835,12 @@ class DeliveryNoteCrudController extends CrudController
         CRUD::column([
             'label'     => trans('backpack::crud.delivery_note.field.pic.label'),
             'name'      => 'pic',
+            'type'      => 'text',
+        ]);
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.delivery_note.field.phone.label'),
+            'name'      => 'phone',
             'type'      => 'text',
         ]);
 
@@ -1000,6 +1028,7 @@ class DeliveryNoteCrudController extends CrudController
             'client_id'    => $quotation->client_id ?? '',
             'client_name'  => $quotation->client?->name ?? '',
             'pic'          => $quotation->pic ?? '',
+            'phone'        => $quotation->client?->phone ?? '',
             'address'      => $quotation->client?->address ?? '',
             'description'  => $quotation->job_name ?? '',
             'items'        => $items,
@@ -1037,6 +1066,7 @@ class DeliveryNoteCrudController extends CrudController
             'client_id'    => $invoice->client_id ?? '',
             'client_name'  => $invoice->client?->name ?? '',
             'pic'          => $invoice->pic ?? '',
+            'phone'        => $invoice->client?->phone ?? '',
             'address'      => $invoice->address_po ?? $invoice->client?->address ?? '',
             'description'  => $invoice->description ?? '',
             'items'        => $items,
@@ -1074,6 +1104,7 @@ class DeliveryNoteCrudController extends CrudController
             'client_id'    => $invoice->client_id ?? '',
             'client_name'  => $invoice->client?->name ?? '',
             'pic'          => $invoice->pic ?? '',
+            'phone'        => $invoice->client?->phone ?? '',
             'address'      => $invoice->address_po ?? $invoice->client?->address ?? '',
             'description'  => $invoice->description ?? '',
             'items'        => $items,
@@ -1119,6 +1150,7 @@ class DeliveryNoteCrudController extends CrudController
             'client_id'   => $po->client_id ?? '',
             'client_name' => $po->client?->name ?? '',
             'pic'         => $po->pic ?? $po->quotations?->first()?->pic ?? '',
+            'phone'       => $po->client?->phone ?? '',
             'address'     => $po->client?->address ?? '',
             'description' => $po->job_name ?? '',
             'items'       => $items,
@@ -1138,6 +1170,7 @@ class DeliveryNoteCrudController extends CrudController
             'client_id'   => $po?->client_id ?? '',
             'client_name' => $po?->client?->name ?? '',
             'pic'         => $po?->pic ?? $po?->quotations?->first()?->pic ?? '',
+            'phone'       => $po?->client?->phone ?? '',
             'address'     => $po?->client?->address ?? '',
             'job_name'    => $po?->job_name ?? '',
         ]);

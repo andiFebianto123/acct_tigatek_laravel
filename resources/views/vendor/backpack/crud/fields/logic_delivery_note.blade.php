@@ -96,7 +96,7 @@
                             }
                         });
 
-                    // --- Event: Client berubah (prefill alamat) ---
+                    // --- Event: Client berubah (prefill alamat & phone) ---
                     $(form + ' select[name="client_id"]').off('select2:select change.dn_client').on('select2:select change.dn_client', function (e) {
                         var clientId = $(this).val();
                         if (clientId) {
@@ -107,6 +107,9 @@
                                 success: function (res) {
                                     if (res && res.address) {
                                         $(form + ' textarea[name="address"]').val(res.address);
+                                    }
+                                    if (res && res.phone && !$(form + ' input[name="phone"]').val()) {
+                                        $(form + ' input[name="phone"]').val(res.phone);
                                     }
                                 }
                             });
@@ -281,6 +284,12 @@
                                 var currentDnPic = $(form + ' input[name="pic"]').val();
                                 if ((!currentDnPic || currentDnPic.trim() === '') && res.pic) {
                                     $(form + ' input[name="pic"]').val(res.pic);
+                                }
+
+                                // Prefill Phone (hanya jika kosong)
+                                var currentDnPhone = $(form + ' input[name="phone"]').val();
+                                if ((!currentDnPhone || currentDnPhone.trim() === '') && res.phone) {
+                                    $(form + ' input[name="phone"]').val(res.phone);
                                 }
 
                                 // Prefill Deskripsi Header (hanya jika kosong)

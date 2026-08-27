@@ -240,7 +240,7 @@
             <tr>
                 <td class="label">No. Telp</td>
                 <td class="colon">:</td>
-                <td class="value">{{ $entry->client->phone ?? '-' }}</td>
+                <td class="value">{{ !empty($entry->phone) ? $entry->phone : ($entry->client->phone ?? '-') }}</td>
             </tr>
             <tr>
                 <td class="label">Alamat</td>

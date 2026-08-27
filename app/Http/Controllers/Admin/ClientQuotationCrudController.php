@@ -838,6 +838,19 @@ class ClientQuotationCrudController extends CrudController
             ]
         ]);
 
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.client_quotation.field.term.label'),
+            'type' => 'tinymce_8',
+            'default' => '<ol><li>FOB Jabodetabek</li><li>Include PPN 11%</li><li>Terms Of Payment :<ul><li>100% After Invoice Submitted</li></ul></li></ol>',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.client_quotation.field.term.placeholder'),
+            ],
+        ]);
+
         $id = request()->segment(4);
 
         if ($id && $id != 'create') {
@@ -1255,154 +1268,14 @@ class ClientQuotationCrudController extends CrudController
                 'class' => 'form-group col-md-6'
             ]
         ]);
-        //
-        CRUD::column([
-            // 1-n relationship
-            'label' => trans('backpack::crud.client_po.column.client_id'),
-            'type'      => 'select',
-            'name'      => 'client_id', // the column that contains the ID of that connected entity;
-            'entity'    => 'client', // the method that defines the relationship in your Model
-            'attribute' => 'name', // foreign key attribute that is shown to user
-            'model'     => "App\Models\Client", // foreign key model
-            // OPTIONAL
-            // 'limit' => 32, // Limit the number of characters shown
-        ]);
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.work_code'),
-                'name' => 'work_code',
-                'type'  => 'text'
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.po_number'),
-                'name' => 'po_number',
-                'type'  => 'text'
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.job_name'),
-                'name' => 'job_name',
-                'type'  => 'wrap_text'
-            ],
-        );
-        CRUD::column([
-            'label' => trans('backpack::crud.client_quotation.column.currency_code'),
-            'name'  => 'currency_code',
-            'type'  => 'text',
-            'wrapper' => [
-                'badge' => function ($crud, $column, $entry) {
-                    return ($entry->currency_code === 'USD') ? 'badge bg-warning text-dark' : 'badge bg-secondary';
-                }
-            ]
-        ]);
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_po.column.rap_value'),
-            'name'   => 'rap_value',
-            'type'   => 'closure',
-            'function' => function ($entry) {
-                return CustomHelper::formatCurrency($entry->rap_value, $entry->currency_code);
-            },
-        ]);
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
-            'name'   => 'job_value',
-            'type'   => 'closure',
-            'function' => function ($entry) {
-                return CustomHelper::formatCurrency($entry->job_value, $entry->currency_code);
-            },
-        ]);
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_po.column.job_value_include_ppn'),
-            'name'   => 'job_value_include_ppn',
-            'type'   => 'closure',
-            'function' => function ($entry) {
-                return CustomHelper::formatCurrency($entry->job_value_include_ppn, $entry->currency_code);
-            },
-        ]);
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_quotation.column.job_value_base'),
-            'name'   => 'job_value_base',
-            'type'   => 'closure',
-            'function' => function ($entry) {
-                return CustomHelper::formatCurrency($entry->job_value_base ?? $entry->job_value, 'IDR');
-            },
-        ]);
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.startdate_and_enddate'),
-                'name' => 'start_date,end_date',
-                'type'  => 'date_range_custom',
-                'format' => $new_format_date,
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.reimburse_type'),
-                'name' => 'reimburse_type',
-                'type'  => 'text'
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.price_after_year'),
-                'name' => 'price_after_year',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.price_total'),
-                'name' => 'price_total',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.profit_and_loss'),
-                'name' => 'profit_and_loss',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column(
-            [
-                'label'  => trans('backpack::crud.client_po.column.profit_and_lost_final'),
-                'name' => 'profit_and_lost_final',
-                'type'  => 'number',
-                'prefix' => ($settings?->currency_symbol) ? $settings->currency_symbol : "Rp.",
-                'decimals'      => 2,
-                'dec_point'     => ',',
-                'thousands_sep' => '.',
-            ],
-        );
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_po.field.document_path.label'),
-            'name' => 'document_path',
-            'type'  => 'text',
+
+        CRUD::addField([
+            'name' => 'term',
+            'label' => trans('backpack::crud.client_quotation.field.term.label'),
+            'type' => 'custom_html',
+            'value' => $this->crud->getCurrentEntry() ? $this->crud->getCurrentEntry()->term : '',
             'wrapper'   => [
-                'element' => 'a', // the element will default to "a" so you can skip it here
-                'href' => function ($crud, $column, $entry, $related_key) {
-                    if ($entry->document_path != '') {
-                        return url('storage/' . $entry->document_path);
-                    }
-                    return "javascript:void(0)";
-                },
-                'target' => '_blank',
-                // 'class' => 'some-class',
+                'class' => 'form-group col-md-12',
             ],
         ]);
 
@@ -1413,6 +1286,13 @@ class ClientQuotationCrudController extends CrudController
                 'type'  => 'text'
             ],
         );
+
+        CRUD::column([
+            'label'  => trans('backpack::crud.client_quotation.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
+        ]);
     }
 
     public function show($id)
@@ -1474,7 +1354,7 @@ class ClientQuotationCrudController extends CrudController
             'settings' => $settings,
         ]);
 
-        $fileName = 'Quotation-' . ($entry->work_code ?? $entry->id) . '.pdf';
+        $fileName = 'Quotation-' . ($entry->po_number ?? $entry->work_code ?? $entry->id) . '.pdf';
         $safeFileName = str_replace(['/', '\\'], '-', $fileName);
 
         return $pdf->stream($safeFileName);

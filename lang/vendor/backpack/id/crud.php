@@ -667,6 +667,7 @@ return [
             'date' => 'Tanggal',
             'client_id' => 'Nama Client',
             'pic' => 'PIC',
+            'phone' => 'No. Telp',
             'reference_type' => 'Jenis Referensi',
             'description' => 'Deskripsi',
             'information' => 'Keterangan',
@@ -701,6 +702,10 @@ return [
             'pic' => [
                 'label' => 'PIC',
                 'placeholder' => 'Masukkan nama PIC',
+            ],
+            'phone' => [
+                'label' => 'No. Telp',
+                'placeholder' => 'Masukkan nomor telepon',
             ],
             'address' => [
                 'label' => 'Alamat',
@@ -747,6 +752,7 @@ return [
             'date' => 'Tanggal',
             'client_id' => 'Nama Client',
             'pic' => 'PIC',
+            'phone' => 'No. Telp',
             'first_party' => 'Penyerah',
             'description' => 'Description',
             'qty' => 'Qty',
@@ -772,6 +778,10 @@ return [
             'pic' => [
                 'label' => 'PIC',
                 'placeholder' => 'Masukkan nama PIC',
+            ],
+            'phone' => [
+                'label' => 'No. Telp',
+                'placeholder' => 'Masukkan nomor telepon',
             ],
             'address' => [
                 'label' => 'Alamat Pihak Ke 2',
@@ -953,6 +963,10 @@ return [
             'date_po' => [
                 'label' => 'Tanggal Penawaran',
                 'placeholder' => 'Pilih Tanggal Penawaran',
+            ],
+            'term' => [
+                'label' => 'Keterangan Term',
+                'placeholder' => 'Masukan keterangan term',
             ],
             'rap_value' => 'Nilai RAP',
             'job_value_exclude_ppn' => 'Nilai Pekerjaan Excl PPn',

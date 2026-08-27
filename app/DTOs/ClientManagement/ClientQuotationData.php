@@ -30,6 +30,7 @@ class ClientQuotationData
         public readonly ?string $category,
         public readonly ?string $status,
         public readonly ?string $pic = null,
+        public readonly ?string $term = null,
         public readonly array $items = [],
     ) {}
 
@@ -92,6 +93,7 @@ class ClientQuotationData
             category: $request->category,
             status: $request->status,
             pic: $request->pic ?? null,
+            term: $request->term ?? null,
             items: $items,
         );
     }
@@ -117,6 +119,7 @@ class ClientQuotationData
             'category' => $this->category,
             'status' => $this->status,
             'pic' => $this->pic,
+            'term' => $this->term,
         ];
     }
 }

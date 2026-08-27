@@ -57,6 +57,9 @@
                                     if (response && response.address) {
                                         $(form + ' textarea[name="address"]').val(response.address);
                                     }
+                                    if (response && response.phone && !$(form + ' input[name="phone"]').val()) {
+                                        $(form + ' input[name="phone"]').val(response.phone);
+                                    }
                                 }
                             });
                         }
@@ -87,6 +90,10 @@
                                         let currentPoPic = $(form + ' input[name="pic"]').val();
                                         if ((!currentPoPic || currentPoPic.trim() === '') && response.pic) {
                                             $(form + ' input[name="pic"]').val(response.pic);
+                                        }
+                                        let currentPoPhone = $(form + ' input[name="phone"]').val();
+                                        if ((!currentPoPhone || currentPoPhone.trim() === '') && response.phone) {
+                                            $(form + ' input[name="phone"]').val(response.phone);
                                         }
                                         if (response.job_name) {
                                             $(form + ' input[name="description"]').val(response.job_name);
@@ -122,6 +129,10 @@
                                         let currentProformaPic = $(form + ' input[name="pic"]').val();
                                         if ((!currentProformaPic || currentProformaPic.trim() === '') && response.pic) {
                                             $(form + ' input[name="pic"]').val(response.pic);
+                                        }
+                                        let currentProformaPhone = $(form + ' input[name="phone"]').val();
+                                        if ((!currentProformaPhone || currentProformaPhone.trim() === '') && response.phone) {
+                                            $(form + ' input[name="phone"]').val(response.phone);
                                         }
                                         if (response.job_name) {
                                             $(form + ' input[name="description"]').val(response.job_name);
