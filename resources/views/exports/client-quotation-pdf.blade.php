@@ -66,7 +66,7 @@
         }
         .client-info {
             float: left;
-            width: 55%;
+            width: 52%;
             font-size: 11pt;
         }
         .client-info b {
@@ -84,7 +84,7 @@
         }
         .po-meta {
             float: right;
-            width: 40%;
+            width: 44%;
         }
         .po-meta table {
             width: 100%;
@@ -96,8 +96,19 @@
             font-size: 11pt;
         }
         .po-meta .label {
-            width: 40%;
+            width: 25%;
             font-weight: bold;
+            white-space: nowrap;
+        }
+        .po-meta .colon {
+            width: 5%;
+            text-align: center;
+            font-weight: bold;
+        }
+        .po-meta .val {
+            width: 70%;
+            word-wrap: break-word;
+            word-break: break-all;
         }
         .greeting {
             margin-top: 30px;
@@ -351,21 +362,25 @@
             <table>
                 <tr>
                     <td class="label">Nomor</td>
-                    <td>: &nbsp; {{ $entry->po_number ?? $entry->work_code ?? '-' }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $entry->po_number ?? $entry->work_code ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Date</td>
-                    <td>: &nbsp; {{ $entry->date_po ? \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') : \Carbon\Carbon::parse($entry->created_at)->format('d / m / Y') }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $entry->date_po ? \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') : \Carbon\Carbon::parse($entry->created_at)->format('d / m / Y') }}</td>
                 </tr>
                 @if($validityDays !== null)
                 <tr>
                     <td class="label">Valid</td>
-                    <td>: &nbsp; {{ $validityDays }} hari</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $validityDays }} hari</td>
                 </tr>
                 @endif
                 <tr>
                     <td class="label">Currency</td>
-                    <td>: &nbsp; {{ $currencyCode }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $currencyCode }}</td>
                 </tr>
             </table>
         </div>

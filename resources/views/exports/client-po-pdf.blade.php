@@ -65,7 +65,7 @@
         }
         .client-info {
             float: left;
-            width: 55%;
+            width: 52%;
         }
         .client-info b {
             display: block;
@@ -73,7 +73,7 @@
         }
         .po-meta {
             float: right;
-            width: 40%;
+            width: 44%;
         }
         .po-meta table {
             width: 100%;
@@ -84,8 +84,19 @@
             vertical-align: top;
         }
         .po-meta .label {
-            width: 30%;
+            width: 25%;
             font-weight: bold;
+            white-space: nowrap;
+        }
+        .po-meta .colon {
+            width: 5%;
+            text-align: center;
+            font-weight: bold;
+        }
+        .po-meta .val {
+            width: 70%;
+            word-wrap: break-word;
+            word-break: break-all;
         }
         .items-section {
             margin-top: 40px;
@@ -244,11 +255,13 @@
             <table>
                 <tr>
                     <td class="label">PO</td>
-                    <td>: &nbsp; {{ $entry->po_number }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $entry->po_number }}</td>
                 </tr>
                 <tr>
                     <td class="label">Date</td>
-                    <td>: &nbsp; {{ \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ \Carbon\Carbon::parse($entry->date_po)->format('d / m / Y') }}</td>
                 </tr>
             </table>
         </div>

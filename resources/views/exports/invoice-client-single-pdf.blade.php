@@ -69,7 +69,7 @@
         }
         .client-info {
             float: left;
-            width: 55%;
+            width: 52%;
             font-size: 11pt;
         }
         .client-info b {
@@ -86,7 +86,7 @@
         }
         .po-meta {
             float: right;
-            width: 40%;
+            width: 44%;
         }
         .po-meta table {
             width: 100%;
@@ -98,8 +98,19 @@
             font-size: 11pt;
         }
         .po-meta .label {
-            width: 40%;
+            width: 25%;
             font-weight: bold;
+            white-space: nowrap;
+        }
+        .po-meta .colon {
+            width: 5%;
+            text-align: center;
+            font-weight: bold;
+        }
+        .po-meta .val {
+            width: 70%;
+            word-wrap: break-word;
+            word-break: break-all;
         }
         .items-section {
             margin-top: 30px;
@@ -355,19 +366,23 @@
             <table>
                 <tr>
                     <td class="label">No PO</td>
-                    <td>: &nbsp; {{ $header->client_po_number ?? '-' }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $header->client_po_number ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">No</td>
-                    <td>: &nbsp; {{ $header->invoice_number ?? '-' }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $header->invoice_number ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Date</td>
-                    <td>: &nbsp; {{ $header->invoice_date ? \Carbon\Carbon::parse($header->invoice_date)->format('d / m / Y') : \Carbon\Carbon::parse($header->created_at)->format('d / m / Y') }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $header->invoice_date ? \Carbon\Carbon::parse($header->invoice_date)->format('d / m / Y') : \Carbon\Carbon::parse($header->created_at)->format('d / m / Y') }}</td>
                 </tr>
                 <tr>
                     <td class="label">Currency</td>
-                    <td>: &nbsp; {{ $currencyCode }}</td>
+                    <td class="colon">:</td>
+                    <td class="val">{{ $currencyCode }}</td>
                 </tr>
             </table>
         </div>
