@@ -128,8 +128,8 @@
             font-weight: bold;
         }
         .items-table td {
-            padding: 12px 5px;
-            vertical-align: middle;
+            padding: 8px 5px;
+            vertical-align: top;
             font-size: 10.5pt;
         }
         .text-center { text-align: center; }
@@ -432,10 +432,10 @@
                         <td style="text-align: left;">{{ $item->name }}</td>
                         <td class="text-center">{{ $qty }}</td>
                         <td class="text-right col-price">
-                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $symbol }} {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                         <td class="text-right col-price">
-                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($qty * $unit_price, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $symbol }} {{ number_format($qty * $unit_price, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                     </tr>
                 @endforeach
@@ -444,19 +444,19 @@
                 <tr>
                     <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 4px; font-weight: normal;">TOTAL</td>
                     <td class="text-right col-price" style="border-top: 2px solid #000; padding: 6px 4px;">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
                     <td class="text-right col-price" style="padding: 4px 4px;">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $symbol }} {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
                     <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
                     <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $symbol }} {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
             </tfoot>
