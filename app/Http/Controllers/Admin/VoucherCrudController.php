@@ -152,12 +152,12 @@ class VoucherCrudController extends CrudController
                                     'searchable' => false,
                                     'orderable' => false,
                                 ],
-                                backpack_user()->canAccessAllCompanies() ? [
+                                [
                                     'label' => trans('backpack::crud.subkon.column.company'),
                                     'type'      => 'text',
                                     'name'      => 'company_name',
                                     'orderable' => true,
-                                ] : [],
+                                ],
                                 [
                                     'label' => trans('backpack::crud.voucher.column.voucher.no_voucher.label'),
                                     'type'      => 'text',
@@ -461,16 +461,20 @@ class VoucherCrudController extends CrudController
                 }
             ]);
 
-            if (backpack_user()->canAccessAllCompanies()) {
-                CRUD::column([
-                    'label'     => trans('backpack::crud.subkon.column.company'),
-                    'type'      => 'select',
-                    'name'      => 'company_id',
-                    'entity'    => 'company',
-                    'attribute' => 'name',
-                    'model'     => "App\Models\Company",
-                ]);
+            $user = backpack_user();
+            if ($user && !$user->canAccessAllCompanies()) {
+                $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+                $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
             }
+
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
 
             CRUD::column([
                 'label'  => '',
@@ -782,16 +786,14 @@ class VoucherCrudController extends CrudController
                 ]
             ])->makeFirstColumn();
 
-            if (backpack_user()->canAccessAllCompanies()) {
-                CRUD::column([
-                    'label'     => trans('backpack::crud.subkon.column.company'),
-                    'type'      => 'select',
-                    'name'      => 'company_id',
-                    'entity'    => 'company',
-                    'attribute' => 'name',
-                    'model'     => "App\Models\Company",
-                ]);
-            }
+            CRUD::column([
+                'label'     => trans('backpack::crud.subkon.column.company'),
+                'type'      => 'select',
+                'name'      => 'company_id',
+                'entity'    => 'company',
+                'attribute' => 'name',
+                'model'     => "App\Models\Company",
+            ]);
 
             CRUD::column([
                 'name' => 'no_payment',
@@ -1443,18 +1445,19 @@ class VoucherCrudController extends CrudController
             ];
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         CRUD::addField([
             'name'        => 'po_type',
@@ -2333,28 +2336,26 @@ class VoucherCrudController extends CrudController
 
     protected function setupShowOperation()
     {
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
+        CRUD::field([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::addField([
             'name' => 'no_payment',

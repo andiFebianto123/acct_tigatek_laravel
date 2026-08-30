@@ -110,16 +110,20 @@ class AssetCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addColumn([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::addColumn([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             // 1-n relationship
@@ -622,18 +626,19 @@ class AssetCrudController extends CrudController
     {
         CRUD::setValidation(AssetRequest::class);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         $settings = Setting::first();
         CRUD::field([   // 1-n relationship

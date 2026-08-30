@@ -14,11 +14,15 @@ class BastRepository
     {
         $query = Bast::query()->with(['client', 'company', 'client_po', 'referenceable']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('basts.company_id', $accessibleCompanyIds);
+        }
+
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
-            $query->where('company_id', $filters->company_id);
-        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->where('basts.company_id', $filters->company_id);
         }
 
         // Standard filter date
@@ -42,34 +46,19 @@ class BastRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'number', 'type' => 'like'],
-                3 => ['field' => 'date', 'type' => 'like'],
-                4 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                5 => ['field' => 'pic', 'type' => 'like'],
-                6 => ['field' => 'phone', 'type' => 'like'],
-                7 => ['field' => 'first_party', 'type' => 'like'],
-                8 => ['field' => 'description', 'type' => 'like'],
-                9 => ['field' => 'qty', 'type' => 'like'],
-                10 => ['field' => 'information', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'number', 'type' => 'like'],
-                2 => ['field' => 'date', 'type' => 'like'],
-                3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                4 => ['field' => 'pic', 'type' => 'like'],
-                5 => ['field' => 'phone', 'type' => 'like'],
-                6 => ['field' => 'first_party', 'type' => 'like'],
-                7 => ['field' => 'description', 'type' => 'like'],
-                8 => ['field' => 'qty', 'type' => 'like'],
-                9 => ['field' => 'information', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'number', 'type' => 'like'],
+            3 => ['field' => 'date', 'type' => 'like'],
+            4 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            5 => ['field' => 'pic', 'type' => 'like'],
+            6 => ['field' => 'phone', 'type' => 'like'],
+            7 => ['field' => 'first_party', 'type' => 'like'],
+            8 => ['field' => 'description', 'type' => 'like'],
+            9 => ['field' => 'qty', 'type' => 'like'],
+            10 => ['field' => 'information', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

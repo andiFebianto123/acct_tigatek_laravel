@@ -119,11 +119,11 @@ class ClientQuotationCrudController extends CrudController
                         'label'     => 'No',
                         'orderable' => false,
                     ],
-                    ...(backpack_user()->canAccessAllCompanies() ? [[
+                    [
                         'label' => trans('backpack::crud.subkon.column.company'),
                         'type'      => 'text',
                         'name'      => 'company.name',
-                    ]] : []),
+                    ],
 
                     [
                         'label' => trans('backpack::crud.client_quotation.column.client_id'),
@@ -420,16 +420,20 @@ class ClientQuotationCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
 
 
@@ -635,19 +639,19 @@ class ClientQuotationCrudController extends CrudController
             }
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-6',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
 
 
@@ -963,28 +967,26 @@ class ClientQuotationCrudController extends CrudController
         $settings = Setting::first();
         $new_format_date = 'DD/MM/YYYY';
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
+        CRUD::field([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         // CRUD::field([   // 1-n relationship
         //     'label'       => trans('backpack::crud.client_po.field.client_id.label'), // Table column heading

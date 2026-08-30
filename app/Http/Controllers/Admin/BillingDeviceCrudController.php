@@ -93,13 +93,11 @@ class BillingDeviceCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $columns[] = [
-                'label' => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'  => 'text',
-                'name'  => 'company.name',
-            ];
-        }
+        $columns[] = [
+            'label' => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+            'type'  => 'text',
+            'name'  => 'company.name',
+        ];
 
         $columns = array_merge($columns, [
             [
@@ -244,16 +242,20 @@ class BillingDeviceCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             'label'     => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
@@ -410,21 +412,14 @@ class BillingDeviceCrudController extends CrudController
             'file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB limit
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $rules['company_id'] = 'required|integer|exists:companies,id';
-        }
+        $rules['company_id'] = 'required|integer|exists:companies,id';
 
         $request->validate($rules);
 
         try {
             DB::beginTransaction();
 
-            $companyId = null;
-            if (backpack_user()->canAccessAllCompanies()) {
-                $companyId = (int) $request->input('company_id');
-            } else {
-                $companyId = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
-            }
+            $companyId = (int) $request->input('company_id');
 
             $this->service->importBillingDevices($request->file('file'), $companyId);
 
@@ -508,17 +503,14 @@ class BillingDeviceCrudController extends CrudController
             ],
         ]);
 
-        // Ensure columns match the exact sequence as the setup fields
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             'label'     => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
@@ -619,19 +611,19 @@ class BillingDeviceCrudController extends CrudController
     {
         CRUD::setValidation(\App\Http\Requests\BillingDeviceRequest::class);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-6',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
         CRUD::addField([
             'label'                   => trans('backpack::crud.billing_device.column.client') ?? 'Klien',

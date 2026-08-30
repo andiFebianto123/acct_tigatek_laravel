@@ -275,7 +275,7 @@ class VoucherRepository
     public function findForPrint(int $id)
     {
         Carbon::setLocale('id');
-        $voucher = Voucher::findOrFail($id);
+        $voucher = Voucher::with('company')->findOrFail($id);
         $currencyCode = $voucher->currency_code ?? 'IDR';
 
         $voucher->total_str            = CustomHelper::formatCurrency($voucher->total, $currencyCode);

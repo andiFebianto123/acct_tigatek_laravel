@@ -49,6 +49,12 @@ class ProformaInvoiceRepository
             $query->whereYear('proforma_invoices.invoice_date', $dto->filter_year);
         }
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('proforma_invoices.company_id', $accessibleCompanyIds);
+        }
+
         if ($dto->company_id && $dto->company_id != 'all') {
             $query->where('proforma_invoices.company_id', $dto->company_id);
         }
@@ -59,7 +65,7 @@ class ProformaInvoiceRepository
         if (empty($columns) || !is_array($columns)) return;
 
         $isDatatable = isset($columns[0]['search']);
-        $offset = (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 1 : 0;
+        $offset = 1;
 
         foreach ($columns as $index => $column) {
             $value = '';
@@ -92,7 +98,7 @@ class ProformaInvoiceRepository
                     default => null
                 };
             } else {
-                if ($offset === 1 && $index === 1) {
+                if ($index === 1) {
                     $query->where('companies.name', 'like', "%{$value}%");
                 }
  

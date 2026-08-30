@@ -343,6 +343,7 @@
     <x-menu-group-item-custom title="Users" icon="la la-circle-notch" :link="backpack_url('setting/user')" />
     <x-menu-group-item-custom title="Roles" icon="la la-circle-notch" :link="backpack_url('setting/role')" />
     <x-menu-group-item-custom title="Permissions" icon="la la-circle-notch" :link="backpack_url('setting/permission')" />
+    <x-menu-group-item-custom title="{{trans('backpack::crud.menu.company')}}" icon="la la-circle-notch" :link="backpack_url('setting/company')" />
     <x-menu-group-item-custom title="Pengaturan Sistem" icon="la la-circle-notch" :link="backpack_url('setting/system')" />
 @endif
 <x-menu-group-item-custom title="Pengaturan Akun" icon="la la-circle-notch" :link="backpack_url('setting/account')" />

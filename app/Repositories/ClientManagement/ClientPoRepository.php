@@ -17,6 +17,12 @@ class ClientPoRepository
         $query = ClientPo::query()->with(['client', 'company']);
         $query = $query->where('client_po.category', "!=", "general");
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('client_po.company_id', $accessibleCompanyIds);
+        }
+
         // Filter Sidebar/Plugin
         if ($filters->status_invoice !== null) {
             $invoice = InvoiceClient::select(DB::raw('client_po_id, count(invoice_number) as total_invoice'))
@@ -50,41 +56,22 @@ class ClientPoRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        // Mendeteksi apakah user adalah Super Admin (kolom bergeser)
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'work_code', 'type' => 'like'],
-                3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                4 => ['field' => 'reimburse_type', 'type' => 'like'],
-                5 => ['field' => 'po_number', 'type' => 'like'],
-                6 => ['field' => 'job_name', 'type' => 'like'],
-                7 => ['field' => 'rap_value', 'type' => 'like'],
-                8 => ['field' => 'job_value', 'type' => 'like'],
-                9 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
-                10 => ['field' => 'date_range', 'type' => 'custom'], // start_date & end_date
-                11 => ['field' => 'date_po', 'type' => 'like'],
-                12 => ['field' => 'document_path', 'type' => 'like'],
-                13 => ['field' => 'category', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'work_code', 'type' => 'like'],
-                2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                3 => ['field' => 'reimburse_type', 'type' => 'like'],
-                4 => ['field' => 'po_number', 'type' => 'like'],
-                5 => ['field' => 'job_name', 'type' => 'like'],
-                6 => ['field' => 'rap_value', 'type' => 'like'],
-                7 => ['field' => 'job_value', 'type' => 'like'],
-                8 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
-                9 => ['field' => 'date_range', 'type' => 'custom'], // start_date & end_date
-                10 => ['field' => 'date_po', 'type' => 'like'],
-                11 => ['field' => 'document_path', 'type' => 'like'],
-                12 => ['field' => 'category', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'work_code', 'type' => 'like'],
+            3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            4 => ['field' => 'reimburse_type', 'type' => 'like'],
+            5 => ['field' => 'po_number', 'type' => 'like'],
+            6 => ['field' => 'job_name', 'type' => 'like'],
+            7 => ['field' => 'rap_value', 'type' => 'like'],
+            8 => ['field' => 'job_value', 'type' => 'like'],
+            9 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
+            10 => ['field' => 'date_range', 'type' => 'custom'], // start_date & end_date
+            11 => ['field' => 'date_po', 'type' => 'like'],
+            12 => ['field' => 'document_path', 'type' => 'like'],
+            13 => ['field' => 'category', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

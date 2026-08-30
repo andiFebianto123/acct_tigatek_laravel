@@ -55,6 +55,12 @@ class VoucherPaymentPlanRepository
                 ->where('vouchers.payment_status', 'BELUM BAYAR')
                 ->where('approvals.status', Approval::APPROVED);
 
+            $user = backpack_user();
+            if ($user && !$user->canAccessAllCompanies()) {
+                $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+                $query->whereIn('vouchers.company_id', $accessibleCompanyIds);
+            }
+
             if ($type) {
                 $query->where('payment_vouchers.payment_type', $type);
             }
@@ -75,6 +81,11 @@ class VoucherPaymentPlanRepository
             ->where('vouchers.payment_type', 'NON RUTIN')
             ->where('vouchers.payment_status', 'BELUM BAYAR')
             ->select(DB::raw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer'));
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $queryNonRutin->whereIn('vouchers.company_id', $accessibleCompanyIds);
+        }
         if ($dto->filter_year && $dto->filter_year !== 'all') {
             $queryNonRutin->whereYear('date_voucher', $dto->filter_year);
         }
@@ -86,6 +97,10 @@ class VoucherPaymentPlanRepository
             ->where('vouchers.payment_type', 'SUBKON')
             ->where('vouchers.payment_status', 'BELUM BAYAR')
             ->select(DB::raw('SUM(vouchers.payment_transfer_base) as jumlah_nilai_transfer'));
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $querySubkon->whereIn('vouchers.company_id', $accessibleCompanyIds);
+        }
         if ($dto->filter_year && $dto->filter_year !== 'all') {
             $querySubkon->whereYear('date_voucher', $dto->filter_year);
         }
@@ -147,6 +162,12 @@ class VoucherPaymentPlanRepository
                 spk.no_spk as spk_no,
                 purchase_orders.po_number as po_no
             "));
+
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('vouchers.company_id', $accessibleCompanyIds);
+        }
 
         $totalData = (clone $query)->count('vouchers.id');
 
@@ -226,8 +247,7 @@ class VoucherPaymentPlanRepository
         $search = $this->extractFilterValues($columns);
         if (empty($search)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-        $offset = $isSuperAdmin ? 1 : 0;
+        $offset = 1;
 
         $filters = [
             (2 + $offset)  => fn($q, $v) => $q->whereHas('voucher.subkon', fn($s) => $s->where('bank_name', 'like', "%{$v}%")),
@@ -257,13 +277,9 @@ class VoucherPaymentPlanRepository
             )),
             (10 + $offset) => fn($q, $v) => $q->where('vouchers.factur_status', 'like', "{$v}%"),
             (11 + $offset) => fn($q, $v) => $q->where('vouchers.job_name', 'like', "%{$v}%"),
-            (12 + $offset) => fn($q, $v) => $q->where('vouchers.due_date', 'like', "%{$v}%"),
             (13 + $offset) => fn($q, $v) => $q->where('vouchers.payment_type', 'like', "%{$v}%"),
+            2              => fn($q, $v) => $q->where('companies.name', 'like', "%{$v}%"),
         ];
-
-        if ($isSuperAdmin) {
-            $filters[2] = fn($q, $v) => $q->where('companies.name', 'like', "%{$v}%");
-        }
 
         foreach ($filters as $index => $apply) {
             $value = trim($search[$index] ?? '');
@@ -286,6 +302,12 @@ class VoucherPaymentPlanRepository
 
         if ($tab == 'voucher_payment_plan_subkon' || $tab == 'voucher_payment_plan_non_rutin') {
             $payment_type_filter = ($tab == 'voucher_payment_plan_subkon') ? 'SUBKON' : 'NON RUTIN';
+
+            $user = backpack_user();
+            if ($user && !$user->canAccessAllCompanies()) {
+                $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+                $query->whereIn('vouchers.company_id', $accessibleCompanyIds);
+            }
 
             $query->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
                 ->select([
@@ -382,6 +404,12 @@ class VoucherPaymentPlanRepository
             ->leftJoin('cast_accounts', 'cast_accounts.id', 'vouchers.account_source_id')
             ->where('vouchers.payment_status', 'BELUM BAYAR');
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('vouchers.company_id', $accessibleCompanyIds);
+        }
+
         if ($tab == 'voucher_payment_plan_subkon') {
             $query->where('vouchers.payment_type', 'SUBKON');
         } else if ($tab == 'voucher_payment_plan_non_rutin') {
@@ -412,10 +440,10 @@ class VoucherPaymentPlanRepository
         $search = $this->extractFilterValues($columns);
         if (empty($search)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-        $offset = $isSuperAdmin ? 1 : 0;
+        $offset = 1;
 
         $filters = [
+            1             => fn($q, $v) => $q->where('companies.name', 'like', "%{$v}%"),
             (1 + $offset) => fn($q, $v) => $q->where('vouchers.no_voucher', 'like', "%{$v}%"),
             (2 + $offset) => fn($q, $v) => $q->whereHas('subkon', fn($s) => $s->where('name', 'like', "%{$v}%")),
             (3 + $offset) => fn($q, $v) => $q->where('vouchers.bill_number', 'like', "%{$v}%"),
@@ -435,10 +463,6 @@ class VoucherPaymentPlanRepository
             (7 + $offset) => fn($q, $v) => $q->where('vouchers.job_name', 'like', "%{$v}%"),
             (8 + $offset) => fn($q, $v) => $q->where('vouchers.due_date', 'like', "%{$v}%"),
         ];
-
-        if ($isSuperAdmin) {
-            $filters[1] = fn($q, $v) => $q->where('companies.name', 'like', "%{$v}%");
-        }
 
         foreach ($filters as $index => $apply) {
             $value = trim($search[$index] ?? '');

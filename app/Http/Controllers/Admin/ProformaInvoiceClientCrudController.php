@@ -301,14 +301,12 @@ class ProformaInvoiceClientCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $columns[] = [
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company',
-                'type' => 'text',
-                'orderable' => true,
-            ];
-        }
+        $columns[] = [
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company',
+            'type' => 'text',
+            'orderable' => true,
+        ];
 
         $columns = array_merge($columns, [
             [
@@ -497,17 +495,21 @@ class ProformaInvoiceClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company_name',
-                'type' => 'text',
-                'orderable' => true,
-                'orderLogic' => function ($query, $column, $columnDir) {
-                    return $query->orderBy('companies.name', $columnDir);
-                },
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company_name',
+            'type' => 'text',
+            'orderable' => true,
+            'orderLogic' => function ($query, $column, $columnDir) {
+                return $query->orderBy('companies.name', $columnDir);
+            },
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.column.invoice_number'),
@@ -633,18 +635,19 @@ class ProformaInvoiceClientCrudController extends CrudController
             $defaultProformaInvoiceNumber = $this->repository->generateNextNumber();
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         CRUD::addField([
             'name' => 'client_quotation_id',
@@ -1141,28 +1144,26 @@ class ProformaInvoiceClientCrudController extends CrudController
 
 
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
+        CRUD::field([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::addField([
             'name' => 'invoice_number',
@@ -1484,7 +1485,7 @@ class ProformaInvoiceClientCrudController extends CrudController
     public function printInvoice($id)
     {
         $data = [];
-        $data['header'] = ProformaInvoiceClient::where('id', $id)->first();
+        $data['header'] = ProformaInvoiceClient::with('company')->where('id', $id)->first();
         $data['details'] = ProformaInvoiceClientDetail::where('proforma_invoice_client_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-client-proforma-single-pdf', $data);

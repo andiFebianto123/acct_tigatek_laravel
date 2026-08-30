@@ -20,11 +20,11 @@ class UserCrudController extends CrudController
     public function setup()
     {
         $user = backpack_user();
-        $roles = $user->getRoles();
-        if($roles->whereIn('name', [
-            'Super Admin',
-        ])->count() == 0){
-            $this->crud->denyAllAccess(['create', 'update', 'delete', 'list', 'show']);
+        if ($user) {
+            $roles = $user->getRoles();
+            if ($roles->whereIn('name', ['Super Admin'])->count() == 0) {
+                $this->crud->denyAllAccess(['create', 'update', 'delete', 'list', 'show']);
+            }
         }
         $this->crud->setModel(User::class);
         $this->crud->setEntityNameStrings(trans('backpack::permissionmanager.user'), trans('backpack::permissionmanager.users'));
@@ -59,6 +59,14 @@ class UserCrudController extends CrudController
                 'entity'    => 'permissions', // the method that defines the relationship in your Model
                 'attribute' => 'name', // foreign key attribute that is shown to user
                 'model'     => config('permission.models.permission'), // foreign key model
+            ],
+            [
+                'label'     => trans('backpack::crud.company.title_header') ?? 'Company',
+                'type'      => 'select_multiple',
+                'name'      => 'companies',
+                'entity'    => 'companies',
+                'attribute' => 'name',
+                'model'     => \App\Models\Company::class,
             ],
             [
                 'label' => trans('backpack::crud.user.field.no_order.label'),
@@ -225,8 +233,9 @@ class UserCrudController extends CrudController
 
         // get the info for that entry
         $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        $this->crud->entry = $this->data['entry'];
 
-        $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
+        $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields($id));
 
         $this->data['crud'] = $this->crud;
         $this->data['saveAction'] = $this->crud->getSaveAction();
@@ -300,38 +309,144 @@ class UserCrudController extends CrudController
         $this->crud->setValidation(UpdateRequest::class);
     }
 
+    public function show($id)
+    {
+        $this->crud->hasAccessOrFail('show');
+
+        $id = $this->crud->getCurrentEntryId() ?? $id;
+
+        if ($this->crud->get('show.softDeletes') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses($this->crud->model))) {
+            $this->data['entry'] = $this->crud->getModel()->withTrashed()->findOrFail($id);
+        } else {
+            $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+        }
+
+        $this->data['entry_value'] = $this->crud->getRowViews($this->data['entry']);
+        $this->data['crud'] = $this->crud;
+        $this->data['title'] = $this->crud->getTitle() ?? trans('backpack::crud.preview') . ' ' . $this->crud->entity_name;
+
+        return response()->json([
+            'html' => view($this->crud->getShowView(), $this->data)->render()
+        ]);
+    }
+
     public function setupShowOperation()
     {
-        // automatically add the columns
-        $this->crud->column('name');
-        $this->crud->column('email');
-        $this->crud->column([
-            // two interconnected entities
-            'label'             => trans('backpack::permissionmanager.user_role_permission'),
-            'field_unique_name' => 'user_role_permission',
-            'type'              => 'checklist_dependency',
-            'name'              => 'roles_permissions',
-            'subfields'         => [
-                'primary' => [
-                    'label'            => trans('backpack::permissionmanager.role'),
-                    'name'             => 'roles', // the method that defines the relationship in your Model
-                    'entity'           => 'roles', // the method that defines the relationship in your Model
-                    'entity_secondary' => 'permissions', // the method that defines the relationship in your Model
-                    'attribute'        => 'name', // foreign key attribute that is shown to user
-                    'model'            => config('permission.models.role'), // foreign key model
-                ],
-                'secondary' => [
-                    'label'            => mb_ucfirst(trans('backpack::permissionmanager.permission_singular')),
-                    'name'             => 'permissions', // the method that defines the relationship in your Model
-                    'entity'           => 'permissions', // the method that defines the relationship in your Model
-                    'entity_primary'   => 'roles', // the method that defines the relationship in your Model
-                    'attribute'        => 'name', // foreign key attribute that is shown to user
-                    'model'            => config('permission.models.permission'), // foreign key model,
-                ],
-            ],
+        $this->crud->removeAllFields();
+        $this->crud->removeAllColumns();
+
+        // 1. Name
+        $this->crud->addField([
+            'name'  => 'name',
+            'label' => trans('backpack::permissionmanager.name'),
+            'type'  => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
-        $this->crud->column('created_at');
-        $this->crud->column('updated_at');
+        $this->crud->addColumn([
+            'name'  => 'name',
+            'label' => trans('backpack::permissionmanager.name'),
+            'type'  => 'text',
+        ]);
+
+        // 2. Email
+        $this->crud->addField([
+            'name'  => 'email',
+            'label' => trans('backpack::permissionmanager.email'),
+            'type'  => 'email',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'  => 'email',
+            'label' => trans('backpack::permissionmanager.email'),
+            'type'  => 'email',
+        ]);
+
+        // 3. No Order
+        $this->crud->addField([
+            'name'  => 'no_order',
+            'label' => trans('backpack::crud.user.field.no_order.label'),
+            'type'  => 'number',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'  => 'no_order',
+            'label' => trans('backpack::crud.user.field.no_order.label'),
+            'type'  => 'number',
+        ]);
+
+        // 4. Companies
+        $this->crud->addField([
+            'name'  => 'companies',
+            'label' => 'Akses Perusahaan (Company)',
+            'type'  => 'select_multiple',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'      => 'companies',
+            'label'     => 'Akses Perusahaan (Company)',
+            'type'      => 'select_multiple',
+            'entity'    => 'companies',
+            'attribute' => 'name',
+            'model'     => \App\Models\Company::class,
+        ]);
+
+        // 5. Roles
+        $this->crud->addField([
+            'name'  => 'roles',
+            'label' => trans('backpack::permissionmanager.roles'),
+            'type'  => 'select_multiple',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'      => 'roles',
+            'label'     => trans('backpack::permissionmanager.roles'),
+            'type'      => 'select_multiple',
+            'entity'    => 'roles',
+            'attribute' => 'name',
+            'model'     => config('permission.models.role'),
+        ]);
+
+        // 6. Extra Permissions
+        $this->crud->addField([
+            'name'  => 'permissions',
+            'label' => trans('backpack::permissionmanager.extra_permissions'),
+            'type'  => 'select_multiple',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'      => 'permissions',
+            'label'     => trans('backpack::permissionmanager.extra_permissions'),
+            'type'      => 'select_multiple',
+            'entity'    => 'permissions',
+            'attribute' => 'name',
+            'model'     => config('permission.models.permission'),
+        ]);
+
+        // 7. Created At
+        $this->crud->addField([
+            'name'  => 'created_at',
+            'label' => 'Created At',
+            'type'  => 'datetime',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'  => 'created_at',
+            'label' => 'Created At',
+            'type'  => 'datetime',
+        ]);
+
+        // 8. Updated At
+        $this->crud->addField([
+            'name'  => 'updated_at',
+            'label' => 'Updated At',
+            'type'  => 'datetime',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+        $this->crud->addColumn([
+            'name'  => 'updated_at',
+            'label' => 'Updated At',
+            'type'  => 'datetime',
+        ]);
     }
 
     /**
@@ -384,6 +499,16 @@ class UserCrudController extends CrudController
                 'attributes' => [
                     'placeholder' => trans('backpack::crud.user.field.no_order.placeholder'),
                 ]
+            ],
+            [
+                'label'     => 'Akses Perusahaan (Company)',
+                'type'      => 'select2_multiple',
+                'name'      => 'companies',
+                'entity'    => 'companies',
+                'attribute' => 'name',
+                'pivot'     => true,
+                'model'     => \App\Models\Company::class,
+                'wrapper'   => ['class' => 'form-group col-md-12'],
             ],
             [
                 'label' => '',

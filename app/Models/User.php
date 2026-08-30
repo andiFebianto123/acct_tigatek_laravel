@@ -71,4 +71,24 @@ class User extends Authenticatable
         }
     }
 
+    /**
+     * Relasi Many-to-Many ke Company
+     */
+    public function companies(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_user', 'user_id', 'company_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Mengambil daftar ID company yang dapat diakses oleh user ini
+     */
+    public function getAccessibleCompanyIds(): array
+    {
+        if ($this->canAccessAllCompanies()) {
+            return Company::pluck('id')->toArray();
+        }
+
+        return $this->companies()->pluck('companies.id')->toArray();
+    }
 }

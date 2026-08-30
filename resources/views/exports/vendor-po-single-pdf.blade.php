@@ -94,34 +94,37 @@
             width: 100%;
             border-collapse: collapse;
             border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
+            /* border-bottom: 2px solid #000; */
         }
         .items-table th {
             border-bottom: 1px solid #000;
-            padding: 8px 5px;
+            padding: 8px 4px;
             text-align: center;
             text-transform: uppercase;
             font-size: 10pt;
         }
         .items-table td {
-            padding: 15px 5px;
-            vertical-align: top;
+            padding: 12px 4px;
+            vertical-align: middle;
             font-size: 10pt;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        .col-price {
+            white-space: nowrap;
+        }
         .total-row {
             border-top: 2px solid #000;
             font-weight: bold;
         }
         .grand-total-label {
-            padding: 10px 5px;
+            padding: 10px 4px;
             text-align: right;
             text-transform: uppercase;
             font-size: 11pt;
         }
         .grand-total-value {
-            padding: 10px 5px;
+            padding: 10px 4px;
             text-align: right;
             font-size: 11pt;
         }
@@ -176,23 +179,56 @@
             <tr>
                 <td class="logo-td">
                     @php
-                        $logoPath = public_path('logo-tigatek-mini.png');
                         $logoData = "";
-                        if(file_exists($logoPath)){
-                            $logoData = base64_encode(file_get_contents($logoPath));
+                        $mimeType = 'image/png';
+                        $company = $entry->company ?? null;
+                        if ($company && !empty($company->logo)) {
+                            $storagePath = storage_path('app/public/' . $company->logo);
+                            $publicStoragePath = public_path('storage/' . $company->logo);
+                            $targetPath = file_exists($storagePath) ? $storagePath : (file_exists($publicStoragePath) ? $publicStoragePath : null);
+                            if ($targetPath) {
+                                $logoData = base64_encode(file_get_contents($targetPath));
+                                $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+                                $mimeType = match($ext) {
+                                    'jpg', 'jpeg' => 'image/jpeg',
+                                    'svg' => 'image/svg+xml',
+                                    'webp' => 'image/webp',
+                                    default => 'image/png',
+                                };
+                            }
+                        }
+                        if (!$logoData) {
+                            $fallbackPath = public_path('logo-tigatek-mini.png');
+                            if (file_exists($fallbackPath)) {
+                                $logoData = base64_encode(file_get_contents($fallbackPath));
+                                $mimeType = 'image/png';
+                            }
                         }
                     @endphp
                     @if($logoData)
-                        <img src="data:image/png;base64,{{ $logoData }}" class="logo-img" alt="Logo">
+                        <img src="data:{{ $mimeType }};base64,{{ $logoData }}" class="logo-img" alt="Logo">
                     @else
-                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">T</div>
+                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">{{ substr($company->name ?? 'T', 0, 1) }}</div>
                     @endif
                 </td>
                 <td class="info-td">
-                    <div class="company-name">PT. TIGA TEKNOLOGI PERSADA</div>
+                    <div class="company-name">{{ $company->name ?? 'PT. TIGA TEKNOLOGI PERSADA' }}</div>
                     <div class="company-info">
-                        Jl. H. Syahrin Blok 3C/5, Kebayoran Baru, Jakarta Selatan<br>
-                        Email: sales@tigatek.id | www.tigatek.id
+                        @if($company)
+                            {!! nl2br(e($company->address ?? '')) !!}
+                            @if($company->city || $company->province)
+                                <br>{{ implode(', ', array_filter([$company->city, $company->province, $company->postal_code])) }}
+                            @endif
+                            @if($company->phone)
+                                <br>Telp: {{ $company->phone }}
+                            @endif
+                            @if($company->email || $company->website)
+                                <br>{{ implode(' | ', array_filter([$company->email ? 'Email: ' . $company->email : null, $company->website ? $company->website : null])) }}
+                            @endif
+                        @else
+                            Jl. H. Syahrin Blok 3C/5, Kebayoran Baru, Jakarta Selatan<br>
+                            Email: sales@tigatek.id | www.tigatek.id
+                        @endif
                     </div>
                 </td>
             </tr>
@@ -236,6 +272,11 @@
 
     @php
         $currencyCode = $entry->currency_code ?? 'IDR';
+        $isUsd = strtoupper($currencyCode) === 'USD';
+        $symbol = $isUsd ? '$' : 'Rp';
+        $decimals = $isUsd ? 2 : 0;
+        $decPoint = $isUsd ? '.' : ',';
+        $thousandsSep = $isUsd ? ',' : '.';
     @endphp
 
     <div class="items-section">
@@ -243,10 +284,10 @@
             <thead>
                 <tr>
                     <th width="5%">No.</th>
-                    <th width="50%" style="text-align: left;">Item</th>
+                    <th width="43%" style="text-align: left;">Item</th>
                     <th width="10%">Qty</th>
-                    <th width="15%">Unit Price</th>
-                    <th width="20%">Amount</th>
+                    <th width="21%">Unit Price</th>
+                    <th width="21%">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -262,11 +303,11 @@
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td style="text-align: left;">{{ $itemName }}</td>
                             <td class="text-center">{{ $qty }}</td>
-                            <td class="text-right">
-                                {{ \App\Http\Helpers\CustomHelper::formatCurrency($price, $currencyCode) }}
+                            <td class="text-right col-price">
+                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($price, $decimals, $decPoint, $thousandsSep) }}
                             </td>
-                            <td class="text-right">
-                                {{ \App\Http\Helpers\CustomHelper::formatCurrency($amount, $currencyCode) }}
+                            <td class="text-right col-price">
+                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($amount, $decimals, $decPoint, $thousandsSep) }}
                             </td>
                         </tr>
                     @endforeach
@@ -278,11 +319,11 @@
                             <span style="font-size: 9pt; color: #555;">{{ $entry->job_description }}</span>
                         </td>
                         <td class="text-center">1</td>
-                        <td class="text-right">
-                            {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
+                        <td class="text-right col-price">
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
                         </td>
-                        <td class="text-right">
-                            {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
+                        <td class="text-right col-price">
+                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                     </tr>
                 @endif
@@ -291,8 +332,8 @@
                 <tr class="total-row">
                     <td colspan="3" style="border: none;"></td>
                     <td class="grand-total-label">GRAND TOTAL</td>
-                    <td class="grand-total-value">
-                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($entry->job_value, $currencyCode) }}
+                    <td class="grand-total-value col-price">
+                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
             </tfoot>

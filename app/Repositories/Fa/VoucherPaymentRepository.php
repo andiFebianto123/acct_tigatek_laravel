@@ -218,6 +218,12 @@ class VoucherPaymentRepository
                 $query->where('payment_vouchers.payment_type', 'SUBKON');
             }
 
+            $user = backpack_user();
+            if ($user && !$user->canAccessAllCompanies()) {
+                $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+                $query->whereIn('vouchers.company_id', $accessibleCompanyIds);
+            }
+
             if ($dto->filter_year && $dto->filter_year != 'all') {
                 $query->whereYear('vouchers.date_voucher', $dto->filter_year);
             }
@@ -231,10 +237,10 @@ class VoucherPaymentRepository
 
     private function applyFilters($query, array $columns)
     {
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-        $offset = $isSuperAdmin ? 1 : 0;
+        $offset = 1;
 
         $filterMap = [
+            2              => ['field' => 'companies.name', 'type' => 'like'],
             (2 + $offset)  => ['field' => 'no_voucher', 'type' => 'like'],
             (3 + $offset)  => ['field' => 'date_voucher', 'type' => 'like'],
             (4 + $offset)  => ['field' => 'subkons.name', 'type' => 'like'],
@@ -269,10 +275,6 @@ class VoucherPaymentRepository
                 });
             }],
         ];
-
-        if ($isSuperAdmin) {
-            $filterMap[2] = ['field' => 'companies.name', 'type' => 'like'];
-        }
 
         foreach ($filterMap as $index => $config) {
             $searchValue = trim($columns[$index]['search']['value'] ?? '');
@@ -349,10 +351,8 @@ class VoucherPaymentRepository
                     ->orWhere('subkons.name', 'like', "%{$search}%")
                     ->orWhere('spk.no_spk', 'like', "%{$search}%")
                     ->orWhere('vouchers.payment_description', 'like', "%{$search}%")
-                    ->orWhere('purchase_orders.po_number', 'like', "%{$search}%");
-                if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
-                    $q->orWhere('companies.name', 'like', "%{$search}%");
-                }
+                    ->orWhere('purchase_orders.po_number', 'like', "%{$search}%")
+                    ->orWhere('companies.name', 'like', "%{$search}%");
             });
         }
 

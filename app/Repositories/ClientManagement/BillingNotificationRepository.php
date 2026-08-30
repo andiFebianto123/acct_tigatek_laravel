@@ -35,11 +35,15 @@ class BillingNotificationRepository
             }, 'has_invoice_this_month')
             ->with(['company', 'billable']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('billing_notifications.company_id', $accessibleCompanyIds);
+        }
+
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
-            $query->where('company_id', $filters->company_id);
-        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->where('billing_notifications.company_id', $filters->company_id);
         }
 
         // Apply DataTables search filters
@@ -53,24 +57,14 @@ class BillingNotificationRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'billable_type', 'type' => 'like'],
-                3 => ['field' => 'billable_id', 'type' => 'like'],
-                4 => ['field' => 'notification_date', 'type' => 'like'],
-                5 => ['field' => 'message', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'billable_type', 'type' => 'like'],
-                2 => ['field' => 'billable_id', 'type' => 'like'],
-                3 => ['field' => 'notification_date', 'type' => 'like'],
-                4 => ['field' => 'message', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'billable_type', 'type' => 'like'],
+            3 => ['field' => 'billable_id', 'type' => 'like'],
+            4 => ['field' => 'notification_date', 'type' => 'like'],
+            5 => ['field' => 'message', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

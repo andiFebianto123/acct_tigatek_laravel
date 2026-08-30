@@ -262,6 +262,7 @@ return [
         'device_stock' => 'Stok Barang',
         'transaction_history' => 'Riwayat Transaksi',
         'billing_notification' => 'Notifikasi Tagihan',
+        'company' => 'Company',
     ],
     'setting' => [
         'brand_setting' => 'Pengaturan Merk',
@@ -365,6 +366,28 @@ return [
             'buy_price' => 'Harga Beli',
             'latest_sell_price' => 'Harga Jual Terbaru',
             'total_sell_nominal' => 'Total Nominal Jual',
+        ],
+    ],
+    'company' => [
+        'title_header' => 'Company',
+        'title_modal_create' => 'Tambah Data Company',
+        'title_modal_edit' => 'Edit Data Company',
+        'title_modal_delete' => 'Company',
+        'column' => [
+            'name' => 'Nama Perusahaan',
+            'logo' => 'Logo Perusahaan',
+            'address' => 'Alamat',
+            'city' => 'Kota',
+            'province' => 'Provinsi',
+            'postal_code' => 'Kode Pos',
+            'phone' => 'No Telepon',
+            'email' => 'Email',
+            'website' => 'Website',
+        ],
+        'field' => [
+            'logo' => [
+                'hint' => 'Format file: PNG, JPG, JPEG (Maks: 2MB)',
+            ],
         ],
     ],
     'subkon' => [

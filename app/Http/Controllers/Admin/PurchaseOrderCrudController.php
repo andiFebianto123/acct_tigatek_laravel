@@ -122,14 +122,14 @@ class PurchaseOrderCrudController extends CrudController
                 'label'     => 'No',
                 'orderable' => false,
             ],
-            ...(backpack_user()->canAccessAllCompanies() ? [[
+            [
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
                 'name'      => 'company_id',
                 'entity'    => 'company',
                 'attribute' => 'name',
                 'model'     => "App\Models\Company",
-            ]] : []),
+            ],
             [
                 'label' => trans('backpack::crud.po.column.po_number'),
                 'name'  => 'po_number',
@@ -449,17 +449,21 @@ class PurchaseOrderCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $app->addColumn([
-                'name'      => 'company',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-            $this->crud->addClause('with', 'company');
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        $app->addColumn([
+            'name'      => 'company',
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
+        $this->crud->addClause('with', 'company');
 
         $app->addColumn(
             [
@@ -675,28 +679,28 @@ class PurchaseOrderCrudController extends CrudController
             }
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addField([
-                'name'      => 'company_id',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select2_array',
-                'options'   => \App\Models\Company::all()->pluck('name', 'id')->toArray(),
-                'allows_null' => false,
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-            ]);
-            CRUD::addField([   // Hidden
-                'name'  => 'space_0',
-                'type'  => 'hidden',
-                'value' => 'active',
-                'wrapper'   => [
-                    'class' => 'form-group col-md-6'
-                ],
-                'attributes' => [
-                    'disabled'  => 'disabled',
-                    // 'placeholder' => trans('backpack::crud.spk.field.')
-                ]
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'name'        => 'company_id',
+            'label'       => trans('backpack::crud.subkon.column.company'),
+            'type'        => 'select2_array',
+            'options'     => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'     => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([   // Hidden
+            'name'  => 'space_0',
+            'type'  => 'hidden',
+            'value' => 'active',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
+            ],
+            'attributes' => [
+                'disabled'  => 'disabled',
+            ]
+        ]);
 
         CRUD::field([   // 1-n relationship
             'label'       => trans('backpack::crud.subkon.column.name'), // Table column heading
@@ -1125,17 +1129,15 @@ class PurchaseOrderCrudController extends CrudController
             ],
         ])->before('po_number');
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'name'      => 'company',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => ['class' => 'form-group col-md-12'],
-            ])->before('subkon_id');
-        }
+        CRUD::field([
+            'name'      => 'company',
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => ['class' => 'form-group col-md-12'],
+        ])->before('subkon_id');
         // update job_name
         CRUD::field('job_name')->remove();
         CRUD::field([
@@ -1188,16 +1190,14 @@ class PurchaseOrderCrudController extends CrudController
             'type'  => 'text',
         ]);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'name'      => 'company',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'closure',
-                'function' => function ($entry) {
-                    return $entry->company?->name ?? '-';
-                }
-            ]);
-        }
+        CRUD::column([
+            'name'      => 'company',
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'closure',
+            'function' => function ($entry) {
+                return $entry->company?->name ?? '-';
+            }
+        ]);
 
         CRUD::column([
             // 1-n relationship
@@ -1504,7 +1504,7 @@ class PurchaseOrderCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
-        $entry->load('purchase_order_details.device_stock');
+        $entry->load(['purchase_order_details.device_stock', 'company']);
         $settings = Setting::first();
 
         $pdf = Pdf::loadView('exports.vendor-po-single-pdf', [

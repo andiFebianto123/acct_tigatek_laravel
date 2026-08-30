@@ -37,7 +37,7 @@ class ClientPoRequest extends FormRequest
         }
 
         $rule_origin = [
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => 'required|exists:companies,id',
             'client_id' => 'required|exists:clients,id',
             'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
             'po_number' => 'required|max:30|unique:client_po,po_number,' . $id,
@@ -57,7 +57,7 @@ class ClientPoRequest extends FormRequest
         ];
 
         $rule_no_po = [
-            'company_id' => 'sometimes|required|exists:companies,id',
+            'company_id' => 'required|exists:companies,id',
             'work_code' => 'required|max:30|unique:client_po,work_code,' . $id,
             // 'po_number' => 'required|max:30|unique:client_po,po_number,'. $id,
             'client_id' => 'nullable|exists:clients,id',

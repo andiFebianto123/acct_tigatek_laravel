@@ -50,7 +50,7 @@ class ClientQuotationRequest extends FormRequest
         $status = request('status');
 
         $rule_origin = [
-            'company_id' => 'sometimes|required|exists:companies,id',
+            'company_id' => 'required|exists:companies,id',
             'client_id' => 'required|exists:clients,id',
             'work_code' => 'required|max:30|unique:client_quotations,work_code,' . $id,
             'po_number' => 'required|max:30|unique:client_quotations,po_number,' . $id,
@@ -67,7 +67,7 @@ class ClientQuotationRequest extends FormRequest
         ];
 
         $rule_no_po = [
-            'company_id' => 'sometimes|required|exists:companies,id',
+            'company_id' => 'required|exists:companies,id',
             'work_code' => 'required|max:30|unique:client_quotations,work_code,' . $id,
             'client_id' => 'nullable|exists:clients,id',
             'job_name' => 'nullable|max:255',

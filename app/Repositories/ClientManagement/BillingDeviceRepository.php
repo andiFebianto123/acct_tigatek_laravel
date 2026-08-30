@@ -14,11 +14,15 @@ class BillingDeviceRepository
     {
         $query = BillingDevice::query()->with(['company', 'client']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('billing_devices.company_id', $accessibleCompanyIds);
+        }
+
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
-            $query->where('company_id', $filters->company_id);
-        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->where('billing_devices.company_id', $filters->company_id);
         }
 
         // Apply DataTables search filters
@@ -32,42 +36,23 @@ class BillingDeviceRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                3 => ['field' => 'device_id', 'type' => 'like'],
-                4 => ['field' => 'phone', 'type' => 'like'],
-                5 => ['field' => 'vehicle_uid', 'type' => 'like'],
-                6 => ['field' => 'vehicle_name', 'type' => 'like'],
-                7 => ['field' => 'imei', 'type' => 'like'],
-                8 => ['field' => 'speed_limit', 'type' => 'like'],
-                9 => ['field' => 'sim_network', 'type' => 'like'],
-                10 => ['field' => 'category', 'type' => 'like'],
-                11 => ['field' => 'model', 'type' => 'like'],
-                12 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-                13 => ['field' => 'installation_date', 'type' => 'like'],
-                14 => ['field' => 'expired_date', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                2 => ['field' => 'device_id', 'type' => 'like'],
-                3 => ['field' => 'phone', 'type' => 'like'],
-                4 => ['field' => 'vehicle_uid', 'type' => 'like'],
-                5 => ['field' => 'vehicle_name', 'type' => 'like'],
-                6 => ['field' => 'imei', 'type' => 'like'],
-                7 => ['field' => 'speed_limit', 'type' => 'like'],
-                8 => ['field' => 'sim_network', 'type' => 'like'],
-                9 => ['field' => 'category', 'type' => 'like'],
-                10 => ['field' => 'model', 'type' => 'like'],
-                11 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-                12 => ['field' => 'installation_date', 'type' => 'like'],
-                13 => ['field' => 'expired_date', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            3 => ['field' => 'device_id', 'type' => 'like'],
+            4 => ['field' => 'phone', 'type' => 'like'],
+            5 => ['field' => 'vehicle_uid', 'type' => 'like'],
+            6 => ['field' => 'vehicle_name', 'type' => 'like'],
+            7 => ['field' => 'imei', 'type' => 'like'],
+            8 => ['field' => 'speed_limit', 'type' => 'like'],
+            9 => ['field' => 'sim_network', 'type' => 'like'],
+            10 => ['field' => 'category', 'type' => 'like'],
+            11 => ['field' => 'model', 'type' => 'like'],
+            12 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
+            13 => ['field' => 'installation_date', 'type' => 'like'],
+            14 => ['field' => 'expired_date', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

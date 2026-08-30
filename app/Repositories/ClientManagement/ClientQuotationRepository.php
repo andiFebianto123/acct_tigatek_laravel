@@ -12,6 +12,12 @@ class ClientQuotationRepository
     {
         $query = ClientQuotation::query()->with(['client', 'company']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('quotations.company_id', $accessibleCompanyIds);
+        }
+
         if ($filters->date_po !== null && $filters->date_po !== '') {
             $query->where('date_po', 'like', '%' . $filters->date_po . '%');
         }
@@ -27,36 +33,20 @@ class ClientQuotationRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                3 => ['field' => 'po_number', 'type' => 'like'],
-                4 => ['field' => 'job_name', 'type' => 'like'],
-                5 => ['field' => 'rap_value', 'type' => 'like'],
-                6 => ['field' => 'job_value', 'type' => 'like'],
-                7 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
-                8 => ['field' => 'date_range', 'type' => 'custom'],
-                9 => ['field' => 'date_po', 'type' => 'like'],
-                10 => ['field' => 'document_path', 'type' => 'like'],
-                11 => ['field' => 'category', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                2 => ['field' => 'po_number', 'type' => 'like'],
-                3 => ['field' => 'job_name', 'type' => 'like'],
-                4 => ['field' => 'rap_value', 'type' => 'like'],
-                5 => ['field' => 'job_value', 'type' => 'like'],
-                6 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
-                7 => ['field' => 'date_range', 'type' => 'custom'],
-                8 => ['field' => 'date_po', 'type' => 'like'],
-                9 => ['field' => 'document_path', 'type' => 'like'],
-                10 => ['field' => 'category', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            3 => ['field' => 'po_number', 'type' => 'like'],
+            4 => ['field' => 'job_name', 'type' => 'like'],
+            5 => ['field' => 'rap_value', 'type' => 'like'],
+            6 => ['field' => 'job_value', 'type' => 'like'],
+            7 => ['field' => 'job_value_include_ppn', 'type' => 'like'],
+            8 => ['field' => 'date_range', 'type' => 'custom'],
+            9 => ['field' => 'date_po', 'type' => 'like'],
+            10 => ['field' => 'document_path', 'type' => 'like'],
+            11 => ['field' => 'category', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

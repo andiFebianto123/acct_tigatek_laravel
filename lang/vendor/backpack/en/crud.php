@@ -218,6 +218,7 @@ return [
         'billing_notification' => 'Billing Notification',
         'inventory' => 'Inventory',
         'device_stock' => 'Stok Barang',
+        'company' => 'Company',
     ],
     'setting' => [
         'brand_setting' => 'Brand Setting',
@@ -313,6 +314,28 @@ return [
             'buy_price' => 'Buying Price',
             'latest_sell_price' => 'Latest Selling Price',
             'total_sell_nominal' => 'Total Nominal Sales',
+        ],
+    ],
+    'company' => [
+        'title_header' => 'Company',
+        'title_modal_create' => 'Add Company Data',
+        'title_modal_edit' => 'Edit Company Data',
+        'title_modal_delete' => 'Company',
+        'column' => [
+            'name' => 'Company Name',
+            'logo' => 'Company Logo',
+            'address' => 'Address',
+            'city' => 'City',
+            'province' => 'Province',
+            'postal_code' => 'Postal Code',
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'website' => 'Website',
+        ],
+        'field' => [
+            'logo' => [
+                'hint' => 'File format: PNG, JPG, JPEG (Max: 2MB)',
+            ],
         ],
     ],
     'subkon' => [

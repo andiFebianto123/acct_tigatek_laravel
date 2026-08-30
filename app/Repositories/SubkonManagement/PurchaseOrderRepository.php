@@ -37,43 +37,22 @@ class PurchaseOrderRepository
      */
     public function applySearchFilters($query, PurchaseOrderFilterData $filters)
     {
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        // Mapping index columns to database fields
-        $filterMap = [];
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation'],
-                2 => ['field' => 'po_number', 'type' => 'like'],
-                3 => ['field' => 'date_po', 'type' => 'like'],
-                4 => ['field' => 'subkon.name', 'type' => 'relation'],
-                5 => ['field' => 'work_code', 'type' => 'like'],
-                6 => ['field' => 'job_name', 'type' => 'like'],
-                7 => ['field' => 'job_description', 'type' => 'like'],
-                8 => ['field' => 'job_value', 'type' => 'like'],
-                9 => ['field' => 'tax_ppn', 'type' => 'like'],
-                10 => ['field' => 'total_value_with_tax', 'type' => 'like'],
-                11 => ['field' => 'due_date', 'type' => 'due_date_special'],
-                12 => ['field' => 'status', 'type' => 'like'],
-                14 => ['field' => 'additional_info', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'po_number', 'type' => 'like'],
-                2 => ['field' => 'date_po', 'type' => 'like'],
-                3 => ['field' => 'subkon.name', 'type' => 'relation'],
-                4 => ['field' => 'work_code', 'type' => 'like'],
-                5 => ['field' => 'job_name', 'type' => 'like'],
-                6 => ['field' => 'job_description', 'type' => 'like'],
-                7 => ['field' => 'job_value', 'type' => 'like'],
-                8 => ['field' => 'tax_ppn', 'type' => 'like'],
-                9 => ['field' => 'total_value_with_tax', 'type' => 'like'],
-                10 => ['field' => 'due_date', 'type' => 'due_date_special'],
-                11 => ['field' => 'status', 'type' => 'like'],
-                13 => ['field' => 'additional_info', 'type' => 'like'],
-            ];
-        }
+        // Mapping index columns to database fields (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation'],
+            2 => ['field' => 'po_number', 'type' => 'like'],
+            3 => ['field' => 'date_po', 'type' => 'like'],
+            4 => ['field' => 'subkon.name', 'type' => 'relation'],
+            5 => ['field' => 'work_code', 'type' => 'like'],
+            6 => ['field' => 'job_name', 'type' => 'like'],
+            7 => ['field' => 'job_description', 'type' => 'like'],
+            8 => ['field' => 'job_value', 'type' => 'like'],
+            9 => ['field' => 'tax_ppn', 'type' => 'like'],
+            10 => ['field' => 'total_value_with_tax', 'type' => 'like'],
+            11 => ['field' => 'due_date', 'type' => 'due_date_special'],
+            12 => ['field' => 'status', 'type' => 'like'],
+            14 => ['field' => 'additional_info', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);
@@ -108,6 +87,12 @@ class PurchaseOrderRepository
     public function getFilteredData(PurchaseOrderFilterData $filters)
     {
         $query = PurchaseOrder::query();
+
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('purchase_orders.company_id', $accessibleCompanyIds);
+        }
 
         // Filter Status dari Tab
         if ($filters->tab === 'open' || $filters->tab === 'close') {

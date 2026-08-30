@@ -277,26 +277,58 @@
 
     <div class="header">
         <table class="header-table">
-            <tr>
                 <td class="logo-td">
                     @php
-                        $logoPath = public_path('logo-tigatek-mini.png');
                         $logoData = "";
-                        if(file_exists($logoPath)){
-                            $logoData = base64_encode(file_get_contents($logoPath));
+                        $mimeType = 'image/png';
+                        $company = $header->company ?? $entry->company ?? null;
+                        if ($company && !empty($company->logo)) {
+                            $storagePath = storage_path('app/public/' . $company->logo);
+                            $publicStoragePath = public_path('storage/' . $company->logo);
+                            $targetPath = file_exists($storagePath) ? $storagePath : (file_exists($publicStoragePath) ? $publicStoragePath : null);
+                            if ($targetPath) {
+                                $logoData = base64_encode(file_get_contents($targetPath));
+                                $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+                                $mimeType = match($ext) {
+                                    'jpg', 'jpeg' => 'image/jpeg',
+                                    'svg' => 'image/svg+xml',
+                                    'webp' => 'image/webp',
+                                    default => 'image/png',
+                                };
+                            }
+                        }
+                        if (!$logoData) {
+                            $fallbackPath = public_path('logo-tigatek-mini.png');
+                            if (file_exists($fallbackPath)) {
+                                $logoData = base64_encode(file_get_contents($fallbackPath));
+                                $mimeType = 'image/png';
+                            }
                         }
                     @endphp
                     @if($logoData)
-                        <img src="data:image/png;base64,{{ $logoData }}" class="logo-img" alt="Logo">
+                        <img src="data:{{ $mimeType }};base64,{{ $logoData }}" class="logo-img" alt="Logo">
                     @else
-                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">T</div>
+                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">{{ substr($company->name ?? 'T', 0, 1) }}</div>
                     @endif
                 </td>
                 <td class="info-td">
-                    <div class="company-name">PT. TIGA TEKNOLOGI PERSADA</div>
+                    <div class="company-name">{{ $company->name ?? 'PT. TIGA TEKNOLOGI PERSADA' }}</div>
                     <div class="company-info">
-                        Jl. H. Syahrin Blok 3C/5<br>
-                        Keb, Baru. Jakarta Selatan
+                        @if($company)
+                            {!! nl2br(e($company->address ?? '')) !!}
+                            @if($company->city || $company->province)
+                                <br>{{ implode(', ', array_filter([$company->city, $company->province, $company->postal_code])) }}
+                            @endif
+                            @if($company->phone)
+                                <br>Telp: {{ $company->phone }}
+                            @endif
+                            @if($company->email || $company->website)
+                                <br>{{ implode(' | ', array_filter([$company->email ? 'Email: ' . $company->email : null, $company->website ? $company->website : null])) }}
+                            @endif
+                        @else
+                            Jl. H. Syahrin Blok 3C/5<br>
+                            Keb, Baru. Jakarta Selatan
+                        @endif
                     </div>
                 </td>
                 <td class="po-title-td">
@@ -443,7 +475,7 @@
                 </tr>
                 <tr>
                     <td class="label">Name</td>
-                    <td>: &nbsp; PT. Tiga Teknologi Persada</td>
+                    <td>: &nbsp; {{ $company->name ?? 'PT. Tiga Teknologi Persada' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Swift Code</td>

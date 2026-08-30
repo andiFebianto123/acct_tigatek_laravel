@@ -260,21 +260,19 @@ class VoucherPaymentPlanCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            array_splice($columns, 2, 0, [[
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company_name',
-                'type' => 'text',
-                'orderable' => true,
-            ]]);
+        array_splice($columns, 2, 0, [[
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company_name',
+            'type' => 'text',
+            'orderable' => true,
+        ]]);
 
-            array_splice($columns_subkon, 1, 0, [[
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company_name',
-                'type' => 'text',
-                'orderable' => true,
-            ]]);
-        }
+        array_splice($columns_subkon, 1, 0, [[
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company_name',
+            'type' => 'text',
+            'orderable' => true,
+        ]]);
 
         $this->card->addCard([
             'name' => 'payment_plan',
@@ -414,13 +412,17 @@ class VoucherPaymentPlanCrudController extends CrudController
             'orderable' => false,
         ])->makeFirstColumn();
         
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addColumn([
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name'  => 'company_name',
-                'type'  => 'text',
-            ])->afterColumn('row_number');
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'vouchers.company_id', $accessibleCompanyIds);
         }
+
+        CRUD::addColumn([
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name'  => 'company_name',
+            'type'  => 'text',
+        ])->afterColumn('row_number');
 
         CRUD::addColumn([
             'label' => trans('backpack::crud.voucher.column.voucher.no_voucher.label'),
@@ -507,13 +509,11 @@ class VoucherPaymentPlanCrudController extends CrudController
             'wrapper'   => ['element' => 'strong']
         ]);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addColumn([
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name'  => 'company_name',
-                'type'  => 'text',
-            ])->afterColumn('row_number');
-        }
+        CRUD::addColumn([
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name'  => 'company_name',
+            'type'  => 'text',
+        ])->afterColumn('row_number');
 
         CRUD::addColumn([
             'name'     => 'bulk_checkbox',

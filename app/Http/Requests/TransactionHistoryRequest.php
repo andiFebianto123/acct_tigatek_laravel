@@ -34,7 +34,7 @@ class TransactionHistoryRequest extends FormRequest
             'device_update' => 'required|integer|min:0',
             'last_update' => 'required',
             'status' => 'required|string|max:50',
-            'company_id' => (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 'required|exists:companies,id' : 'nullable',
+            'company_id' => 'required|exists:companies,id',
         ];
     }
 }

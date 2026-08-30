@@ -411,6 +411,12 @@ class ProfitLostRepository
         $query = \App\Models\InvoiceClient::with('client_po')
             ->where('invoice_number', 'like', "%$search%");
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('company_id', $accessibleCompanyIds);
+        }
+
         if (request()->has('company_id') && !empty(request()->input('company_id'))) {
             $query->where('company_id', request()->input('company_id'));
         }
@@ -476,6 +482,12 @@ class ProfitLostRepository
             });
         }
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('company_id', $accessibleCompanyIds);
+        }
+
         if (request()->has('company_id')) {
             $query->where('company_id', request()->input('company_id'));
         }
@@ -514,6 +526,12 @@ class ProfitLostRepository
                 //   ->orWhere('work_code', 'like', "%$search%")
                 //   ->orWhere('job_name', 'like', "%$search%");
             });
+        }
+
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('company_id', $accessibleCompanyIds);
         }
 
         if (request()->has('company_id') && !empty(request()->input('company_id'))) {

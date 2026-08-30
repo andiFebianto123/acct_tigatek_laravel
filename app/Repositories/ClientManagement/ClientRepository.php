@@ -15,6 +15,12 @@ class ClientRepository
     {
         $query = Client::query()->with(['company', 'client_po']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('clients.company_id', $accessibleCompanyIds);
+        }
+
         // Filter Tahun (dari Sidebar/Plugin)
         if ($filters->year && $filters->year !== 'all') {
             $query->whereHas('client_po', function($q) use($filters){
@@ -33,25 +39,14 @@ class ClientRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        // Map indeks kolom ke field database (sesuaikan dengan urutan di setupListOperation)
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-        
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'name', 'type' => 'like'],
-                3 => ['field' => 'address', 'type' => 'like'],
-                4 => ['field' => 'npwp', 'type' => 'like'],
-                5 => ['field' => 'phone', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'name', 'type' => 'like'],
-                2 => ['field' => 'address', 'type' => 'like'],
-                3 => ['field' => 'npwp', 'type' => 'like'],
-                4 => ['field' => 'phone', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'name', 'type' => 'like'],
+            3 => ['field' => 'address', 'type' => 'like'],
+            4 => ['field' => 'npwp', 'type' => 'like'],
+            5 => ['field' => 'phone', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

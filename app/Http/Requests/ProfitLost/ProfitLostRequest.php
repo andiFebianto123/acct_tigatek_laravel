@@ -29,7 +29,7 @@ class ProfitLostRequest extends FormRequest
                             ->ignore($this->id)
                     ],
                     'category' => 'required',
-                    'company_id' => (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 'required' : 'nullable',
+                    'company_id' => 'required|exists:companies,id',
                     'price_after_year' => 'nullable',
                     'price_general' => 'nullable',
                 ];
@@ -38,7 +38,7 @@ class ProfitLostRequest extends FormRequest
                     'purchase_order_id' => 'nullable',
                     'supplier_invoice_id' => 'nullable',
                     'category' => 'nullable',
-                    'company_id' => (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 'required' : 'nullable',
+                    'company_id' => 'required|exists:companies,id',
                     'price_after_year' => 'nullable',
                     'price_general' => 'nullable',
                 ];

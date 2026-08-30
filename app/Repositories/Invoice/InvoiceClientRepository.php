@@ -61,6 +61,12 @@ class InvoiceClientRepository
             $query->whereYear('invoice_clients.invoice_date', $dto->filter_year);
         }
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('invoice_clients.company_id', $accessibleCompanyIds);
+        }
+
         if ($dto->company_id && $dto->company_id != 'all') {
             $query->where('invoice_clients.company_id', $dto->company_id);
         }
@@ -75,7 +81,7 @@ class InvoiceClientRepository
         if (empty($columns) || !is_array($columns)) return;
 
         $isDatatable = isset($columns[0]['search']);
-        $offset = (backpack_user() && backpack_user()->canAccessAllCompanies()) ? 1 : 0;
+        $offset = 1;
 
         foreach ($columns as $index => $column) {
             $value = '';

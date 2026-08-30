@@ -116,19 +116,22 @@
             border-bottom: 2px solid #000;
         }
         .items-table th {
-            padding: 8px 5px;
+            padding: 8px 4px;
             text-align: center;
-            font-size: 10.5pt;
+            font-size: 10pt;
             font-weight: bold;
         }
         .items-table td {
-            padding: 12px 5px;
+            padding: 10px 4px;
             vertical-align: middle;
-            font-size: 10.5pt;
+            font-size: 10pt;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .text-left { text-align: left; }
+        .col-price {
+            white-space: nowrap;
+        }
         
         .totals-table-container {
             width: 100%;
@@ -265,23 +268,56 @@
             <tr>
                 <td class="logo-td">
                     @php
-                        $logoPath = public_path('logo-tigatek-mini.png');
                         $logoData = "";
-                        if(file_exists($logoPath)){
-                            $logoData = base64_encode(file_get_contents($logoPath));
+                        $mimeType = 'image/png';
+                        $company = $entry->company ?? null;
+                        if ($company && !empty($company->logo)) {
+                            $storagePath = storage_path('app/public/' . $company->logo);
+                            $publicStoragePath = public_path('storage/' . $company->logo);
+                            $targetPath = file_exists($storagePath) ? $storagePath : (file_exists($publicStoragePath) ? $publicStoragePath : null);
+                            if ($targetPath) {
+                                $logoData = base64_encode(file_get_contents($targetPath));
+                                $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+                                $mimeType = match($ext) {
+                                    'jpg', 'jpeg' => 'image/jpeg',
+                                    'svg' => 'image/svg+xml',
+                                    'webp' => 'image/webp',
+                                    default => 'image/png',
+                                };
+                            }
+                        }
+                        if (!$logoData) {
+                            $fallbackPath = public_path('logo-tigatek-mini.png');
+                            if (file_exists($fallbackPath)) {
+                                $logoData = base64_encode(file_get_contents($fallbackPath));
+                                $mimeType = 'image/png';
+                            }
                         }
                     @endphp
                     @if($logoData)
-                        <img src="data:image/png;base64,{{ $logoData }}" class="logo-img" alt="Logo">
+                        <img src="data:{{ $mimeType }};base64,{{ $logoData }}" class="logo-img" alt="Logo">
                     @else
-                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">T</div>
+                        <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">{{ substr($company->name ?? 'T', 0, 1) }}</div>
                     @endif
                 </td>
                 <td class="info-td">
-                    <div class="company-name">PT. TIGA TEKNOLOGI PERSADA</div>
+                    <div class="company-name">{{ $company->name ?? 'PT. TIGA TEKNOLOGI PERSADA' }}</div>
                     <div class="company-info">
-                        Jl. H. Syahrin Blok 3C/5<br>
-                        Keb, Baru. Jakarta Selatan
+                        @if($company)
+                            {!! nl2br(e($company->address ?? '')) !!}
+                            @if($company->city || $company->province)
+                                <br>{{ implode(', ', array_filter([$company->city, $company->province, $company->postal_code])) }}
+                            @endif
+                            @if($company->phone)
+                                <br>Telp: {{ $company->phone }}
+                            @endif
+                            @if($company->email || $company->website)
+                                <br>{{ implode(' | ', array_filter([$company->email ? 'Email: ' . $company->email : null, $company->website ? $company->website : null])) }}
+                            @endif
+                        @else
+                            Jl. H. Syahrin Blok 3C/5<br>
+                            Keb, Baru. Jakarta Selatan
+                        @endif
                     </div>
                 </td>
                 <td class="po-title-td">
@@ -344,11 +380,11 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th width="8%">No.</th>
-                    <th width="48%" style="text-align: left;">Desc</th>
-                    <th width="12%">QTY</th>
-                    <th width="16%">Unit price</th>
-                    <th width="16%">Amount</th>
+                    <th width="5%">No.</th>
+                    <th width="43%" style="text-align: left;">Desc</th>
+                    <th width="10%">QTY</th>
+                    <th width="21%">Unit price</th>
+                    <th width="21%">Amount</th>
                 </tr>
             </thead>
             <tbody>
@@ -366,10 +402,10 @@
                                 {!! nl2br(e($itemName)) !!}
                             </td>
                             <td class="text-center">{{ $qty }} {{ $detail->unit ?? '' }}</td>
-                            <td class="text-right">
+                            <td class="text-right col-price">
                                 <span style="float: left;">{{ $symbol }}</span> {{ number_format($unitPrice, $decimals, $decPoint, $thousandsSep) }}
                             </td>
-                            <td class="text-right">
+                            <td class="text-right col-price">
                                 <span style="float: left;">{{ $symbol }}</span> {{ number_format($totalPrice, $decimals, $decPoint, $thousandsSep) }}
                             </td>
                         </tr>
@@ -381,10 +417,10 @@
                             {{ $entry->job_name ?? '-' }}
                         </td>
                         <td class="text-center">1</td>
-                        <td class="text-right">
+                        <td class="text-right col-price">
                             <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                         </td>
-                        <td class="text-right">
+                        <td class="text-right col-price">
                             <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                     </tr>
@@ -392,20 +428,20 @@
             </tbody>
             <tfoot>
                 <tr style="border-top: 2px solid #000;">
-                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: normal;">TOTAL</td>
-                    <td class="text-right" style="padding: 6px 5px;">
+                    <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right col-price" style="padding: 6px 4px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" class="text-right" style="padding: 4px 5px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
-                    <td class="text-right" style="padding: 4px 5px;">
+                    <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent }}%</td>
+                    <td class="text-right col-price" style="padding: 4px 4px;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
-                    <td colspan="4" class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
-                    <td class="text-right" style="padding: 6px 5px; font-weight: bold; font-size: 11pt;">
+                    <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">
                         <span style="float: left;">{{ $symbol }}</span> {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
@@ -450,7 +486,7 @@
                 </tr>
                 <tr>
                     <td class="label">Name</td>
-                    <td>: &nbsp; PT. Tiga Teknologi Persada</td>
+                    <td>: &nbsp; {{ $company->name ?? 'PT. Tiga Teknologi Persada' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Swift Code</td>

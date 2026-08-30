@@ -17,5 +17,17 @@ class Company extends Model
         'province',
         'postal_code',
         'phone',
+        'email',
+        'website',
+        'logo',
     ];
+
+    /**
+     * Relasi Many-to-Many ke User
+     */
+    public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'company_user', 'company_id', 'user_id')
+                    ->withTimestamps();
+    }
 }

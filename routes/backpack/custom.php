@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\MonitoringTrackerCrudController;
 use App\Http\Controllers\Admin\VoucherPaymentPlanCrudController;
 use App\Http\Controllers\Admin\ProformaInvoiceClientCrudController;
 use App\Http\Controllers\Admin\DeviceStockCrudController;
+use App\Http\Controllers\Admin\CompanyCrudController;
 
 
 // --------------------------
@@ -78,6 +79,9 @@ Route::group([
         Route::post('system/updated-logo', [SettingSystemCrudController::class, 'updateLogo']);
         Route::post('system/updated-system', [SettingSystemCrudController::class, 'updateSystem']);
         Route::post('system/updated-company', [SettingSystemCrudController::class, 'updateCompany']);
+        Route::crud('company', 'CompanyCrudController');
+        Route::post('company/export-pdf', [CompanyCrudController::class, 'exportPdf']);
+        Route::post('company/export-excel', [CompanyCrudController::class, 'exportExcel']);
     });
     Route::prefix('vendor')->group(function () {
         Route::crud('subkon', 'SubkonCrudController');

@@ -118,6 +118,7 @@ class InvoiceClientRequest extends FormRequest
             // 'name' => 'required|min:5|max:255'
             // 'job_value' => 'required|numeric|min:1000',
             'currency_code' => 'required|in:IDR,USD',
+            'company_id' => 'required|exists:companies,id',
             'invoice_number' => 'required|min:3|max:50|unique:invoice_clients,invoice_number,' . $id,
             'invoice_date' => 'required',
             'category' => 'required|in:rutin,non_rutin',

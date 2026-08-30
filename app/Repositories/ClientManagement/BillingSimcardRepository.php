@@ -15,11 +15,15 @@ class BillingSimcardRepository
     {
         $query = BillingSimcard::query()->with(['company', 'client']);
 
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $query->whereIn('billing_simcards.company_id', $accessibleCompanyIds);
+        }
+
         // Scoping based on company
         if ($filters->company_id !== null && $filters->company_id !== '') {
-            $query->where('company_id', $filters->company_id);
-        } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->where('billing_simcards.company_id', $filters->company_id);
         }
 
         // Apply DataTables search filters
@@ -33,42 +37,23 @@ class BillingSimcardRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        $isSuperAdmin = backpack_user() && backpack_user()->canAccessAllCompanies();
-
-        if ($isSuperAdmin) {
-            $filterMap = [
-                1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-                2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                3 => ['field' => 'product', 'type' => 'like'],
-                4 => ['field' => 'device_name', 'type' => 'like'],
-                5 => ['field' => 'technology', 'type' => 'like'],
-                6 => ['field' => 'device_profile_id', 'type' => 'like'],
-                7 => ['field' => 'iccid', 'type' => 'like'],
-                8 => ['field' => 'msisdn', 'type' => 'like'],
-                9 => ['field' => 'status', 'type' => 'like'],
-                10 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
-                11 => ['field' => 'rate_plan', 'type' => 'like'],
-                12 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-                13 => ['field' => 'installation_date', 'type' => 'like'],
-                14 => ['field' => 'expired_date', 'type' => 'like'],
-            ];
-        } else {
-            $filterMap = [
-                1 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-                2 => ['field' => 'product', 'type' => 'like'],
-                3 => ['field' => 'device_name', 'type' => 'like'],
-                4 => ['field' => 'technology', 'type' => 'like'],
-                5 => ['field' => 'device_profile_id', 'type' => 'like'],
-                6 => ['field' => 'iccid', 'type' => 'like'],
-                7 => ['field' => 'msisdn', 'type' => 'like'],
-                8 => ['field' => 'status', 'type' => 'like'],
-                9 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
-                10 => ['field' => 'rate_plan', 'type' => 'like'],
-                11 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-                12 => ['field' => 'installation_date', 'type' => 'like'],
-                13 => ['field' => 'expired_date', 'type' => 'like'],
-            ];
-        }
+        // Map indeks kolom ke field database (Index 1 is always company)
+        $filterMap = [
+            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            3 => ['field' => 'product', 'type' => 'like'],
+            4 => ['field' => 'device_name', 'type' => 'like'],
+            5 => ['field' => 'technology', 'type' => 'like'],
+            6 => ['field' => 'device_profile_id', 'type' => 'like'],
+            7 => ['field' => 'iccid', 'type' => 'like'],
+            8 => ['field' => 'msisdn', 'type' => 'like'],
+            9 => ['field' => 'status', 'type' => 'like'],
+            10 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
+            11 => ['field' => 'rate_plan', 'type' => 'like'],
+            12 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
+            13 => ['field' => 'installation_date', 'type' => 'like'],
+            14 => ['field' => 'expired_date', 'type' => 'like'],
+        ];
 
         foreach ($filterMap as $index => $config) {
             $searchValue = $filters->getColumnFilter($index);

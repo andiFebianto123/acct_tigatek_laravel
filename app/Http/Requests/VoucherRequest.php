@@ -107,7 +107,7 @@ class VoucherRequest extends FormRequest
                 'exists:invoice_clients,id',
             ],
             'job_name' => 'nullable',
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => 'required|exists:companies,id',
             'po_type' => 'required|in:subkon,supplier',
             'currency_code' => [
                 'nullable',

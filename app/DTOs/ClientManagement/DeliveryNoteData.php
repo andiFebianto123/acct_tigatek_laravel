@@ -26,13 +26,7 @@ class DeliveryNoteData
 
     public static function fromRequest(Request $request): self
     {
-        // company_id resolution: Super Admin or permission picks from company_id field, otherwise defaults to backpack_user()->company_id
-        $company_id = null;
-        if (backpack_user() && backpack_user()->canAccessAllCompanies()) {
-            $company_id = $request->input('company_id') ? (int) $request->input('company_id') : null;
-        } else if (backpack_user()) {
-            $company_id = backpack_user()->company_id ? (int) backpack_user()->company_id : null;
-        }
+        $company_id = $request->input('company_id') ? (int) $request->input('company_id') : null;
 
         $referenceType = $request->input('reference_type') ?: null;
         $referenceId   = $request->input('reference_id') ? (int) $request->input('reference_id') : null;

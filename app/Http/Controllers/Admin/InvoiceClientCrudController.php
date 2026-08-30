@@ -140,12 +140,12 @@ class InvoiceClientCrudController extends CrudController
 
     private function getComponent()
     {
-        if (backpack_user()->canAccessAllCompanies()) {
-            $this->crud->filter('company_id11crudTable-invoice')
-                ->label('Milik Perusahaan')
-                ->type('select2')
-                ->values(fn() => \App\Models\Company::pluck('name', 'id')->toArray());
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+        $this->crud->filter('company_id11crudTable-invoice')
+            ->label('Milik Perusahaan')
+            ->type('select2')
+            ->values(fn() => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray());
 
         $this->crud->filter('invoice_date11crudTable-invoice')
             ->label(trans('backpack::crud.invoice_client.column.invoice_date'))
@@ -180,14 +180,12 @@ class InvoiceClientCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $columns[] = [
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company',
-                'type' => 'text',
-                'orderable' => true,
-            ];
-        }
+        $columns[] = [
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company',
+            'type' => 'text',
+            'orderable' => true,
+        ];
 
         $columns = array_merge($columns, [
             [
@@ -479,17 +477,21 @@ class InvoiceClientCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'name' => 'company_name',
-                'type' => 'text',
-                'orderable' => true,
-                'orderLogic' => function ($query, $column, $columnDir) {
-                    return $query->orderBy('companies.name', $columnDir);
-                },
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'name' => 'company_name',
+            'type' => 'text',
+            'orderable' => true,
+            'orderLogic' => function ($query, $column, $columnDir) {
+                return $query->orderBy('companies.name', $columnDir);
+            },
+        ]);
 
         CRUD::column(
             [
@@ -950,18 +952,19 @@ class InvoiceClientCrudController extends CrudController
         }
         // CRUD::setFromDb(); // set fields from db columns.
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         CRUD::addField([
             'name' => 'invoice_number',
@@ -1572,28 +1575,26 @@ class InvoiceClientCrudController extends CrudController
             ")
         ]);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
+        CRUD::field([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         // --- FIELDS (LABELS & GRID LAYOUT) ---
 
@@ -2201,7 +2202,7 @@ class InvoiceClientCrudController extends CrudController
     public function printInvoice($id)
     {
         $data = [];
-        $data['header'] = InvoiceClient::where('id', $id)->first();
+        $data['header'] = InvoiceClient::with('company')->where('id', $id)->first();
         $data['details'] = InvoiceClientDetail::where('invoice_client_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-client-single-pdf', $data);
@@ -2364,19 +2365,20 @@ class InvoiceClientCrudController extends CrudController
             ]);
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'default'   => $invoice->company_id,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-12',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company') ?? 'Company',
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'default'   => $invoice->company_id,
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
 
         CRUD::addField([
             'name'        => 'currency_code',
@@ -2653,7 +2655,7 @@ class InvoiceClientCrudController extends CrudController
         if ($companyId) {
             $query->where('company_id', $companyId);
         } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->whereIn('company_id', backpack_user()->getAccessibleCompanyIds());
         }
 
         if ($clientId) {

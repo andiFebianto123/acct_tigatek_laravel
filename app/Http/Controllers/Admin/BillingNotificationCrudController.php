@@ -75,13 +75,11 @@ class BillingNotificationCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $columns[] = [
-                'label' => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
-                'type'  => 'text',
-                'name'  => 'company.name',
-            ];
-        }
+        $columns[] = [
+            'label' => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
+            'type'  => 'text',
+            'name'  => 'company.name',
+        ];
 
         $columns = array_merge($columns, [
             [
@@ -164,16 +162,20 @@ class BillingNotificationCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
@@ -303,16 +305,14 @@ class BillingNotificationCrudController extends CrudController
     {
         $this->setupCreateOperation();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
@@ -345,18 +345,19 @@ class BillingNotificationCrudController extends CrudController
      */
     protected function setupCreateOperation()
     {
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'   => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
-                'type'    => 'select2_array',
-                'name'    => 'company_id',
-                'options' => ['' => 'All (Semua Perusahaan)'] + $companies,
-                'wrapper' => [
-                    'class' => 'form-group col-md-6',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'   => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
+            'type'    => 'select2_array',
+            'name'    => 'company_id',
+            'options' => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
         CRUD::addField([
             'name'  => 'billable_type_label',
@@ -406,7 +407,7 @@ class BillingNotificationCrudController extends CrudController
             if ($permissions->contains('MENU INDEX CLIENT NOTIFIKASI TAGIHAN')) {
                 $count = backpack_user()->canAccessAllCompanies()
                     ? \App\Models\BillingNotification::count()
-                    : \App\Models\BillingNotification::where('company_id', backpack_user()->company_id)->count();
+                    : \App\Models\BillingNotification::whereIn('company_id', backpack_user()->getAccessibleCompanyIds())->count();
             }
         }
         return response()->json(['count' => $count]);

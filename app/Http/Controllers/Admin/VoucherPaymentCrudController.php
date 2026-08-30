@@ -123,7 +123,7 @@ class VoucherPaymentCrudController extends CrudController
                                         'orderable' => false,
                                     ],
                                 ],
-                                $isSuperAdmin ? [$companyColumn] : [],
+                                [$companyColumn],
                                 [
                                     [
                                         'label' => trans('backpack::crud.voucher.column.voucher.no_voucher.label'),
@@ -253,7 +253,7 @@ class VoucherPaymentCrudController extends CrudController
                                         'orderable' => false,
                                     ],
                                 ],
-                                $isSuperAdmin ? [$companyColumn] : [],
+                                [$companyColumn],
                                 [
                                     [
                                         'label' => trans('backpack::crud.voucher.column.voucher.no_voucher.label'),
@@ -460,17 +460,21 @@ class VoucherPaymentCrudController extends CrudController
             }
         ]);
 
-        // 3. Column: Milik Perusahaan (Conditional for Super Admin)
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'name'  => 'company_name',
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'type'  => 'text',
-                'orderLogic' => function ($query, $column, $order) {
-                    return $query->orderBy('companies.name', $order);
-                }
-            ])->afterColumn($actionColumnName);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'vouchers.company_id', $accessibleCompanyIds);
         }
+
+        // 3. Column: Milik Perusahaan
+        CRUD::column([
+            'name'  => 'company_name',
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'type'  => 'text',
+            'orderLogic' => function ($query, $column, $order) {
+                return $query->orderBy('companies.name', $order);
+            }
+        ])->afterColumn($actionColumnName);
 
         // 4. Shared Columns
         CRUD::column([

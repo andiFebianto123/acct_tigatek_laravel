@@ -51,6 +51,7 @@ class ProformaInvoiceRequest extends FormRequest
             'term' => 'nullable|string',
             'pic' => 'required|string|max:150',
             'subkon_id' => 'required|exists:subkons,id',
+            'company_id' => 'required|exists:companies,id',
         ];
 
         if ($id) {

@@ -113,13 +113,11 @@ class BastCrudController extends CrudController
             ],
         ];
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $columns[] = [
-                'label' => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'text',
-                'name'      => 'company.name',
-            ];
-        }
+        $columns[] = [
+            'label' => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'text',
+            'name'      => 'company.name',
+        ];
 
         $columns = array_merge($columns, [
             [
@@ -377,7 +375,7 @@ class BastCrudController extends CrudController
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
         } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->whereIn('company_id', backpack_user()->getAccessibleCompanyIds());
         }
 
         $dataset = $query->where('po_number', 'LIKE', "%$search%")
@@ -511,16 +509,20 @@ class BastCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column([
             'label'  => trans('backpack::crud.bast.column.number'),
@@ -593,18 +595,19 @@ class BastCrudController extends CrudController
             'type' => 'logic_bast',
         ]);
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $companies = \App\Models\Company::pluck('name', 'id')->toArray();
-            CRUD::addField([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select2_array',
-                'name'      => 'company_id',
-                'options'   => ['' => trans('backpack::crud.filter.all_company') ?? 'All (Semua Perusahaan)'] + $companies,
-                'wrapper'   => [
-                    'class' => 'form-group col-md-6',
-                ],
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select2_array',
+            'name'      => 'company_id',
+            'options'   => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
 
         $entry = $this->crud->getCurrentEntry();
         $defaultRefType = 'client_po';
@@ -869,17 +872,14 @@ class BastCrudController extends CrudController
 
         $is_superadmin = 0;
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            $is_superadmin = 1;
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         $entry = $this->crud->getCurrentEntry();
         $isProforma = ($entry && $entry->referenceable_type === \App\Models\ProformaInvoiceClient::class);
@@ -1042,6 +1042,7 @@ class BastCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
+        $entry->loadMissing(['company']);
 
         $pdf = Pdf::loadView('exports.bast-pdf', [
             'entry' => $entry,
@@ -1084,7 +1085,7 @@ class BastCrudController extends CrudController
         if ($request->has('company_id') && $company_id !== '') {
             $query->where('company_id', $company_id);
         } else if (backpack_user() && !backpack_user()->canAccessAllCompanies()) {
-            $query->where('company_id', backpack_user()->company_id);
+            $query->whereIn('company_id', backpack_user()->getAccessibleCompanyIds());
         }
 
         $dataset = $query->where('invoice_number', 'LIKE', "%$search%")

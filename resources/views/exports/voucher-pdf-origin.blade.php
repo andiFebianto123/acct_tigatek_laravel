@@ -95,7 +95,45 @@
     <table class="header-table">
         <tr>
             <td style="width: 30%; text-align: center;">
-                <img src="{{ public_path('kalinyamat-logo-export.jpeg') }}" alt="" style="height: 40px;">
+                @php
+                    $logoData = "";
+                    $mimeType = 'image/png';
+                    $company = $voucher->company ?? null;
+                    if ($company && !empty($company->logo)) {
+                        $storagePath = storage_path('app/public/' . $company->logo);
+                        $publicStoragePath = public_path('storage/' . $company->logo);
+                        $targetPath = file_exists($storagePath) ? $storagePath : (file_exists($publicStoragePath) ? $publicStoragePath : null);
+                        if ($targetPath) {
+                            $logoData = base64_encode(file_get_contents($targetPath));
+                            $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+                            $mimeType = match($ext) {
+                                'jpg', 'jpeg' => 'image/jpeg',
+                                'svg' => 'image/svg+xml',
+                                'webp' => 'image/webp',
+                                default => 'image/png',
+                            };
+                        }
+                    }
+                    if (!$logoData) {
+                        $fallbackPath = public_path('kalinyamat-logo-export.jpeg');
+                        if (!file_exists($fallbackPath)) {
+                            $fallbackPath = public_path('logo-tigatek-mini.png');
+                        }
+                        if (file_exists($fallbackPath)) {
+                            $logoData = base64_encode(file_get_contents($fallbackPath));
+                            $ext = strtolower(pathinfo($fallbackPath, PATHINFO_EXTENSION));
+                            $mimeType = match($ext) {
+                                'jpg', 'jpeg' => 'image/jpeg',
+                                default => 'image/png',
+                            };
+                        }
+                    }
+                @endphp
+                @if($logoData)
+                    <img src="data:{{ $mimeType }};base64,{{ $logoData }}" alt="Logo" style="height: 40px; max-width: 150px; object-fit: contain;">
+                @else
+                    <div style="font-weight: bold; font-size: 16px;">{{ $company->name ?? '' }}</div>
+                @endif
             </td>
             <td style="width: 40%; text-align: center; font-size: 18px;">
                 <b>{{$voucher->account_source->name}}</b>

@@ -102,14 +102,14 @@ class SpkCrudController extends CrudController
                 'label'     => 'No',
                 'orderable' => false,
             ],
-            ...(backpack_user()->canAccessAllCompanies() ? [[
+            [
                 'label'     => trans('backpack::crud.subkon.column.company'),
                 'type'      => 'select',
                 'name'      => 'company_id',
                 'entity'    => 'company',
                 'attribute' => 'name',
                 'model'     => "App\Models\Company",
-            ]] : []),
+            ],
             [
                 'label' => trans('backpack::crud.spk.column.no_spk'),
                 'name'  => 'no_spk',
@@ -438,16 +438,20 @@ class SpkCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'name'      => 'company_id',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-            ]);
+        $user = backpack_user();
+        if ($user && !$user->canAccessAllCompanies()) {
+            $accessibleCompanyIds = $user->getAccessibleCompanyIds();
+            $this->crud->addClause('whereIn', 'company_id', $accessibleCompanyIds);
         }
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
 
         CRUD::column(
             [
@@ -609,16 +613,14 @@ class SpkCrudController extends CrudController
             ]
         ])->makeFirstColumn();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::column([
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'closure',
-                'name'      => 'company_id',
-                'function'  => function ($entry) {
-                    return $entry->company?->name;
-                }
-            ]);
-        }
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'closure',
+            'name'      => 'company_id',
+            'function'  => function ($entry) {
+                return $entry->company?->name;
+            }
+        ]);
 
         CRUD::column(
             [
@@ -826,27 +828,28 @@ class SpkCrudController extends CrudController
             }
         }
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::addField([
-                'name'      => 'company_id',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select2_array',
-                'options'   => \App\Models\Company::all()->pluck('name', 'id')->toArray(),
-                'allows_null' => false,
-                'wrapper'   => ['class' => 'form-group col-md-6'],
-            ]);
-            CRUD::addField([   // Hidden
-                'name'  => 'space_0',
-                'type'  => 'hidden',
-                'value' => 'active',
-                'wrapper'   => [
-                    'class' => 'form-group col-md-6'
-                ],
-                'attributes' => [
-                    'disabled'  => 'disabled',
-                ]
-            ]);
-        }
+        $user = backpack_user();
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+
+        CRUD::addField([
+            'name'        => 'company_id',
+            'label'       => trans('backpack::crud.subkon.column.company'),
+            'type'        => 'select2_array',
+            'options'     => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
+            'allows_null' => false,
+            'wrapper'     => ['class' => 'form-group col-md-6'],
+        ]);
+        CRUD::addField([   // Hidden
+            'name'  => 'space_0',
+            'type'  => 'hidden',
+            'value' => 'active',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
+            ],
+            'attributes' => [
+                'disabled'  => 'disabled',
+            ]
+        ]);
 
 
 
@@ -1097,17 +1100,15 @@ class SpkCrudController extends CrudController
         CRUD::field('company_id')->remove();
         CRUD::field('logic_spk')->remove();
 
-        if (backpack_user()->canAccessAllCompanies()) {
-            CRUD::field([
-                'name'      => 'company',
-                'label'     => trans('backpack::crud.subkon.column.company'),
-                'type'      => 'select',
-                'entity'    => 'company',
-                'attribute' => 'name',
-                'model'     => "App\Models\Company",
-                'wrapper'   => ['class' => 'form-group col-md-12'],
-            ])->before('subkon_id');
-        }
+        CRUD::field([
+            'name'      => 'company',
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+            'wrapper'   => ['class' => 'form-group col-md-12'],
+        ])->before('subkon_id');
 
         // update subkon id
         CRUD::field('subkon_id')->remove();
