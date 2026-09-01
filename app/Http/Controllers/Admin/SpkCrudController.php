@@ -226,7 +226,7 @@ class SpkCrudController extends CrudController
                 'tabs' => [
                     [
                         'name' => 'list_all_spk',
-                        'label' => trans('backpack::crud.po.tab.title_all_po'),
+                        'label' => trans('backpack::crud.spk.tab.title_all_spk'),
                         // 'class' => '',
                         'active' => true,
                         'view' => 'crud::components.datatable',

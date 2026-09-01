@@ -519,6 +519,9 @@ return [
             'document_path' => 'Dokumen SPK',
             'status' => 'Status SPK',
         ],
+        'tab' => [
+            'title_all_spk' => "Daftar SPK",
+        ],
         'field' => [
             'subkon_id' => [
                 'placeholder' => 'NAMA PERUSAHAAN',

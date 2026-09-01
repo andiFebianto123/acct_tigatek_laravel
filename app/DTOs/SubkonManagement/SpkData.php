@@ -37,7 +37,7 @@ class SpkData
             job_description: $request->input('job_description'),
             job_value: (float) $request->input('job_value'),
             tax_ppn: (float) $request->input('tax_ppn'),
-            total_value_with_tax: (float) $request->input('total_value_with_tax'),
+            total_value_with_tax: $request->input('total_value_with_tax') ? (float) filter_var(str_replace(',', '', (string) $request->input('total_value_with_tax')), FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION) : null,
             due_date: $request->input('due_date'),
             status: $request->input('status'),
             document_path: $request->file('document_path') ?? $request->input('document_path'),

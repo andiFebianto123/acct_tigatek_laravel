@@ -41,7 +41,7 @@ class SpkRequest extends FormRequest
             'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
             'tax_ppn' => 'nullable|numeric|min:0',
             'status' => 'required|in:open,close',
-            'total_value_with_tax' => 'nullable|numeric',
+            'total_value_with_tax' => 'nullable',
             'company_id' => 'required|exists:companies,id',
             'currency_code' => 'nullable|string|in:IDR,USD',
         ];
