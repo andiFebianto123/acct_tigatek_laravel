@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
+use Prologue\Alerts\Facades\Alert;
 
 
 class SettingSystemCrudController extends CrudController
@@ -233,8 +234,8 @@ class SettingSystemCrudController extends CrudController
             'country'               => 'nullable|string|max:30',
             'telp'                  => 'nullable|string|max:25',
             'no_register_company'   => 'nullable|string|max:20',
-            'start_time'            => 'nullable|date_format:H:i',
-            'end_time'              => 'nullable|date_format:H:i',
+            'start_time'            => 'nullable|date_format:H:i,H:i:s',
+            'end_time'              => 'nullable|date_format:H:i,H:i:s',
             'no_fax'                => 'nullable',
         ]);
 

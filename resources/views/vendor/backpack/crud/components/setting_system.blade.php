@@ -211,7 +211,7 @@
                                 </div>
                                 <div class="mb-3 form-group">
                                     <label for="waktuMulai" class="form-label">{{ trans('backpack::crud.setting.start_time') }}</label>
-                                    <input type="time" class="form-control" id="waktuMulai" name="start_time" value="{{$setting?->start_time}}">
+                                    <input type="time" class="form-control" id="waktuMulai" name="start_time" value="{{ $setting?->start_time ? \Illuminate\Support\Carbon::parse($setting->start_time)->format('H:i') : '' }}">
                                 </div>
                                 <div class="mb-3 form-group">
                                     <label class="form-label d-block">{{ trans('backpack::crud.setting.tax_number') }}</label>
@@ -239,7 +239,7 @@
                                 </div>
                                 <div class="mb-3 form-group">
                                     <label for="waktuBerakhir" class="form-label">{{ trans('backpack::crud.setting.end_time') }}</label>
-                                    <input type="time" class="form-control" id="waktuBerakhir" name="end_time" value="{{$setting?->end_time}}">
+                                    <input type="time" class="form-control" id="waktuBerakhir" name="end_time" value="{{ $setting?->end_time ? \Illuminate\Support\Carbon::parse($setting->end_time)->format('H:i') : '' }}">
                                 </div>
                             </div>
                         </div>
