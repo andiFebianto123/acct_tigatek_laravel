@@ -14,7 +14,7 @@
         }
         .header {
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 5px;
         }
         .header-table {
             width: 100%;
@@ -46,9 +46,11 @@
             margin-bottom: 2px;
             letter-spacing: 0.5px;
         }
-        .po-title-td {
+        .po-title-box {
+            width: 100%;
             text-align: right;
-            vertical-align: middle;
+            margin-top: 10px;
+            margin-bottom: 5px;
         }
         .po-title {
             font-size: 32pt;
@@ -174,13 +176,9 @@
             font-size: 12pt;
             text-align: right;
         }
-        .bottom-section {
-            margin-top: 40px;
-            width: 100%;
-        }
         .terms-section {
-            float: left;
-            width: 60%;
+            width: 100%;
+            margin-top: 25px;
             font-size: 9pt;
         }
         .terms-title {
@@ -193,6 +191,9 @@
             padding-left: 15px;
             margin-bottom: 15px;
         }
+        .terms-content {
+            width: 100%;
+        }
         .terms-content ul, .terms-content ol {
             margin: 0;
             padding-left: 15px;
@@ -200,6 +201,15 @@
         }
         .terms-content p {
             margin: 0 0 5px 0;
+        }
+        .bottom-section {
+            margin-top: 20px;
+            width: 100%;
+        }
+        .payment-section {
+            float: left;
+            width: 60%;
+            font-size: 9pt;
         }
         .payment-title {
             font-weight: bold;
@@ -329,14 +339,15 @@
                             Jl. H. Syahrin Blok 3C/5<br>
                             Keb, Baru. Jakarta Selatan
                         @endif
-                    </div>
-                </td>
-                <td class="po-title-td">
-                    <div class="po-title">QUOTATION</div>
                 </td>
             </tr>
         </table>
     </div>
+
+    <div class="po-title-box">
+        <div class="po-title">QUOTATION</div>
+    </div>
+    <div class="clearfix"></div>
 
     <div class="info-section">
         <div class="client-info">
@@ -464,23 +475,25 @@
         </table>
     </div>
 
+    <div class="terms-section">
+        <div class="terms-title">Terms :</div>
+        @if(!empty($entry->term))
+            <div class="terms-content">
+                {!! $entry->term !!}
+            </div>
+        @else
+            <ol class="terms-list">
+                <li>FOB Jabodetabek</li>
+                <li>Include PPN {{ $ppn_percent }}%</li>
+                <li>Terms Of Payment :
+                    <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% After Invoice Submitted
+                </li>
+            </ol>
+        @endif
+    </div>
+
     <div class="bottom-section">
-        <div class="terms-section">
-            <div class="terms-title">Terms :</div>
-            @if(!empty($entry->term))
-                <div class="terms-content">
-                    {!! $entry->term !!}
-                </div>
-            @else
-                <ol class="terms-list">
-                    <li>FOB Jabodetabek</li>
-                    <li>Include PPN {{ $ppn_percent }}%</li>
-                    <li>Terms Of Payment :
-                        <br>&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;100% After Invoice Submitted
-                    </li>
-                </ol>
-            @endif
-            
+        <div class="payment-section">
             <div class="payment-title">Payment to be made to</div>
             <table class="payment-table">
                 <tr>

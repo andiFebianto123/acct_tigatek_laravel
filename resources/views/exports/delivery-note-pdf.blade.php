@@ -4,10 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
         @page {
-            margin-top: 5cm;
-            margin-bottom: 30px;
-            margin-left: 45px;
-            margin-right: 45px;
+            margin: 30px 45px;
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -226,10 +223,6 @@
                             Jl. H. Syahrin Blok 3C/5<br>
                             Keb, Baru. Jakarta Selatan
                         @endif
-                    </div>
-                </td>
-                <td class="po-title-td">
-                    <div class="po-title"></div>
                 </td>
             </tr>
         </table>
