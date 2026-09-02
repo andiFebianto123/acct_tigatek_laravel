@@ -9,6 +9,7 @@ use App\Models\JournalEntry;
 use App\Models\LogPayment;
 use App\Models\Setting;
 use App\DTOs\CastAccountLoan\CastAccountLoanSaveData;
+use App\DTOs\CastAccount\CastAccountDetailsData;
 use App\DTOs\CastAccountLoan\LoanTransactionSaveData;
 use App\DTOs\CastAccountLoan\LoanMoveTransactionSaveData;
 use App\Http\Helpers\CustomHelper;
@@ -123,6 +124,15 @@ class CastAccountLoanService
                 }
             }
 
+            return $item;
+        });
+    }
+
+    public function updateCastAccountLoanDetails(int $id, CastAccountDetailsData $data): CastAccount
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $item = CastAccount::findOrFail($id);
+            $item->update($data->toArray());
             return $item;
         });
     }

@@ -13,6 +13,8 @@ use App\Http\Exports\ExportExcel;
 use App\Http\Helpers\CustomHelper;
 use App\Models\AccountTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Prologue\Alerts\Facades\Alert;
 use App\Models\LoanTransactionFlag;
 use Illuminate\Support\Facades\App;
 use Maatwebsite\Excel\Facades\Excel;
@@ -22,6 +24,7 @@ use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
 use App\Services\CastAccountLoan\CastAccountLoanService;
 use App\Repositories\CastAccountLoan\CastAccountLoanRepository;
+use App\DTOs\CastAccount\CastAccountDetailsData;
 use App\DTOs\CastAccountLoan\CastAccountLoanSaveData;
 use App\DTOs\CastAccountLoan\LoanTransactionSaveData;
 use App\DTOs\CastAccountLoan\LoanMoveTransactionSaveData;
@@ -851,6 +854,18 @@ class CastAccountsLoanCrudController extends CrudController
      * @see https://backpackforlaravel.com/docs/crud-operation-create
      * @return void
      */
+    function ruleValidationCastAccountDetails($id = '')
+    {
+        return [
+            'name' => 'required|max:100|unique:cast_accounts,name,' . $id,
+            'bank_name' => 'required|max:50',
+            'no_account' => 'required|max:100|unique:cast_accounts,no_account,' . $id,
+            'bank_branch' => 'nullable|string|max:100',
+            'swift_code' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+        ];
+    }
+
     protected function setupCreateOperation()
     {
         // CRUD::setFromDb(); // set fields from db columns.
@@ -871,14 +886,77 @@ class CastAccountsLoanCrudController extends CrudController
                 }
             }
             if ($request->type == 'cast_account') {
-                $id = $request->id ?? '';
-                CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
+                $id = $request->id ?? request()->route('id') ?? '';
+                CRUD::setValidation($this->ruleValidationCastAccountDetails($id));
+
                 CRUD::addField([
                     'name' => 'name',
                     'label' => trans('backpack::crud.cash_account.field.name.label'),
                     'type' => 'text',
+                    'wrapper' => [
+                        'class' => 'form-group col-md-12',
+                    ],
                     'attributes' => [
                         'placeholder' => trans('backpack::crud.cash_account.field.name.placeholder'),
+                    ]
+                ]);
+
+                CRUD::field([
+                    'label'     => trans('backpack::crud.cash_account.field.bank_name.label'),
+                    'type'      => 'select2_bank_tags',
+                    'name'      => 'bank_name',
+                    'options'   => ['' => trans('backpack::crud.cash_account.field.bank_name.placeholder'), ...CustomHelper::getBanks()],
+                    'wrapper' => [
+                        'class' => 'form-group col-md-6'
+                    ]
+                ]);
+
+                CRUD::addField([
+                    'name' => 'no_account',
+                    'label' => trans('backpack::crud.cash_account.field.no_account.label'),
+                    'type' => 'text',
+                    'wrapper'   => [
+                        'class' => 'form-group col-md-6',
+                    ],
+                    'attributes' => [
+                        'placeholder' => trans('backpack::crud.cash_account.field.no_account.placeholder'),
+                    ]
+                ]);
+
+                CRUD::addField([
+                    'name' => 'bank_branch',
+                    'label' => trans('backpack::crud.cash_account.field.bank_branch.label'),
+                    'type' => 'text',
+                    'wrapper'   => [
+                        'class' => 'form-group col-md-6',
+                    ],
+                    'attributes' => [
+                        'placeholder' => trans('backpack::crud.cash_account.field.bank_branch.placeholder'),
+                    ]
+                ]);
+
+                CRUD::addField([
+                    'name' => 'swift_code',
+                    'label' => trans('backpack::crud.cash_account.field.swift_code.label'),
+                    'type' => 'text',
+                    'wrapper'   => [
+                        'class' => 'form-group col-md-6',
+                    ],
+                    'attributes' => [
+                        'placeholder' => trans('backpack::crud.cash_account.field.swift_code.placeholder'),
+                    ]
+                ]);
+
+                CRUD::addField([
+                    'name' => 'address',
+                    'label' => trans('backpack::crud.cash_account.field.address.label'),
+                    'type' => 'textarea',
+                    'wrapper'   => [
+                        'class' => 'form-group col-md-12',
+                    ],
+                    'attributes' => [
+                        'placeholder' => trans('backpack::crud.cash_account.field.address.placeholder'),
+                        'rows' => 3,
                     ]
                 ]);
                 return;
@@ -1141,6 +1219,47 @@ class CastAccountsLoanCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
+
+        if (request()->has('type') && request()->type == 'cast_account') {
+            $id = request('id') ?? request()->route('id') ?? '';
+            CRUD::setValidation($this->ruleValidationCastAccountDetails($id));
+
+            $request = $this->crud->validateRequest();
+            $dto = CastAccountDetailsData::fromRequest($request);
+
+            $this->crud->registerFieldEvents();
+
+            if ($request->bank_name) {
+                \App\Models\Bank::firstOrCreate(['name' => $request->bank_name]);
+            }
+
+            DB::beginTransaction();
+            try {
+                $item = $this->service->updateCastAccountLoanDetails((int)$request->id, $dto);
+
+                $this->data['entry'] = $item;
+                Alert::success(trans('backpack::crud.update_success'))->flash();
+                $this->crud->setSaveAction();
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $item,
+                    'events' => [
+                        'cast_account_store_success' => true
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error updating cast account loan details: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                return response()->json([
+                    'status' => false,
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         CRUD::setValidation(\App\Http\Requests\CastAccountLoan\CastAccountLoanRequest::class);
         $request = $this->crud->validateRequest();
         $this->crud->registerFieldEvents();
@@ -1150,7 +1269,7 @@ class CastAccountsLoanCrudController extends CrudController
             $data = CastAccountLoanSaveData::fromRequest($request);
             $item = $this->service->storeLoanAccount($data); // Service should handle update if ID exists, or create updateCastAccount
 
-            \Alert::success(trans('backpack::crud.update_success'))->flash();
+            Alert::success(trans('backpack::crud.update_success'))->flash();
             DB::commit();
 
             return response()->json([

@@ -8,6 +8,7 @@ use App\Models\LogPayment;
 use App\Models\JournalEntry;
 use App\Models\Setting;
 use App\DTOs\CastAccount\CastAccountSaveData;
+use App\DTOs\CastAccount\CastAccountDetailsData;
 use App\DTOs\CastAccount\TransactionSaveData;
 use App\Http\Helpers\CustomHelper;
 use App\Http\Helpers\CustomVoid;
@@ -88,6 +89,15 @@ class CastAccountService
                 $castAccount->informations()->sync($data->informations);
             }
 
+            return $castAccount;
+        });
+    }
+
+    public function updateCastAccountDetails(int $id, CastAccountDetailsData $data): CastAccount
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $castAccount = CastAccount::findOrFail($id);
+            $castAccount->update($data->toArray());
             return $castAccount;
         });
     }

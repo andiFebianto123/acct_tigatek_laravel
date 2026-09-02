@@ -11,8 +11,8 @@
                 data-route="{{$route_edit}}"
                 data-bs-toggle="modal"
                 data-bs-target="#modalEdit"
-                data-title="Ubah Nama Rekening"
-                class="btn btn-sm btn-primary"><i class="la la-edit"></i> Edit Nama Rekening</button>
+                data-title="Ubah Data Rekening"
+                class="btn btn-sm btn-primary"><i class="la la-edit"></i> Edit Rekening</button>
                 @push('after_scripts')
                     <script>
                         $(function(){
@@ -23,7 +23,7 @@
                                     route: route,
                                     modal: {
                                         id: '#modalEdit',
-                                        title: "Ubah Nama Rekening",
+                                        title: "Ubah Data Rekening",
                                         action: "{!! $route_update !!}",
                                     }
                                 });
