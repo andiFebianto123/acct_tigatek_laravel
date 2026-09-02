@@ -97,47 +97,31 @@
             width: 70%;
             word-wrap: break-word;
             word-break: break-all;
-        }
         .items-section {
-            margin-top: 40px;
+            margin-top: 30px;
         }
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            border-top: 2px solid #000;
-            /* border-bottom: 2px solid #000; */
         }
         .items-table th {
-            border-bottom: 1px solid #000;
-            padding: 8px 4px;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 8px 5px;
             text-align: center;
-            text-transform: uppercase;
-            font-size: 10pt;
+            font-size: 10.5pt;
+            font-weight: bold;
         }
         .items-table td {
-            padding: 12px 4px;
-            vertical-align: middle;
-            font-size: 10pt;
+            padding: 8px 5px;
+            vertical-align: top;
+            font-size: 10.5pt;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
+        .text-left { text-align: left; }
         .col-price {
             white-space: nowrap;
-        }
-        .total-row {
-            border-top: 2px solid #000;
-            font-weight: bold;
-        }
-        .grand-total-label {
-            padding: 10px 4px;
-            text-align: right;
-            text-transform: uppercase;
-            font-size: 11pt;
-        }
-        .grand-total-value {
-            padding: 10px 4px;
-            text-align: right;
-            font-size: 11pt;
         }
         .terms-section {
             margin-top: 40px;
@@ -291,6 +275,26 @@
         $decimals = $isUsd ? 2 : 0;
         $decPoint = $isUsd ? '.' : ',';
         $thousandsSep = $isUsd ? ',' : '.';
+
+        $hasDetails = isset($entry->purchase_order_details) && count($entry->purchase_order_details) > 0;
+        if ($hasDetails) {
+            $subtotal = 0;
+            foreach ($entry->purchase_order_details as $detail) {
+                $qty = (int)($detail->qty ?? 1);
+                $price = (float)($detail->price ?? 0);
+                $subtotal += ($qty * $price);
+            }
+        } else {
+            $subtotal = (float)($entry->job_value ?? 0);
+        }
+
+        $ppn_percent = isset($entry->tax_ppn) && $entry->tax_ppn !== null ? (float)$entry->tax_ppn : 0;
+        $ppn_nominal = (float)($subtotal * $ppn_percent / 100);
+        $grand_total = (float)($entry->total_value_with_tax ?? ($subtotal + $ppn_nominal));
+        if ($grand_total == 0 && $subtotal > 0) {
+            $grand_total = $subtotal + $ppn_nominal;
+        }
+        $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
     @endphp
 
     <div class="items-section">
@@ -298,14 +302,14 @@
             <thead>
                 <tr>
                     <th width="5%">No.</th>
-                    <th width="43%" style="text-align: left;">Item</th>
-                    <th width="10%">Qty</th>
-                    <th width="21%">Unit Price</th>
-                    <th width="21%">Amount</th>
+                    <th width="43%" style="text-align: left;">DESCRIPTION</th>
+                    <th width="10%">QTY</th>
+                    <th width="21%">PRICE PER UNIT</th>
+                    <th width="21%">AMOUNT</th>
                 </tr>
             </thead>
             <tbody>
-                @if(isset($entry->purchase_order_details) && count($entry->purchase_order_details) > 0)
+                @if($hasDetails)
                     @foreach($entry->purchase_order_details as $index => $detail)
                         @php
                             $itemName = !empty($detail->name) ? $detail->name : ($detail->device_stock?->name ?? '-');
@@ -314,40 +318,53 @@
                             $amount = $qty * $price;
                         @endphp
                         <tr>
-                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td class="text-center">{{ $index + 1 }}.</td>
                             <td style="text-align: left;">{{ $itemName }}</td>
                             <td class="text-center">{{ $qty }}</td>
                             <td class="text-right col-price">
-                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($price, $decimals, $decPoint, $thousandsSep) }}
+                                {{ $symbol }} {{ number_format($price, $decimals, $decPoint, $thousandsSep) }}
                             </td>
                             <td class="text-right col-price">
-                                <span style="float: left;">{{ $symbol }}</span> {{ number_format($amount, $decimals, $decPoint, $thousandsSep) }}
+                                {{ $symbol }} {{ number_format($amount, $decimals, $decPoint, $thousandsSep) }}
                             </td>
                         </tr>
                     @endforeach
                 @else
                     <tr>
-                        <td class="text-center">1</td>
+                        <td class="text-center">1.</td>
                         <td style="text-align: left;">
                             {{ $entry->job_name }}<br>
                             <span style="font-size: 9pt; color: #555;">{{ $entry->job_description }}</span>
                         </td>
                         <td class="text-center">1</td>
                         <td class="text-right col-price">
-                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                         <td class="text-right col-price">
-                            <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                         </td>
                     </tr>
                 @endif
             </tbody>
             <tfoot>
-                <tr class="total-row">
-                    <td colspan="3" style="border: none;"></td>
-                    <td class="grand-total-label">GRAND TOTAL</td>
-                    <td class="grand-total-value col-price">
-                        <span style="float: left;">{{ $symbol }}</span> {{ number_format($entry->job_value, $decimals, $decPoint, $thousandsSep) }}
+                <tr>
+                    <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 4px; font-weight: normal;">TOTAL</td>
+                    <td class="text-right col-price" style="border-top: 2px solid #000; padding: 6px 4px;">
+                        {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                @if($ppn_percent > 0 || $ppn_nominal > 0)
+                <tr>
+                    <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
+                    <td class="text-right col-price" style="padding: 4px 4px;">
+                        {{ $symbol }} {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
+                    </td>
+                </tr>
+                @endif
+                <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
+                    <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">
+                        {{ $symbol }} {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
             </tfoot>
