@@ -117,7 +117,7 @@ class InvoiceClientCrudController extends CrudController
         $id = request()->id;
         $entry = ClientPo::where('id', $id)->first();
 
-        $entry->date_invoice = ($entry->date_invoice) ? Carbon::createFromFormat('Y-m-d', $entry->date_invoice)->format('d/m/Y') : Carbon::now()->format('d/m/Y');
+        // $entry->date_invoice = ($entry->date_invoice) ? Carbon::createFromFormat('Y-m-d', $entry->date_invoice)->format('d/m/Y') : Carbon::now()->format('d/m/Y');
         $entry->date_po_str = ($entry->date_po) ? Carbon::createFromFormat('Y-m-d', $entry->date_po)->format('d/m/Y') : Carbon::now()->format('d/m/Y');
         // $entry->job_value = CustomHelper::formatRupiah($entry->job_value);
         // $entry->total_value_with_tax = CustomHelper::formatRupiah($entry->job_value_include_ppn);
