@@ -29,8 +29,8 @@ class CompanyRequest extends FormRequest
         return [
             'name'        => 'required|string|max:255|unique:companies,name,' . $id,
             'address'     => 'required|string',
-            'city'        => 'required|string|max:255',
-            'province'    => 'required|string|max:255',
+            'city'        => 'nullable|string|max:255',
+            'province'    => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'phone'       => 'nullable|string|max:50',
             'email'       => 'nullable|email|max:255',
