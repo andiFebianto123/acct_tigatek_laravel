@@ -712,6 +712,7 @@
                  */
                 _convertRowToSelect2($row) {
                     var self = this;
+                    var form = self.form;
                     var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
                     if (!$textInput.length) return;
 
@@ -725,15 +726,23 @@
                     var $select = $('<select class="form-control select2_field invoice-device-select2" style="width: 100%;"></select>');
                     $select.attr('placeholder', '{{ trans("backpack::crud.invoice_client.field.item.items.name.placeholder") ?: "Pilih Barang Persediaan" }}');
 
-                    // Sembunyikan text input
+                    // Sembunyikan text input dan buat container khusus position: relative
                     $textInput.hide();
-                    $textInput.after($select);
+                    
+                    var $wrapper = $('<div class="invoice-device-select2-wrapper" style="position: relative; width: 100%;"></div>');
+                    $textInput.after($wrapper);
+                    $wrapper.append($select);
+
+                    // Gunakan wrapper tersebut sebagai dropdownParent agar posisi dropdown rata kiri 100% sejajar dengan input
+                    var dropdownParent = $wrapper;
 
                     // Inisialisasi Select2 AJAX
                     $select.select2({
                         theme: 'bootstrap',
                         placeholder: 'Pilih Barang Persediaan',
                         allowClear: true,
+                        width: '100%',
+                        dropdownParent: dropdownParent,
                         ajax: {
                             url: self.ajaxUrl,
                             dataType: 'json',
@@ -817,7 +826,10 @@
                     var $select2 = $row.find('.invoice-device-select2');
                     var $textInput = $row.find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
 
-                    if ($select2.length) {
+                    var $wrapper = $row.find('.invoice-device-select2-wrapper');
+                    if ($wrapper.length) {
+                        $wrapper.remove();
+                    } else if ($select2.length) {
                         $select2.select2('destroy');
                         $select2.remove();
                     }
