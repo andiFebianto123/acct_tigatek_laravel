@@ -339,11 +339,11 @@ class InvoiceClientService
                 Storage::disk('public')->delete($invoice->document_imei_iccid);
             }
 
-            $clientPo = ClientPo::where('id', $invoice->client_po_id)->first();
+            // $clientPo = ClientPo::where('id', $invoice->client_po_id)->first();
             CustomVoid::invoiceDelete($invoice);
-            if ($clientPo) {
-                $clientPo->delete();
-            }
+            // if ($clientPo) {
+            // $clientPo->delete();
+            // }
             $invoice->delete();
         });
     }
