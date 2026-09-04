@@ -2122,14 +2122,22 @@ class ClientPoCrudController extends CrudController
         // get entry ID from Request (makes sure its the last ID for nested resources)
         $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        $this->crud->delete($id);
+        try {
+            $this->clientPoService->deleteClientPo((int) $id);
 
-        $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
-        $messages['events'] = [
-            'crudTable-filter_client_po_plugin_load' => true,
-            'crudTable-client_po_create_success' => true,
-        ];
-        return response()->json($messages);
+            $messages['success'][] = trans('backpack::crud.delete_confirmation_message');
+            $messages['events'] = [
+                'crudTable-filter_client_po_plugin_load' => true,
+                'crudTable-client_po_create_success' => true,
+            ];
+            return response()->json($messages);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 400);
+        }
     }
 
     public function printPo($id)

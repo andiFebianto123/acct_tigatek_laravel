@@ -597,6 +597,12 @@ return [
             'list_invoice' => 'Status Invoice',
             'date_po' => 'Tanggal PO',
         ],
+        'error' => [
+            'has_delivery_notes' => 'Client PO tidak dapat dihapus karena masih digunakan pada Surat Jalan (Delivery Note).',
+            'has_basts' => 'Client PO tidak dapat dihapus karena masih digunakan pada BAST.',
+            'has_invoices' => 'Client PO tidak dapat dihapus karena sudah memiliki Invoice Client terkait.',
+            'has_relations' => 'Client PO tidak dapat dihapus karena masih digunakan pada modul lain (:relations).',
+        ],
         'field' => [
             'error_has_voucher' => 'Client PO ini sudah dibuatkan voucher client jadi tidak bisa dijadikan supplier.',
             'purchase_order_id_unique' => 'Purchase Order ini sudah digunakan oleh Client PO lain.',

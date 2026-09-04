@@ -176,6 +176,38 @@ class ClientPoService
     {
         return DB::transaction(function () use ($id) {
             $clientPo = ClientPo::findOrFail($id);
+
+            // Check if Client PO is referenced in Delivery Notes
+            $hasDeliveryNotes = \App\Models\DeliveryNote::where(function ($query) use ($id) {
+                $query->where(function ($q) use ($id) {
+                    $q->where('reference_type', 'client_po')
+                        ->where('reference_id', $id);
+                })->orWhere('client_po_id', $id);
+            })->exists();
+
+            if ($hasDeliveryNotes) {
+                throw new \Exception(trans('backpack::crud.client_po.error.has_delivery_notes'));
+            }
+
+            // Check if Client PO is referenced in BASTs
+            $hasBasts = \App\Models\Bast::where(function ($query) use ($id) {
+                $query->where(function ($q) use ($id) {
+                    $q->whereIn('referenceable_type', [ClientPo::class, 'client_po'])
+                        ->where('referenceable_id', $id);
+                })->orWhere('client_po_id', $id);
+            })->exists();
+
+            if ($hasBasts) {
+                throw new \Exception(trans('backpack::crud.client_po.error.has_basts'));
+            }
+
+            // Check if Client PO is referenced in Client Invoices
+            $hasInvoices = \App\Models\InvoiceClient::where('client_po_id', $id)->exists();
+
+            if ($hasInvoices) {
+                throw new \Exception(trans('backpack::crud.client_po.error.has_invoices'));
+            }
+
             if ($clientPo->document_path) {
                 Storage::disk('public')->delete($clientPo->document_path);
             }

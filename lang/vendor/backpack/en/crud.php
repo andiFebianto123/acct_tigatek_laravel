@@ -498,6 +498,12 @@ return [
         ]
     ],
     'client_po' => [
+        'error' => [
+            'has_delivery_notes' => 'Client PO cannot be deleted because it is still referenced by Delivery Note(s).',
+            'has_basts' => 'Client PO cannot be deleted because it is still referenced by BAST(s).',
+            'has_invoices' => 'Client PO cannot be deleted because it has associated Client Invoice(s).',
+            'has_relations' => 'Client PO cannot be deleted because it is still referenced in other modules (:relations).',
+        ],
         'field' => [
             'error_has_voucher' => 'This client PO already has a client voucher created so it cannot be made into a supplier.',
             'purchase_order_id_unique' => 'This Purchase Order has already been used by another Client PO.',
