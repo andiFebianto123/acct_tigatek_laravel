@@ -21,7 +21,7 @@
 {{-- - used right away in AJAX operations (ex: List) --}}
 {{-- - pushed to the end of the page, after jQuery is loaded, for non-AJAX operations (ex: Show) --}}
 @push('after_scripts') @if (request()->ajax()) @endpush @endif
-@bassetBlock('backpack/crud/buttons/delete-button-'.app()->getLocale().'.js')
+@bassetBlock('backpack/crud/buttons/delete-button-'.app()->getLocale().'.js?v=7')
 <script>
 
 	if (typeof deleteEntry != 'function') {
