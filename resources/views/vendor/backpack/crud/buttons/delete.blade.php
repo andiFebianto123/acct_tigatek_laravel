@@ -102,6 +102,9 @@
                             });
                         }
                         } else {// Show an error alert
+                            btn.attr('disabled', false);
+                            btn.find('.btn-text').html("{{ trans('backpack::crud.delete') }}");
+                            btn.find('.btn-spinner').addClass('d-none');
                             swal({
                             title: "{!! trans('backpack::crud.delete_confirmation_not_title') !!}",
                             text: "{!! trans('backpack::crud.delete_confirmation_not_message') !!}",
@@ -115,11 +118,17 @@
                 error: function(result) {
                     btn.attr('disabled', false);
                     btn.find('.btn-text').html("{{ trans('backpack::crud.delete') }}");
-                    btn.find('btn-spinner').addClass('d-none');
+                    btn.find('.btn-spinner').addClass('d-none');
                     // Show an alert with the result
+
+                    var errorMessage = "{!! trans('backpack::crud.delete_confirmation_not_message') !!}";
+                    if(result.responseJSON?.error){
+                        errorMessage = result.responseJSON?.error;
+                    }
+
                     swal({
                     title: "{!! trans('backpack::crud.delete_confirmation_not_title') !!}",
-                    text: "{!! trans('backpack::crud.delete_confirmation_not_message') !!}",
+                    text: errorMessage,
                     icon: "error",
                     timer: 4000,
                     buttons: false,
