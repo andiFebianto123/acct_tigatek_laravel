@@ -999,12 +999,12 @@ class CustomHelper
         }
     }
 
-    public static function balanceAccount($account_code, $startDate = null, $endDate = null)
+    public static function balanceAccount($account_code, $startDate = null, $endDate = null, $companyId = null)
     {
         $code = $account_code;
 
         if ($code == self::getAccountMapping('PROFIT_CONSOLIDATION')) {
-            return self::getNetProfit($startDate, $endDate);
+            return self::getNetProfit($startDate, $endDate, $companyId);
         }
 
         $query = \App\Models\Account::selectRaw("
@@ -1017,11 +1017,45 @@ class CustomHelper
             $query->whereBetween('journal_entries.date', [$startDate, $endDate]);
         }
 
+        if ($companyId) {
+            $query->where(function ($q) use ($companyId) {
+                $q->where(function ($sub) use ($companyId) {
+                    $sub->where('journal_entries.reference_type', 'App\\Models\\Voucher')
+                        ->whereExists(function ($ex) use ($companyId) {
+                            $ex->select(DB::raw(1))->from('vouchers')
+                                ->whereColumn('vouchers.id', 'journal_entries.reference_id')
+                                ->where('vouchers.company_id', $companyId);
+                        });
+                })->orWhere(function ($sub) use ($companyId) {
+                    $sub->where('journal_entries.reference_type', 'App\\Models\\InvoiceClient')
+                        ->whereExists(function ($ex) use ($companyId) {
+                            $ex->select(DB::raw(1))->from('invoice_clients')
+                                ->whereColumn('invoice_clients.id', 'journal_entries.reference_id')
+                                ->where('invoice_clients.company_id', $companyId);
+                        });
+                })->orWhere(function ($sub) use ($companyId) {
+                    $sub->where('journal_entries.reference_type', 'App\\Models\\PurchaseOrder')
+                        ->whereExists(function ($ex) use ($companyId) {
+                            $ex->select(DB::raw(1))->from('purchase_orders')
+                                ->whereColumn('purchase_orders.id', 'journal_entries.reference_id')
+                                ->where('purchase_orders.company_id', $companyId);
+                        });
+                })->orWhere(function ($sub) use ($companyId) {
+                    $sub->where('journal_entries.reference_type', 'App\\Models\\Asset')
+                        ->whereExists(function ($ex) use ($companyId) {
+                            $ex->select(DB::raw(1))->from('assets')
+                                ->whereColumn('assets.id', 'journal_entries.reference_id')
+                                ->where('assets.company_id', $companyId);
+                        });
+                });
+            });
+        }
+
         $sum_accounts = $query->first();
         return $sum_accounts->balance ?? 0;
     }
 
-    public static function getNetProfit($startDate = null, $endDate = null)
+    public static function getNetProfit($startDate = null, $endDate = null, $companyId = null)
     {
         $dataset = [];
         $consolidate_income_header = DB::table('consolidate_income_headers')
@@ -1037,7 +1071,7 @@ class CustomHelper
             ->where('consolidate_income_account_items.header_id', $consolidate_income_header[0]->id)
             ->select(DB::raw("accounts.*"))->get();
         foreach ($items0 as $item) {
-            $contract_income_number += self::balanceAccount($item->code, $startDate, $endDate);
+            $contract_income_number += self::balanceAccount($item->code, $startDate, $endDate, $companyId);
         }
 
         // beban usaha (1)
@@ -1046,7 +1080,7 @@ class CustomHelper
             ->where('consolidate_income_account_items.header_id', $consolidate_income_header[1]->id)
             ->select(DB::raw("accounts.*"))->get();
         foreach ($items1 as $item) {
-            $cost_expense_number += self::balanceAccount($item->code, $startDate, $endDate);
+            $cost_expense_number += self::balanceAccount($item->code, $startDate, $endDate, $companyId);
         }
 
         // laba usaha
@@ -1058,7 +1092,7 @@ class CustomHelper
             ->where('consolidate_income_account_items.header_id', $consolidate_income_header[3]->id)
             ->select(DB::raw("accounts.*"))->get();
         foreach ($items3 as $item) {
-            $cost_other_number += self::balanceAccount($item->code, $startDate, $endDate);
+            $cost_other_number += self::balanceAccount($item->code, $startDate, $endDate, $companyId);
         }
 
         // beban lain - lain (4)
@@ -1067,7 +1101,7 @@ class CustomHelper
             ->where('consolidate_income_account_items.header_id', $consolidate_income_header[4]->id)
             ->select(DB::raw("accounts.*"))->get();
         foreach ($items4 as $item) {
-            $expense_other_number += self::balanceAccount($item->code, $startDate, $endDate);
+            $expense_other_number += self::balanceAccount($item->code, $startDate, $endDate, $companyId);
         }
 
         // laba sebelum pajak
@@ -1079,7 +1113,7 @@ class CustomHelper
             ->where('consolidate_income_account_items.header_id', $consolidate_income_header[6]->id)
             ->select(DB::raw("accounts.*"))->get();
         foreach ($items6 as $item) {
-            $expense_tax_number += self::balanceAccount($item->code, $startDate, $endDate);
+            $expense_tax_number += self::balanceAccount($item->code, $startDate, $endDate, $companyId);
         }
 
         // laba bersih

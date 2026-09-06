@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Exports\ExportExcel;
 use App\Models\ProjectProfitLost;
 use App\Models\InvoiceClient;
+use App\Models\Company;
 use App\Http\Helpers\CustomHelper;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -78,6 +79,11 @@ class ProfitLostAccountCrudController extends CrudController
 
     public function listCardComponents($type)
     {
+        $user = backpack_user();
+        $canAccessAllCompanies = $user ? $user->canAccessAllCompanies() : false;
+        $accessibleCompanyIds = $user ? $user->getAccessibleCompanyIds() : [];
+        $companies = Company::whereIn('id', $accessibleCompanyIds)->orderBy('name', 'asc')->get();
+
         $this->card->addCard([
             'name' => 'report_profit_lost',
             'line' => 'top',
@@ -85,6 +91,8 @@ class ProfitLostAccountCrudController extends CrudController
             'params' => [
                 'crud' => $this->crud,
                 'route' => url($this->crud->route . '/report-total'),
+                'companies' => $companies,
+                'canAccessAllCompanies' => $canAccessAllCompanies,
             ]
         ]);
 

@@ -1,7 +1,17 @@
 <div>
-    <div class="d-flex justify-content-between">
-        <h5>{{trans('backpack::crud.profit_lost.consolidation_income_statement')}}</h5>
-        <div>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">{{trans('backpack::crud.profit_lost.consolidation_income_statement')}}</h5>
+        <div class="d-flex align-items-center gap-2">
+            <select id="filter-company-{{$name}}" class="form-select form-select-sm" style="width: auto; min-width: 180px;">
+                @if(isset($canAccessAllCompanies) && $canAccessAllCompanies)
+                    <option value="all" selected>{{ trans('backpack::crud.filter.all_company') ?? 'Semua Perusahaan' }}</option>
+                @endif
+                @if(isset($companies))
+                    @foreach($companies as $company)
+                        <option value="{{ $company->id }}">{{ $company->name }}</option>
+                    @endforeach
+                @endif
+            </select>
             <button id="btn-export-consolidation-pdf" class="btn btn-sm btn-primary">
                 <i class="la la-file-download"></i> PDF
             </button>
@@ -112,11 +122,13 @@
                 table: "table-account-{{$name}}",
                 load: async function(){
                     var instance = this;
+                    var selectedCompany = $('#filter-company-{{$name}}').val();
                     return new Promise((resolve, reject) => {
                         $.ajax({
                             url: instance.url,
                             data: {
                                 filter_year: filter_tables.filter_year,
+                                company_id: selectedCompany,
                             },
                             type: 'GET',
                             typeData: 'json',
@@ -156,6 +168,10 @@
         SIAOPS.getAttribute('accounts').addAccount(
             SIAOPS.getAttribute("{{$name}}"));
 
+        $('#filter-company-{{$name}}').change(async function(){
+            await SIAOPS.getAttribute("{{$name}}").load();
+        });
+
         eventEmitter.on("{{$name}}_update_success", async function(data){
             // if(data.level == 2){
             window.location.href = location.href;
@@ -177,9 +193,14 @@
 
                 $('#btn-export-consolidation-pdf').click(async function(){
                     setLoadingButton("#btn-export-consolidation-pdf", true);
+                    var selectedCompany = $('#filter-company-report_profit_lost').val() || '';
                     var get_url_export = "{{url($crud->route)}}/export-consolidation-pdf?export=1";
                     var get_title_export = "Laporan_laba_rugi_konsolidasi.pdf";
-                    var params_url = MakeParamUrl(window.filter_tables || {});
+                    var params_obj = Object.assign({}, window.filter_tables || {});
+                    if (selectedCompany && selectedCompany !== 'all') {
+                        params_obj.company_id = selectedCompany;
+                    }
+                    var params_url = MakeParamUrl(params_obj);
 
                     var url_export_with_params = get_url_export + params_url;
 
@@ -225,9 +246,14 @@
 
                 $('#btn-export-consolidation-excel').click(async function(){
                     setLoadingButton("#btn-export-consolidation-excel", true);
+                    var selectedCompany = $('#filter-company-report_profit_lost').val() || '';
                     var get_url_export = "{{url($crud->route)}}/export-consolidation-excel?export=1";
                     var get_title_export = "Laporan_laba_rugi_konsolidasi.xlsx";
-                    var params_url = MakeParamUrl(window.filter_tables || {});
+                    var params_obj = Object.assign({}, window.filter_tables || {});
+                    if (selectedCompany && selectedCompany !== 'all') {
+                        params_obj.company_id = selectedCompany;
+                    }
+                    var params_url = MakeParamUrl(params_obj);
 
                     var url_export_with_params = get_url_export + params_url;
 

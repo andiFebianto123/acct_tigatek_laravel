@@ -20,6 +20,7 @@ class ProfitLostRepository
     {
         $startDate = $filter->startDate;
         $endDate = $filter->endDate;
+        $companyId = $filter->companyId;
 
         $dataset = [];
         $consolidate_income_header = DB::table('consolidate_income_headers')
@@ -39,7 +40,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[0]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $totalAll += $total_account;
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
@@ -62,7 +63,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[1]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $totalAll += $total_account;
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
@@ -84,7 +85,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[2]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
             $data['item'] = $items;
@@ -104,7 +105,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[3]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $totalAll += $total_account;
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
@@ -127,7 +128,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[4]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $totalAll += $total_account;
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
@@ -149,7 +150,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[5]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
             $data['item'] = $items;
@@ -169,7 +170,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[6]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $totalAll += $total_account;
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
@@ -191,7 +192,7 @@ class ProfitLostRepository
                 ->where('consolidate_income_account_items.header_id', $consolidate_income_header[7]->id)
                 ->select(DB::raw("accounts.*"))->get();
             foreach ($items as $item) {
-                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate);
+                $total_account = CustomHelper::balanceAccount($item->code, $startDate, $endDate, $companyId);
                 $item->total = CustomHelper::formatRupiahWithCurrency($total_account);
             }
             $data['item'] = $items;

@@ -13,6 +13,7 @@ class ProfitLostFilterData
         public readonly ?string $startDate,
         public readonly ?string $endDate,
         public readonly ?int $id,
+        public readonly ?int $companyId = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -21,6 +22,10 @@ class ProfitLostFilterData
         $category = $request->get('category');
         $type = $request->get('type');
         $id = $request->get('id') ?? $request->get('_id');
+        $companyId = $request->get('company_id') ?? $request->get('filter_company');
+        if ($companyId === 'all' || empty($companyId)) {
+            $companyId = null;
+        }
 
         $startDate = null;
         $endDate = null;
@@ -37,6 +42,7 @@ class ProfitLostFilterData
             startDate: $startDate,
             endDate: $endDate,
             id: $id ? (int) $id : null,
+            companyId: $companyId ? (int) $companyId : null,
         );
     }
 }
