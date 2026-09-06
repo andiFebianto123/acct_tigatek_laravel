@@ -497,6 +497,11 @@ return [
             ],
         ]
     ],
+    'client_quotation' => [
+        'error' => [
+            'has_delivery_notes' => 'Client Quotation cannot be deleted because it is still referenced by Delivery Note(s).',
+        ],
+    ],
     'client_po' => [
         'error' => [
             'has_delivery_notes' => 'Client PO cannot be deleted because it is still referenced by Delivery Note(s).',

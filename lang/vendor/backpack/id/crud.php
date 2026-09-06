@@ -1013,6 +1013,9 @@ return [
         ],
         'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
+        'error' => [
+            'has_delivery_notes' => 'Penawaran tidak dapat dihapus karena masih digunakan pada Surat Jalan (Delivery Note).',
+        ],
     ],
     'invoice_client' => [
         'title_header' => 'Invoice (Client)',

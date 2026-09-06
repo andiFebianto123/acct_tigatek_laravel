@@ -112,6 +112,19 @@ class ClientQuotationService
     {
         return DB::transaction(function () use ($id) {
             $quotation = ClientQuotation::findOrFail($id);
+
+            // Check if Quotation is referenced in Delivery Notes
+            $hasDeliveryNotes = \App\Models\DeliveryNote::where(function ($query) use ($id) {
+                $query->where(function ($q) use ($id) {
+                    $q->where('reference_type', 'quotation')
+                        ->where('reference_id', $id);
+                });
+            })->exists();
+
+            if ($hasDeliveryNotes) {
+                throw new \Exception(trans('backpack::crud.client_quotation.error.has_delivery_notes'));
+            }
+
             if ($quotation->document_path) {
                 Storage::disk('public')->delete($quotation->document_path);
             }
