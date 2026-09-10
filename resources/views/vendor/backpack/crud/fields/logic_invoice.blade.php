@@ -211,7 +211,9 @@
                     var $excMasked = $(form + ' #nominal_exclude_ppn_masked');
                     if ($excHidden.length) $excHidden.val(rawExc);
                     if ($excMasked.length) {
-                        $excMasked.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(rawExc, curr) : rawExc);
+                        // console.log('lokasi nominal_exclude_ppn_masked edit');
+                        // $excMasked.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(rawExc, curr) : rawExc);
+                        // $excMasked.val(rawExc);
                     }
 
                     var rawDpp = entry.price_dpp || entry.dpp_other || 0;
@@ -567,16 +569,16 @@
                     // Event listener Multi-Currency utama
                     var previousCurrency = $(form + ' select[name="currency_code"]').val() || 'IDR';
 
-                    function updateFieldValue(fieldName, rawVal, currency) {
-                        var $hiddenField = $(form + ' #' + fieldName);
-                        var $maskedField = $(form + ' #' + fieldName + '_masked');
-                        if (!$hiddenField.length) return;
-                        var formatted = (typeof window.formatCurrency === 'function')
-                            ? window.formatCurrency(rawVal, currency)
-                            : rawVal;
-                        $hiddenField.val(rawVal);
-                        $maskedField.val(formatted);
-                    }
+                    // function updateFieldValue(fieldName, rawVal, currency) {
+                    //     var $hiddenField = $(form + ' #' + fieldName);
+                    //     var $maskedField = $(form + ' #' + fieldName + '_masked');
+                    //     if (!$hiddenField.length) return;
+                    //     var formatted = (typeof window.formatCurrency === 'function')
+                    //         ? window.formatCurrency(rawVal, currency)
+                    //         : rawVal;
+                    //     $hiddenField.val(rawVal);
+                    //     $maskedField.val(formatted);
+                    // }
 
                     $(form + ' select[name="currency_code"]').on('change select2:select', function() {
                         var newCurrency = $(this).val() || 'IDR';
