@@ -27,6 +27,15 @@
                 $(selected).val(nominal).trigger('input');
             }
         }
+        if (typeof setInputNumberCurrency === "undefined") {
+            function setInputNumberCurrency(selected, value, curr = 'IDR') {
+                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
+                let nominal = (typeof window.formatCurrency === 'function')
+                    ? window.formatCurrency(cleanVal, curr)
+                    : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
+                $(selected).val(nominal).trigger('input');
+            }
+        }
         SIAOPS.setAttribute('logic_client_po', function(){
             return {
                 form_type : "{{ $crud->getActionMethod() }}",
@@ -85,7 +94,9 @@
 
                     var nilai_ppn = (ppn == 0) ? 0 : (nilai_pekerjaan * (ppn / 100));
                     var total = nilai_pekerjaan + nilai_ppn;
-                    setInputNumber2(form+' input[name="job_value_include_ppn"]', total, curr);
+                    // setInputNumber2(form+' input[name="job_value_include_ppn"]', total, curr);
+                    // console.log(total, curr);
+                    setInputNumberCurrency(form+' input[name="job_value_include_ppn"]', total, curr);
 
                     var total_biaya =  getInputNumber(form+' #price_total');
                     var laba_rugi_po = nilai_pekerjaan - total_biaya;
