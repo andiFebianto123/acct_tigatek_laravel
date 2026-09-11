@@ -9,6 +9,7 @@ use App\Http\Controllers\Operation\FormaterExport;
 use App\Http\Controllers\Operation\PermissionAccess;
 use App\Http\Helpers\CustomHelper;
 use App\Http\Requests\ProformaInvoiceClientRequest;
+use App\Models\CastAccount;
 use App\Models\ClientPo;
 use App\Models\ProformaInvoiceClient;
 use App\Models\ProformaInvoiceClientDetail;
@@ -733,6 +734,27 @@ class ProformaInvoiceClientCrudController extends CrudController
             ],
         ]);
 
+        $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
+        $cash_account_options = [
+            '' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+        ];
+        foreach ($cash_accounts as $key => $value) {
+            $cash_account_options[$value->id] = $value->name;
+        }
+
+        CRUD::addField([
+            'name'       => 'account_source_id',
+            'label'      => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'       => 'select2_array',
+            'wrapper'    => [
+                'class' => 'form-group col-md-6',
+            ],
+            'options'    => $cash_account_options,
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+            ]
+        ]);
+
         CRUD::addField([
             'name' => 'address_po',
             'label' => trans('backpack::crud.invoice_client.field.address.label'),
@@ -1197,6 +1219,13 @@ class ProformaInvoiceClientCrudController extends CrudController
             'wrapper' => ['class' => 'form-group col-md-6'],
         ]);
 
+        CRUD::addField([
+            'name'    => 'account_source_id',
+            'label'   => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'    => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
 
 
         CRUD::addField([
@@ -1313,6 +1342,12 @@ class ProformaInvoiceClientCrudController extends CrudController
                 return '<span class="' . $badgeClass . '">' . e($status) . '</span>';
             },
             'escaped'  => false,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'  => 'wrap_text',
+            'name'  => 'account_source_label',
         ]);
 
 

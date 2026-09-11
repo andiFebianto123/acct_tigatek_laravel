@@ -817,6 +817,27 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ]);
 
+        $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
+        $cash_account_options = [
+            '' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+        ];
+        foreach ($cash_accounts as $key => $value) {
+            $cash_account_options[$value->id] = $value->name;
+        }
+
+        CRUD::addField([
+            'name'       => 'account_source_id',
+            'label'      => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'       => 'select2_array',
+            'wrapper'    => [
+                'class' => 'form-group col-md-6',
+            ],
+            'options'    => $cash_account_options,
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+            ]
+        ]);
+
         CRUD::addField([
             'label'       => trans('backpack::crud.proforma_invoice.field.subkon_id.label'),
             'type'        => 'select2_ajax_custom',
@@ -1226,6 +1247,13 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name'    => 'account_source_id',
+            'label'   => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'    => 'text',
+            'wrapper' => ['class' => 'form-group col-md-6'],
+        ]);
+
+        CRUD::addField([
             'name' => 'subkon_id',
             'label' => trans('backpack::crud.proforma_invoice.field.subkon_id.label'),
             'type' => 'select',
@@ -1343,6 +1371,12 @@ class ProformaInvoiceCrudController extends CrudController
                 return '<span class="' . $badgeClass . '">' . e($status) . '</span>';
             },
             'escaped'  => false,
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'  => 'wrap_text',
+            'name'  => 'account_source_label',
         ]);
 
         CRUD::column([
