@@ -33,6 +33,7 @@ class InvoiceClientSaveData
         public readonly ?int $delivery_note_id = null,
         public readonly ?string $pic = null,
         public readonly ?string $category = 'rutin',
+        public readonly ?bool $is_recurring = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -82,6 +83,11 @@ class InvoiceClientSaveData
             }
         }
 
+        $isRecurring = null;
+        if ($request->has('is_recurring') && $request->input('is_recurring') !== null && $request->input('is_recurring') !== '') {
+            $isRecurring = filter_var($request->input('is_recurring'), FILTER_VALIDATE_BOOLEAN);
+        }
+
         return new self(
             invoice_number: $request->invoice_number,
             description: $request->description,
@@ -109,6 +115,7 @@ class InvoiceClientSaveData
             delivery_note_id: $request->delivery_note_id ? (int) $request->delivery_note_id : null,
             pic: $request->pic,
             category: $request->input('category', 'rutin'),
+            is_recurring: $isRecurring,
         );
     }
 }

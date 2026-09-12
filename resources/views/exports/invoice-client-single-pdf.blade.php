@@ -278,11 +278,13 @@
         $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
         
         // Consolidate details
+        $isRecurring = !empty($header->is_recurring);
         $items = [];
         if (isset($details) && count($details) > 0) {
             foreach ($details as $detail) {
+                $itemName = ($isRecurring && !empty($detail->name_alias)) ? $detail->name_alias : $detail->name;
                 $items[] = (object)[
-                    'name' => $detail->name,
+                    'name' => $itemName,
                     'price' => $detail->price,
                     'qty' => $detail->qty ?? 1
                 ];

@@ -247,6 +247,7 @@ class InvoiceClientService
                     delivery_note_id: $dto->delivery_note_id,
                     pic: $dto->pic,
                     category: $dto->category,
+                    is_recurring: $dto->is_recurring,
                 );
             }
 
@@ -405,6 +406,10 @@ class InvoiceClientService
         if ($dto->client_id) {
             $invoice->client_id = $dto->client_id;
         }
+        if ($dto->is_recurring !== null) {
+            $invoice->is_recurring = $dto->is_recurring;
+        }
+        // Jika invoice sudah memiliki nilai is_recurring sebelumnya dan $dto->is_recurring bernilai null, nilai lama tetap dipertahankan otomatis karena tidak dioverwrite.
     }
 
     private function parseItemPrice(mixed $val, string $currencyCode): float
@@ -430,6 +435,7 @@ class InvoiceClientService
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
                 $invoice_item->name = $item['name'] ?? '';
+                $invoice_item->name_alias = $item['name_alias'] ?? null;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;

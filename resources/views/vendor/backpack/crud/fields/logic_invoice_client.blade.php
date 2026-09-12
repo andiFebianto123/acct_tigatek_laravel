@@ -421,6 +421,15 @@
                                             ? window.formatCurrency(rawPrice, curr)
                                             : rawPrice;
                                         $(this).val(formattedPrice);
+
+                                        // Prefill name_alias jika ada
+                                        if (entry.invoice_client_details[index].name_alias !== undefined) {
+                                            var $aliasInput = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row')
+                                                                     .find('input[data-repeatable-input-name="name_alias"], input[name*="[name_alias]"], input[name="name_alias"]');
+                                            if ($aliasInput.length && !$aliasInput.val()) {
+                                                $aliasInput.val(entry.invoice_client_details[index].name_alias);
+                                            }
+                                        }
                                     }
                                 });
                             }
@@ -440,6 +449,7 @@
                     });
 
                     var entry = {!! json_encode($set_value) !!};
+                    console.log(entry);
                     var hasNotificationId = {!! request()->has('notification_id') ? 'true' : 'false' !!};
 
                     if (hasNotificationId && entry != null) {
@@ -635,20 +645,27 @@
         /* =========================================================================
          * MODUL 5: DYNAMIC DEVICE STOCK SELECT2 MANAGER
          * Mengubah field `name` pada repeatable invoice item menjadi Select2 AJAX
-         * saat type_device = 'App\Models\DeviceStock' (Persediaan), dan mengembalikan
-         * ke text input saat type_device lainnya dipilih.
+         * yang mengambil dari device_stok untuk SEMUA invoice non-recurring (invoice
+         * biasa tanpa notification_id dan is_recurring = null) dengan type_device apapun.
+         * Khusus invoice recurring / notification_id, mode Select2 tidak aktif (tetap text input).
          * ========================================================================= */
         if (typeof window.InvoiceDeviceStockManager === 'undefined') {
             window.InvoiceDeviceStockManager = class InvoiceDeviceStockManager {
-                constructor(formSelector) {
+                constructor(formSelector, isRecurring = false) {
                     this.form = formSelector;
+                    this.isRecurring = isRecurring;
                     this.ajaxUrl = '{{ backpack_url("invoice-client/select2-device-stock") }}';
                     this.deviceStockType = 'App\\Models\\DeviceStock';
                     this._isDeviceStock = false;
                 }
 
                 isDeviceStockMode() {
-                    return $(this.form + ' select[name="type_device"]').val() === this.deviceStockType;
+                    // Hanya aktif jika BUKAN invoice recurring / notification_id
+                    if (this.isRecurring) {
+                        return false;
+                    }
+                    // Untuk invoice non-recurring, aktif untuk type_device apapun
+                    return true;
                 }
 
                 getNameLabel(form) {
@@ -665,7 +682,7 @@
                  */
                 syncClientPoField() {
                     var form = this.form;
-                    var isStock = this.isDeviceStockMode();
+                    var isStock = ($(form + ' select[name="type_device"]').val() === this.deviceStockType);
                     var $poWrapper = $(form + ' select[name="client_po_id"], ' + form + ' input[name="client_po_id"]').closest('.form-group');
                     var $poSelect = $(form + ' select[name="client_po_id"]');
 
@@ -850,7 +867,7 @@
                     var self = this;
                     var form = this.form;
 
-                    // Jalankan mode awal berdasarkan nilai type_device saat load
+                    // Jalankan mode awal berdasarkan nilai type_device & recurring saat load
                     setTimeout(function() {
                         if (self.isDeviceStockMode()) {
                             self.activateDeviceStockMode();
@@ -1071,9 +1088,12 @@
             var form_type = "{{ $crud->getActionMethod() }}";
             var form = (form_type == 'create') ? '#form-create' : '#form-edit';
             var logicAttr = SIAOPS.getAttribute('logic_invoice_client');
+            var entryData = {!! json_encode($set_value) !!};
+            var hasNotification = {!! request()->has('notification_id') ? 'true' : 'false' !!};
+            var isRecurring = hasNotification || (entryData && entryData.is_recurring !== null && entryData.is_recurring !== undefined);
 
             if (typeof window.InvoiceDeviceStockManager !== 'undefined') {
-                var deviceStockMgr = new window.InvoiceDeviceStockManager(form);
+                var deviceStockMgr = new window.InvoiceDeviceStockManager(form, isRecurring);
                 deviceStockMgr.init();
             }
 

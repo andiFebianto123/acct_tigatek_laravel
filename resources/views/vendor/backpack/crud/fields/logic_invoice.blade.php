@@ -703,7 +703,8 @@
                             }
 
                             isDeviceStockMode() {
-                                return $(this.form + ' select[name="type_device"]').val() === this.deviceStockType;
+                                // Selalu aktif untuk type barang apa saja di menu Proforma Invoice
+                                return true;
                             }
 
                             activateDeviceStockMode() {
@@ -744,6 +745,9 @@
                                 if (currentVal && $hiddenDeviceStockId.val()) {
                                     var initialOption = new Option(currentVal, $hiddenDeviceStockId.val(), true, true);
                                     $select2.append(initialOption);
+                                } else if (currentVal) {
+                                    var initialOption = new Option(currentVal, '', true, true);
+                                    $select2.append(initialOption);
                                 }
 
                                 $select2Container.append($select2);
@@ -755,7 +759,10 @@
                                         dataType: 'json',
                                         delay: 300,
                                         data: function(params) {
-                                            return { q: params.term || '' };
+                                            return {
+                                                q: params.term || '',
+                                                company_id: $(self.form + ' select[name="company_id"]').val() || ''
+                                            };
                                         },
                                         processResults: function(data) {
                                             return { results: data.results };
@@ -798,7 +805,9 @@
 
                                 $select2.on('select2:clear', function() {
                                     $textInput.val('');
-                                    if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
+                                    if ($hiddenDeviceStockId.length) {
+                                        $hiddenDeviceStockId.val('');
+                                    }
                                 });
                             }
 
