@@ -41,12 +41,30 @@ class ProformaInvoiceClientSaveData
     {
         $currencyCode = $request->input('currency_code', 'IDR');
         $cleanNominal = function ($val) use ($currencyCode) {
+            if ($val === null || $val === '') return 0.0;
             if (is_numeric($val)) return (float) $val;
-            $str = (string) ($val ?? '');
+            $str = trim((string) $val);
             if ($currencyCode === 'USD') {
-                return (float) str_replace(',', '', $str);
+                if (strpos($str, ',') !== false && strpos($str, '.') === false) {
+                    $str = str_replace(',', '.', $str);
+                } else {
+                    $str = str_replace(',', '', $str);
+                }
+                return (float) $str;
             }
-            return (float) str_replace('.', '', $str);
+
+            // IDR: jika berformat float string seperti "7500000.00"
+            if (strpos($str, '.') !== false && strpos($str, ',') === false) {
+                $parts = explode('.', $str);
+                if (count($parts) === 2 && (strlen($parts[1]) <= 2 || preg_match('/^0+$/', $parts[1]))) {
+                    return (float) $str;
+                }
+            }
+
+            // IDR: Format ribuan bertitik e.g. "7.500.000" atau "7.500.000,00"
+            $str = str_replace('.', '', $str);
+            $str = str_replace(',', '.', $str);
+            return (float) $str;
         };
 
         $details = $request->proforma_invoice_client_details ?? $request->proforma_invoice_client_details_edit ?? [];
@@ -54,14 +72,25 @@ class ProformaInvoiceClientSaveData
             $details = json_decode($details, true) ?? [];
         }
 
+        $nominal_exclude_ppn = $cleanNominal($request->nominal_exclude_ppn);
+        $tax_ppn = (float) ($request->tax_ppn ?? 0);
+        $nominal_include_ppn = $cleanNominal($request->nominal_include_ppn);
+
+        if ($nominal_include_ppn <= 0 && $nominal_exclude_ppn > 0) {
+            $nominal_include_ppn = $nominal_exclude_ppn + ($nominal_exclude_ppn * $tax_ppn / 100);
+            if ($currencyCode === 'IDR') {
+                $nominal_include_ppn = round($nominal_include_ppn);
+            }
+        }
+
         return new self(
             invoice_number: $request->invoice_number,
             description: $request->description,
             invoice_date: $request->invoice_date,
             client_po_id: $request->client_po_id ? (int) $request->client_po_id : null,
-            nominal_exclude_ppn: $cleanNominal($request->nominal_exclude_ppn),
-            nominal_include_ppn: $cleanNominal($request->nominal_include_ppn),
-            tax_ppn: (float) $request->tax_ppn,
+            nominal_exclude_ppn: $nominal_exclude_ppn,
+            nominal_include_ppn: $nominal_include_ppn,
+            tax_ppn: $tax_ppn,
             pph: (float) ($request->pph ?? 0),
             dpp_other: $cleanNominal($request->dpp_other),
             kdp: $request->kdp,

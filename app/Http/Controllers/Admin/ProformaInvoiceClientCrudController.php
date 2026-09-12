@@ -1047,16 +1047,8 @@ class ProformaInvoiceClientCrudController extends CrudController
     public function store()
     {
         $this->crud->hasAccessOrFail('create');
-        $request = request();
-        $currencyCode = $request->input('currency_code', 'IDR');
-        $rawExc = (string) ($request->nominal_exclude_ppn ?? '0');
-        $exclude_ppn = ($currencyCode === 'USD') ? (float) str_replace(',', '', $rawExc) : (float) str_replace('.', '', $rawExc);
-        $tax_ppn = (float) ($request->tax_ppn ?? 0);
-        $request->merge([
-            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
-        ]);
-
         $this->crud->validateRequest();
+        $request = request();
 
         try {
             DB::beginTransaction();
@@ -1104,16 +1096,8 @@ class ProformaInvoiceClientCrudController extends CrudController
     public function update()
     {
         $this->crud->hasAccessOrFail('update');
-        $request = request();
-        $currencyCode = $request->input('currency_code', 'IDR');
-        $rawExc = (string) ($request->nominal_exclude_ppn ?? '0');
-        $exclude_ppn = ($currencyCode === 'USD') ? (float) str_replace(',', '', $rawExc) : (float) str_replace('.', '', $rawExc);
-        $tax_ppn = (float) ($request->tax_ppn ?? 0);
-        $request->merge([
-            'nominal_include_ppn' => $exclude_ppn + ($exclude_ppn * $tax_ppn / 100),
-        ]);
-
         $this->crud->validateRequest();
+        $request = request();
 
         try {
             DB::beginTransaction();

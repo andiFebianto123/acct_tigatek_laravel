@@ -61,7 +61,15 @@ class InvoiceClientSaveData
                 return (float) $str;
             }
 
-            // IDR
+            // IDR: jika berformat float string seperti "7500000.00"
+            if (strpos($str, '.') !== false && strpos($str, ',') === false) {
+                $parts = explode('.', $str);
+                if (count($parts) === 2 && (strlen($parts[1]) <= 2 || preg_match('/^0+$/', $parts[1]))) {
+                    return (float) $str;
+                }
+            }
+
+            // IDR: Format ribuan bertitik e.g. "7.500.000" atau "7.500.000,00"
             $str = str_replace('.', '', $str);
             $str = str_replace(',', '.', $str);
             return (float) $str;

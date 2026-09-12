@@ -41,22 +41,37 @@ class ProformaInvoiceSaveData
         $cleanNominal = function ($val) use ($isUsd) {
             if ($val === null || $val === '') return 0.0;
             if (is_numeric($val)) return (float) $val;
-            $str = (string) $val;
+            $str = trim((string) $val);
             if ($isUsd) {
-                return (float) str_replace(',', '', $str);
+                if (strpos($str, ',') !== false && strpos($str, '.') === false) {
+                    $str = str_replace(',', '.', $str);
+                } else {
+                    $str = str_replace(',', '', $str);
+                }
+                return (float) $str;
             }
-            return (float) str_replace('.', '', $str);
+
+            // IDR: jika berformat float string seperti "7500000.00"
+            if (strpos($str, '.') !== false && strpos($str, ',') === false) {
+                $parts = explode('.', $str);
+                if (count($parts) === 2 && (strlen($parts[1]) <= 2 || preg_match('/^0+$/', $parts[1]))) {
+                    return (float) $str;
+                }
+            }
+
+            // IDR: Format ribuan bertitik e.g. "7.500.000" atau "7.500.000,00"
+            $str = str_replace('.', '', $str);
+            $str = str_replace(',', '.', $str);
+            return (float) $str;
         };
 
         $nominal_exclude_ppn = $cleanNominal($request->nominal_exclude_ppn);
         $tax_ppn = (float) ($request->tax_ppn ?? 0);
+        $nominal_include_ppn = $cleanNominal($request->nominal_include_ppn);
 
-        $rawInclude = $request->nominal_include_ppn;
-        if ($rawInclude === null || $rawInclude === '') {
+        if ($nominal_include_ppn <= 0 && $nominal_exclude_ppn > 0) {
             $calcInclude = $nominal_exclude_ppn + ($nominal_exclude_ppn * $tax_ppn / 100);
             $nominal_include_ppn = $isUsd ? round($calcInclude, 2) : round($calcInclude);
-        } else {
-            $nominal_include_ppn = $cleanNominal($rawInclude);
         }
 
         $details = $request->proforma_invoice_details ?? $request->proforma_invoice_details_edit ?? [];
