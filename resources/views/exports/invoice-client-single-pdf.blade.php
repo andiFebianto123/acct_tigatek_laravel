@@ -282,7 +282,7 @@
         $items = [];
         if (isset($details) && count($details) > 0) {
             foreach ($details as $detail) {
-                $itemName = ($isRecurring && !empty($detail->name_alias)) ? $detail->name_alias : $detail->name;
+                $itemName = !empty($detail->name_alias) ? $detail->name_alias : $detail->name;
                 $items[] = (object)[
                     'name' => $itemName,
                     'price' => $detail->price,

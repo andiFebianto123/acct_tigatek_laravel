@@ -664,8 +664,9 @@
                     if (this.isRecurring) {
                         return false;
                     }
-                    // Untuk invoice non-recurring, aktif untuk type_device apapun
-                    return true;
+                    // Hanya aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
+                    var currentType = $(this.form + ' select[name="type_device"]').val();
+                    return currentType === this.deviceStockType;
                 }
 
                 getNameLabel(form) {

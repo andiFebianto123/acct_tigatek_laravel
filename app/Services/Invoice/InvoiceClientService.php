@@ -429,20 +429,30 @@ class InvoiceClientService
         $currencyCode = $invoice->currency_code ?? 'IDR';
         $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
 
+        $isDeviceStock = ($invoice->type_device === \App\Models\DeviceStock::class);
+
         foreach ($details as $item) {
             $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
-            if ($price > 0 || !empty($item['name'])) {
+            $itemName = $item['name'] ?? '';
+            $nameAlias = $item['name_alias'] ?? null;
+
+            // Jika bukan mode Persediaan (misal Billing Device / SIMCARD), pastikan name_alias terisi
+            if (!$isDeviceStock && empty($nameAlias) && !empty($itemName)) {
+                $nameAlias = $itemName;
+            }
+
+            if ($price > 0 || !empty($itemName) || !empty($nameAlias)) {
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
-                $invoice_item->name = $item['name'] ?? '';
-                $invoice_item->name_alias = $item['name_alias'] ?? null;
+                $invoice_item->name = $itemName;
+                $invoice_item->name_alias = $nameAlias;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;
 
-                // Simpan device_stock_id jika ada (dari mode Persediaan)
+                // Simpan device_stock_id HANYA jika mode Persediaan
                 $rawStockId = $item['device_stock_id'] ?? null;
-                $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
+                $deviceStockId = ($isDeviceStock && $rawStockId !== null && (int) $rawStockId > 0)
                     ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
