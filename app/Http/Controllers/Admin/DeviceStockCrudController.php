@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\DTOs\DeviceStock\DeviceStockData;
+use App\DTOs\DeviceStock\DeviceStockFilterData;
 use App\Http\Controllers\CrudController;
 use App\Http\Controllers\Operation\FormaterExport;
 use App\Http\Controllers\Operation\PermissionAccess;
@@ -321,11 +322,12 @@ class DeviceStockCrudController extends CrudController
         }
         $this->crud->applyDatatableOrder();
 
-        // Custom repository filtering based on request parameters
-        $query = $this->crud->query->with('category');
-        if (request()->has('category_id') && request()->input('category_id') !== '') {
-            $query = $this->repository->applyCategoryFilter($query, request()->input('category_id'));
-        }
+        // Custom repository filtering based on request parameters (category & column search)
+        $filters = DeviceStockFilterData::fromRequest(request());
+        $this->crud->query = $this->repository->applySearchFilters(
+            $this->repository->applyCategoryFilter($this->crud->query->with('category'), $filters->category_id ?? ''),
+            $filters
+        );
 
         $entries = $this->crud->getEntries();
 
@@ -364,8 +366,9 @@ class DeviceStockCrudController extends CrudController
         CRUD::addButtonFromView('line', 'update', 'update', 'end');
         CRUD::addButtonFromView('line', 'delete', 'delete', 'end');
 
-        // Apply filters in query if loaded for export
-        $this->crud->query = $this->repository->getExportData(request());
+        // Apply filters in query if loaded for export / list
+        $filters = DeviceStockFilterData::fromRequest(request());
+        $this->crud->query = $this->repository->getFilteredData($filters);
 
         $status_file = strpos(url()->current(), 'excel') ? 'excel' : 'pdf';
 
