@@ -30,6 +30,19 @@ class ClientQuotation extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    public function account_source()
+    {
+        return $this->belongsTo(CastAccount::class, 'account_source_id');
+    }
+
+    public function getAccountSourceLabelAttribute()
+    {
+        if (!$this->account_source) {
+            return '-';
+        }
+        return '[' . $this->account_source->no_account . '] - ' . $this->account_source->name;
+    }
+
     public function details()
     {
         return $this->hasMany(ClientQuotationDetail::class, 'client_quotation_id');

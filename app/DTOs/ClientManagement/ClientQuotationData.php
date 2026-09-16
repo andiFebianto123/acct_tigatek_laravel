@@ -31,6 +31,7 @@ class ClientQuotationData
         public readonly ?string $status,
         public readonly ?string $pic = null,
         public readonly ?string $term = null,
+        public readonly ?int $account_source_id = null,
         public readonly array $items = [],
     ) {}
 
@@ -94,6 +95,7 @@ class ClientQuotationData
             status: $request->status,
             pic: $request->pic ?? null,
             term: $request->term ?? null,
+            account_source_id: $request->account_source_id ? (int) $request->account_source_id : null,
             items: $items,
         );
     }
@@ -120,6 +122,7 @@ class ClientQuotationData
             'status' => $this->status,
             'pic' => $this->pic,
             'term' => $this->term,
+            'account_source_id' => $this->account_source_id,
         ];
     }
 }

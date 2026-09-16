@@ -66,9 +66,7 @@ class ClientQuotationService
                 }
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
             } else {
-                if (!is_string($data->document_path) && $quotation->document_path) {
-                    Storage::disk('public')->delete($quotation->document_path);
-                }
+                $attributes['document_path'] = $quotation->document_path;
             }
 
             $quotation->update($attributes);

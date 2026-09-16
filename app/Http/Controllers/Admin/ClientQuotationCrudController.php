@@ -22,6 +22,7 @@ use App\DTOs\ClientManagement\ClientQuotationData;
 use App\DTOs\ClientManagement\ClientQuotationFilterData;
 use App\Services\ClientManagement\ClientQuotationService;
 use App\Repositories\ClientManagement\ClientQuotationRepository;
+use App\Models\CastAccount;
 use App\Models\ClientQuotation;
 use App\Models\Company;
 
@@ -711,6 +712,27 @@ class ClientQuotationCrudController extends CrudController
             ]
         ]);
 
+        $cash_accounts = CastAccount::where('status', '!=', CastAccount::LOAN)->get();
+        $cash_account_options = [
+            '' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+        ];
+        foreach ($cash_accounts as $key => $value) {
+            $cash_account_options[$value->id] = $value->name;
+        }
+
+        CRUD::addField([
+            'name'       => 'account_source_id',
+            'label'      => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'       => 'select2_array',
+            'wrapper'    => [
+                'class' => 'form-group col-md-12',
+            ],
+            'options'    => $cash_account_options,
+            'attributes' => [
+                'placeholder' => trans('backpack::crud.voucher.field.account_source_id.placeholder'),
+            ]
+        ]);
+
         CRUD::addField([
             'name'        => 'currency_code',
             'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
@@ -1038,7 +1060,15 @@ class ClientQuotationCrudController extends CrudController
             ]
         ]);
 
-        // 6. Currency Code
+        // 6. Account Source
+        CRUD::addField([
+            'name'    => 'account_source_id',
+            'label'   => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'    => 'text',
+            'wrapper' => ['class' => 'form-group col-md-12'],
+        ]);
+
+        // 7. Currency Code
         CRUD::addField([
             'name'        => 'currency_code',
             'label'       => trans('backpack::crud.client_quotation.field.currency_code.label'),
@@ -1273,6 +1303,16 @@ class ClientQuotationCrudController extends CrudController
             ],
         ]);
 
+        // 20. Item Details
+        CRUD::addField([
+            'name' => 'item_details_label',
+            'label' => trans('backpack::crud.invoice_client.field.item.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
         // ==========================================
         // COLUMNS: Harus 1-ke-1 sinkron dengan urutan FIELDS di atas
         // ==========================================
@@ -1318,7 +1358,14 @@ class ClientQuotationCrudController extends CrudController
             'type'  => 'wrap_text',
         ]);
 
-        // 6. Currency Code
+        // 6. Account Source
+        CRUD::column([
+            'label' => trans('backpack::crud.voucher.field.account_source_id.label'),
+            'type'  => 'wrap_text',
+            'name'  => 'account_source_label',
+        ]);
+
+        // 7. Currency Code
         CRUD::column([
             'label' => trans('backpack::crud.client_quotation.column.currency_code'),
             'name'  => 'currency_code',
@@ -1433,7 +1480,9 @@ class ClientQuotationCrudController extends CrudController
             'type'    => 'closure',
             'function' => function ($entry) {
                 if (!empty($entry->document_path)) {
-                    return '<a href="' . url('storage/' . $entry->document_path) . '" target="_blank">' . trans('backpack::crud.download') . ' / ' . trans('backpack::crud.preview') . '</a>';
+                    $url = asset('storage/' . $entry->document_path);
+                    $filename = basename($entry->document_path);
+                    return '<a href="' . $url . '" target="_blank" class="btn btn-sm btn-outline-danger"><i class="la la-file-pdf"></i> ' . e($filename) . '</a>';
                 }
                 return '-';
             },
@@ -1457,6 +1506,13 @@ class ClientQuotationCrudController extends CrudController
             },
             'escaped' => false,
         ]);
+
+        // 20. Item Details
+        CRUD::column([
+            'label' => trans('backpack::crud.invoice_client.field.item.label'),
+            'name'  => 'item_details_label',
+            'type'  => 'list-client-quotation',
+        ]);
     }
 
     public function show($id)
@@ -1468,10 +1524,13 @@ class ClientQuotationCrudController extends CrudController
 
         // get the info for that entry (include softDeleted items if the trait is used)
         if ($this->crud->get('show.softDeletes') && in_array('Illuminate\Database\Eloquent\SoftDeletes', class_uses($this->crud->model))) {
-            $this->data['entry'] = $this->crud->getModel()->withTrashed()->findOrFail($id);
+            $entry = $this->crud->getModel()->withTrashed()->findOrFail($id);
         } else {
-            $this->data['entry'] = $this->crud->getEntryWithLocale($id);
+            $entry = $this->crud->getEntryWithLocale($id);
         }
+
+        $entry->loadMissing(['details.deviceStock', 'client', 'company', 'account_source']);
+        $this->data['entry'] = $entry;
 
         $this->data['entry_value'] = $this->crud->getRowViews($this->data['entry']);
         $this->data['crud'] = $this->crud;
@@ -1510,7 +1569,7 @@ class ClientQuotationCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('show');
         $entry = $this->crud->getEntry($id);
-        $entry->loadMissing(['details.deviceStock', 'client', 'company']);
+        $entry->loadMissing(['details.deviceStock', 'client', 'company', 'account_source']);
         $settings = Setting::first();
 
         $pdf = Pdf::loadView('exports.client-quotation-pdf', [
