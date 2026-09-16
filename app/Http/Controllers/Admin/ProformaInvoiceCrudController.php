@@ -411,7 +411,20 @@ class ProformaInvoiceCrudController extends CrudController
         $entry->price_total_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->price_total_include_ppn = $entry->price_total_include_ppn;
 
-        $entry->proforma_invoice_details_edit = $entry->proforma_invoice_details;
+        $detailsArray = [];
+        if ($entry->proforma_invoice_details) {
+            foreach ($entry->proforma_invoice_details as $detail) {
+                $name = !empty($detail->name) ? $detail->name : ($detail->device_stock?->name ?? '');
+                $detailsArray[] = [
+                    'name'            => $name,
+                    'device_stock_id' => $detail->reference_id,
+                    'qty'             => $detail->qty,
+                    'price'           => $detail->price,
+                ];
+            }
+        }
+
+        $entry->proforma_invoice_details_edit = $detailsArray;
         $entry->subkon_name = $entry->subkon?->name;
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->nominal_include_ppn = $entry->price_total_include_ppn;
@@ -984,6 +997,21 @@ class ProformaInvoiceCrudController extends CrudController
 
 
         CRUD::addField([
+            'name'        => 'type_device',
+            'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'type'        => 'select_from_array',
+            'options'     => [
+                'App\Models\DeviceStock' => 'Persediaan',
+                'App\Models\BillingDevice' => 'Billing Device',
+                'App\Models\BillingSimcard' => 'Billing SIMCARD',
+            ],
+            'allows_null' => true,
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'note',
             'label' => trans('backpack::crud.proforma_invoice.field.note.label'),
             'type' => 'textarea',
@@ -1008,9 +1036,9 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ]);
 
-        $id = request()->segment(4); // Adjusted for prefix vendor/proforma-invoice
+        $id = $this->crud->getCurrentEntryId() ?? request()->route('id') ?? request()->segment(4);
 
-        if ($id && $id != 'create') {
+        if ($id && $id !== 'create') {
             CRUD::addField([
                 'name' => 'proforma_invoice_details_edit',
                 'label' => trans('backpack::crud.invoice_client.field.item.label'),
@@ -1018,17 +1046,19 @@ class ProformaInvoiceCrudController extends CrudController
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
                 'fields' => [
                     [
-                        'name' => 'reference_id',
-                        'type' => 'select2_ajax_device_stock',
+                        'name' => 'name',
+                        'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
-                        'data_source' => backpack_url('vendor/proforma-invoice/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
-                        'minimum_input_length' => 0,
-                        'model' => \App\Models\DeviceStock::class,
-                        'attribute' => 'name',
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
+                    ],
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
                     ],
                     [
                         'name' => 'qty',
@@ -1044,8 +1074,8 @@ class ProformaInvoiceCrudController extends CrudController
                     ],
                     [
                         'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
                         'type' => 'mask_currency',
+                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
@@ -1062,17 +1092,19 @@ class ProformaInvoiceCrudController extends CrudController
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
                 'fields' => [
                     [
-                        'name' => 'reference_id',
-                        'type' => 'select2_ajax_device_stock',
+                        'name' => 'name',
+                        'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
-                        'data_source' => backpack_url('vendor/proforma-invoice/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
-                        'minimum_input_length' => 0,
-                        'model' => \App\Models\DeviceStock::class,
-                        'attribute' => 'name',
                         'wrapper' => [
                             'class' => 'form-group col-md-5',
                         ]
+                    ],
+                    [
+                        'name' => 'device_stock_id',
+                        'type' => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
                     ],
                     [
                         'name' => 'qty',
@@ -1193,6 +1225,10 @@ class ProformaInvoiceCrudController extends CrudController
             ")
         ]);
 
+        // ==========================================
+        // 1. FIELDS DEFINITION (LABELS & GRID LAYOUT)
+        // ==========================================
+
         CRUD::field([
             'label'     => trans('backpack::crud.subkon.column.company'),
             'type'      => 'select',
@@ -1205,21 +1241,21 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ]);
 
-        CRUD::column([
-            'label'     => trans('backpack::crud.subkon.column.company'),
-            'type'      => 'select',
-            'name'      => 'company_id',
-            'entity'    => 'company',
-            'attribute' => 'name',
-            'model'     => "App\Models\Company",
-        ]);
-
         CRUD::addField([
             'name' => 'invoice_number',
             'label' => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-12',
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'pic',
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
             ],
         ]);
 
@@ -1266,11 +1302,29 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'description',
-            'label' => trans('backpack::crud.invoice_client.field.description.label'),
+            'name' => 'address_po',
+            'label' => trans('backpack::crud.invoice_client.field.address.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-12',
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'currency_code',
+            'label'       => trans('backpack::crud.client_quotation.field.currency_code.label') ?? 'Mata Uang',
+            'type'        => 'text',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'        => 'type_device',
+            'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'type'        => 'text',
+            'wrapper'     => [
+                'class' => 'form-group col-md-6',
             ],
         ]);
 
@@ -1302,11 +1356,47 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
+            'name' => 'pph',
+            'label' => trans('backpack::crud.invoice_client.field.pph.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6'
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'discount_pph',
+            'label' => trans('backpack::crud.invoice_client.field.discount_pph.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'price_total',
+            'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name' => 'description',
+            'label' => trans('backpack::crud.invoice_client.field.description.label'),
+            'type' => 'text',
+            'wrapper'   => [
+                'class' => 'form-group col-md-12',
+            ],
+        ]);
+
+        CRUD::addField([
             'name' => 'note',
             'label' => trans('backpack::crud.proforma_invoice.field.note.label'),
             'type' => 'text',
             'wrapper'   => [
-                'class' => 'form-group col-md-6',
+                'class' => 'form-group col-md-12',
             ],
         ]);
 
@@ -1321,16 +1411,6 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::addField([
-            'name' => 'price_total',
-            'label' => trans('backpack::crud.invoice_client.field.nominal_information_show.label'),
-            'type' => 'text',
-            'wrapper'   => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-
-        CRUD::addField([
             'name' => 'item_details_label',
             'label' => trans('backpack::crud.invoice_client.field.item.label'),
             'type' => 'text',
@@ -1339,10 +1419,29 @@ class ProformaInvoiceCrudController extends CrudController
             ],
         ]);
 
+        // ==========================================
+        // 2. COLUMNS DEFINITION (SINKRON 1-KE-1 DENGAN FIELDS)
+        // ==========================================
+
+        CRUD::column([
+            'label'     => trans('backpack::crud.subkon.column.company'),
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
+
         CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.field.invoice_number.label'),
             'name' => 'invoice_number',
             'type'  => 'text'
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.client_quotation.field.pic.label'),
+            'name'  => 'pic',
+            'type'  => 'text',
         ]);
 
         CRUD::column([
@@ -1389,13 +1488,9 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.invoice_client.field.description.label'),
-            'name' => 'description',
-            'type'  => 'closure',
-            'width_box' => '100%',
-            'function' => function ($entry) {
-                return $entry->description;
-            },
+            'label' => trans('backpack::crud.invoice_client.field.address.label'),
+            'name'  => 'address_po',
+            'type'  => 'text',
         ]);
 
         CRUD::column([
@@ -1410,20 +1505,25 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label'    => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+            'name'     => 'type_device',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $map = [
+                    'App\Models\DeviceStock' => 'Persediaan',
+                    'App\Models\BillingDevice' => 'Billing Device',
+                    'App\Models\BillingSimcard' => 'Billing SIMCARD',
+                ];
+                return $map[$entry->type_device] ?? ($entry->type_device ?? '-');
+            }
+        ]);
+
+        CRUD::column([
             'label'  => trans('backpack::crud.proforma_invoice.column.unit_price'),
             'name' => 'nominal_exclude_ppn',
             'type'  => 'closure',
             'function' => function ($entry) {
                 return CustomHelper::formatCurrency($entry->price_total_exclude_ppn, $entry->currency_code ?? 'IDR');
-            }
-        ]);
-
-        CRUD::column([
-            'label'  => trans('backpack::crud.client_quotation.column.job_value_base.label'),
-            'name' => 'nominal_exclude_ppn_base',
-            'type'  => 'closure',
-            'function' => function ($entry) {
-                return CustomHelper::formatCurrency($entry->nominal_exclude_ppn_base ?? $entry->price_total_exclude_ppn, 'IDR');
             }
         ]);
 
@@ -1444,16 +1544,19 @@ class ProformaInvoiceCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.proforma_invoice.column.note'),
-            'name' => 'note',
-            'type'  => 'wrap_text',
+            'label'  => trans('backpack::crud.invoice_client.field.pph.label'),
+            'name' => 'pph',
+            'type'  => 'number',
+            'suffix' => '%',
         ]);
 
         CRUD::column([
-            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
-            'name' => 'term',
-            'type'  => 'custom_html',
-            'value' => $this->crud->getCurrentEntry()?->term,
+            'label'  => trans('backpack::crud.invoice_client.field.discount_pph.label'),
+            'name' => 'discount_pph',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                return CustomHelper::formatCurrency($entry->discount_pph, $entry->currency_code ?? 'IDR');
+            }
         ]);
 
         CRUD::column([
@@ -1472,13 +1575,28 @@ class ProformaInvoiceCrudController extends CrudController
             }
         ]);
 
+        CRUD::column([
+            'label'  => trans('backpack::crud.invoice_client.field.description.label'),
+            'name' => 'description',
+            'type'  => 'closure',
+            'width_box' => '100%',
+            'function' => function ($entry) {
+                return $entry->description;
+            },
+        ]);
 
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.column.note'),
+            'name' => 'note',
+            'type'  => 'wrap_text',
+        ]);
 
-        // CRUD::column([
-        //     'label' => trans('backpack::crud.invoice_client.field.item.label'),
-        //     'name' => 'item_details_label',
-        //     'type' => 'list-proforma',
-        // ]);
+        CRUD::column([
+            'label'  => trans('backpack::crud.proforma_invoice.field.term.label'),
+            'name' => 'term',
+            'type'  => 'custom_html',
+            'value' => $this->crud->getCurrentEntry()?->term,
+        ]);
 
         CRUD::column([
             'label' => trans('backpack::crud.invoice_client.field.item.label'),

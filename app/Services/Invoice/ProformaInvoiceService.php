@@ -104,6 +104,7 @@ class ProformaInvoiceService
         $invoice->term = $dto->term;
         $invoice->subkon_id = $dto->subkon_id;
         $invoice->pic = $dto->pic;
+        $invoice->type_device = $dto->type_device;
         $invoice->category = $dto->category ?? ($invoice->category ?? 'rutin');
         $invoice->status = $dto->status ?? ($invoice->status ?? 'Unpaid');
     }
@@ -123,10 +124,12 @@ class ProformaInvoiceService
     {
         $currencyCode = $invoice->currency_code ?? 'IDR';
         $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
+        $isDeviceStock = ($invoice->type_device === \App\Models\DeviceStock::class);
 
         foreach ($details as $item) {
             $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
-            $refId = !empty($item['reference_id']) ? (int) $item['reference_id'] : null;
+            $rawRefId = !empty($item['reference_id']) ? (int) $item['reference_id'] : (!empty($item['device_stock_id']) ? (int) $item['device_stock_id'] : null);
+            $refId = $isDeviceStock ? $rawRefId : null;
             $name = $item['name'] ?? '';
 
             if ($refId) {

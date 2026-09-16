@@ -703,8 +703,9 @@
                             }
 
                             isDeviceStockMode() {
-                                // Selalu aktif untuk type barang apa saja di menu Proforma Invoice
-                                return true;
+                                // Hanya aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
+                                var currentType = $(this.form + ' select[name="type_device"]').val();
+                                return currentType === this.deviceStockType;
                             }
 
                             activateDeviceStockMode() {
@@ -736,17 +737,31 @@
 
                                 var currentVal = $textInput.val() || '';
                                 var $hiddenDeviceStockId = $row.find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+                                var deviceStockIdVal = $hiddenDeviceStockId.val() || '';
+
+                                var rowIndex = $row.index();
+                                var details = (entry && (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit)) ? (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit) : null;
+                                if (details && details[rowIndex]) {
+                                    if (!currentVal) {
+                                        currentVal = details[rowIndex].name || (details[rowIndex].device_stock ? details[rowIndex].device_stock.name : '');
+                                        $textInput.val(currentVal);
+                                    }
+                                    if (!deviceStockIdVal) {
+                                        deviceStockIdVal = details[rowIndex].device_stock_id || details[rowIndex].reference_id || '';
+                                        if (deviceStockIdVal && $hiddenDeviceStockId.length) {
+                                            $hiddenDeviceStockId.val(deviceStockIdVal);
+                                        }
+                                    }
+                                }
 
                                 $textInput.hide();
 
                                 var $select2Container = $('<div class="proforma-device-select2-wrapper" style="flex:1;min-width:0;"></div>');
                                 var $select2 = $('<select class="form-control proforma-device-select2" style="width:100%"></select>');
 
-                                if (currentVal && $hiddenDeviceStockId.val()) {
-                                    var initialOption = new Option(currentVal, $hiddenDeviceStockId.val(), true, true);
-                                    $select2.append(initialOption);
-                                } else if (currentVal) {
-                                    var initialOption = new Option(currentVal, '', true, true);
+                                if (currentVal) {
+                                    var optVal = deviceStockIdVal || currentVal;
+                                    var initialOption = new Option(currentVal, optVal, true, true);
                                     $select2.append(initialOption);
                                 }
 
@@ -819,12 +834,20 @@
 
                                 var selectedText = '';
                                 if ($select2.length) {
-                                    try { selectedText = $select2.select2('data')[0]?.text || ''; } catch(e) {}
+                                    try {
+                                        var sData = $select2.select2('data');
+                                        if (sData && sData[0]) {
+                                            selectedText = sData[0].name || sData[0].text || '';
+                                        }
+                                    } catch(e) {}
                                     $select2.select2('destroy');
                                 }
                                 $select2Wrapper.remove();
 
-                                $textInput.val(selectedText).show();
+                                if (selectedText) {
+                                    $textInput.val(selectedText);
+                                }
+                                $textInput.show();
                                 if ($hiddenDeviceStockId.length) $hiddenDeviceStockId.val('');
                             }
 
@@ -833,12 +856,32 @@
                                 var form = this.form;
 
                                 setTimeout(function() {
+                                    var details = (entry && (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit)) ? (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit) : null;
+                                    if (details && Array.isArray(details)) {
+                                        $(form + ' .repeatable-element').each(function(idx) {
+                                            var $text = $(this).find('input[data-repeatable-input-name="name"], input[name*="[name]"], input[name="name"]').filter('input[type="text"]');
+                                            if ($text.length && !$text.val() && details[idx]) {
+                                                var itemName = details[idx].name || (details[idx].device_stock ? details[idx].device_stock.name : '');
+                                                if (itemName) {
+                                                    $text.val(itemName);
+                                                }
+                                            }
+                                            var $hiddenStock = $(this).find('input[data-repeatable-input-name="device_stock_id"], input[name*="[device_stock_id]"], input[name="device_stock_id"]');
+                                            if ($hiddenStock.length && !$hiddenStock.val() && details[idx]) {
+                                                var stockId = details[idx].device_stock_id || details[idx].reference_id || '';
+                                                if (stockId) {
+                                                    $hiddenStock.val(stockId);
+                                                }
+                                            }
+                                        });
+                                    }
+
                                     if (self.isDeviceStockMode()) {
                                         self.activateDeviceStockMode();
                                     }
                                 }, 400);
 
-                                $(form + ' select[name="type_device"]').on('change', function() {
+                                $(form + ' select[name="type_device"]').off('change.type_device').on('change.type_device', function() {
                                     if (self.isDeviceStockMode()) {
                                         self.activateDeviceStockMode();
                                     } else {
@@ -846,7 +889,7 @@
                                     }
                                 });
 
-                                $(form + ' .add-repeatable-element-button').on('click', function() {
+                                $(form + ' .add-repeatable-element-button').off('click.type_device').on('click.type_device', function() {
                                     if (self._isDeviceStock) {
                                         setTimeout(function() {
                                             $(form + ' .repeatable-element').each(function() {

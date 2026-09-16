@@ -148,19 +148,23 @@ class ProformaInvoiceClientService
         $currencyCode = $invoice->currency_code ?? 'IDR';
         $exchangeRate = (float) ($invoice->exchange_rate ?? 1.0);
 
+        $isDeviceStock = ($invoice->type_device === \App\Models\DeviceStock::class);
+
         foreach ($details as $item) {
             $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
-            if ($price > 0 || !empty($item['name'])) {
+            $itemName = $item['name'] ?? '';
+
+            if ($price > 0 || !empty($itemName)) {
                 $invoice_item = new ProformaInvoiceClientDetail();
                 $invoice_item->proforma_invoice_client_id = $invoice->id;
-                $invoice_item->name = $item['name'] ?? '';
+                $invoice_item->name = $itemName;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;
 
-                // Simpan device_stock_id jika ada (dari mode Persediaan)
+                // Simpan device_stock_id HANYA jika mode Persediaan
                 $rawStockId = $item['device_stock_id'] ?? null;
-                $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
+                $deviceStockId = ($isDeviceStock && $rawStockId !== null && (int) $rawStockId > 0)
                     ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;

@@ -1008,7 +1008,16 @@ class CustomHelper
         }
 
         $query = \App\Models\Account::selectRaw("
-            (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN accounts.currency_code != 'USD' 
+                                THEN (journal_entries.debit - journal_entries.credit)
+                            ELSE 
+                                (journal_entries.debit_base - journal_entries.credit_base)
+                        END
+                    ), 0
+                ) AS balance
         ")
             ->leftJoin('journal_entries', 'journal_entries.account_id', '=', 'accounts.id')
             ->where('accounts.code', 'LIKE', "" . $code . "%");

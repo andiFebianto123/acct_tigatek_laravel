@@ -19,6 +19,18 @@ class ProformaInvoiceDetail extends Model
 
     protected $table = 'proforma_invoice_details';
     protected $guarded = ['id'];
+    protected $appends = ['device_stock_id'];
+
+    /*
+    |--------------------------------------------------------------------------
+    | ACCESSORS
+    |--------------------------------------------------------------------------
+    */
+
+    public function getDeviceStockIdAttribute()
+    {
+        return $this->attributes['reference_id'] ?? null;
+    }
 
     /*
     |--------------------------------------------------------------------------

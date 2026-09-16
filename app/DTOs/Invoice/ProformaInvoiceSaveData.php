@@ -29,6 +29,7 @@ class ProformaInvoiceSaveData
         public readonly ?string $term = null,
         public readonly ?string $currency_code = 'IDR',
         public readonly ?string $pic = null,
+        public readonly ?string $type_device = null,
         public readonly ?string $category = 'rutin',
         public readonly ?string $status = 'Unpaid',
     ) {}
@@ -102,6 +103,7 @@ class ProformaInvoiceSaveData
             term: $request->term,
             currency_code: $request->currency_code ?? 'IDR',
             pic: $request->pic,
+            type_device: $request->type_device,
             category: $request->input('category', 'rutin'),
             status: $request->input('status', 'Unpaid') ?: 'Unpaid',
         );
