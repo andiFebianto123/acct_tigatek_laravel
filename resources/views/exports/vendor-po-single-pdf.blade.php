@@ -22,12 +22,13 @@
             border-collapse: collapse;
         }
         .logo-td {
-            width: 70px;
+            width: 100px;
             vertical-align: middle;
             padding-right: 15px;
         }
         .logo-img {
-            width: 60px;
+            width: 90px;
+            max-height: 90px;
             height: auto;
             display: block;
         }
