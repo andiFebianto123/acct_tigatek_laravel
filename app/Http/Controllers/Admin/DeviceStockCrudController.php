@@ -385,7 +385,8 @@ class DeviceStockCrudController extends CrudController
         CRUD::column([
             'label' => trans('backpack::crud.device_stock.column.name'),
             'name' => 'name',
-            'type' => 'text',
+            'type' => 'wrap_text',
+            'width_box' => '350px',
         ]);
 
         CRUD::column([
@@ -654,7 +655,8 @@ class DeviceStockCrudController extends CrudController
         CRUD::column([
             'label' => trans('backpack::crud.device_stock.column.name'),
             'name' => 'name',
-            'type' => 'text',
+            'type' => 'wrap_text',
+            'width_box' => '100%',
         ]);
 
         CRUD::column([
