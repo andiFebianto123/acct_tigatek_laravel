@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
 use App\Http\Requests\ClientRequest;
 use Maatwebsite\Excel\Facades\Excel;
-use Backpack\CRUD\app\Http\Controllers\CrudController;
+use App\Http\Controllers\CrudController;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 
 use App\DTOs\ClientManagement\ClientData;
@@ -90,11 +90,73 @@ class ClientCrudController extends CrudController
     {
         $this->crud->hasAccessOrFail('list');
 
+        $this->card->addCard([
+            'name' => 'client_list',
+            'line' => 'top',
+            'view' => 'crud::components.datatable-origin',
+            'params' => [
+                'filter' => true,
+                'crud_custom' => $this->crud,
+                'hide_title' => true,
+                'columns' => [
+                    [
+                        'name'      => 'row_number',
+                        'type'      => 'row_number',
+                        'label'     => 'No',
+                        'orderable' => false,
+                    ],
+                    [
+                        'label'     => trans('backpack::crud.subkon.column.company'),
+                        'type'      => 'text',
+                        'name'      => 'company_id',
+                        'orderable' => true,
+                    ],
+                    [
+                        'label'     => trans('backpack::crud.client.column.name'),
+                        'name'      => 'name',
+                        'type'      => 'text',
+                        'orderable' => true,
+                    ],
+                    [
+                        'label'     => trans('backpack::crud.client.column.address'),
+                        'name'      => 'address',
+                        'type'      => 'text',
+                        'orderable' => true,
+                    ],
+                    [
+                        'label'     => trans('backpack::crud.client.column.npwp'),
+                        'name'      => 'npwp',
+                        'type'      => 'text',
+                        'orderable' => true,
+                    ],
+                    [
+                        'label'     => trans('backpack::crud.client.column.phone'),
+                        'name'      => 'phone',
+                        'type'      => 'text',
+                        'orderable' => true,
+                    ],
+                    [
+                        'name'      => 'list_po_count',
+                        'label'     => trans('backpack::crud.subkon.column.count_po'),
+                        'type'      => 'text',
+                        'orderable' => true,
+                    ],
+                    [
+                        'name'      => 'action',
+                        'type'      => 'action',
+                        'label'     => trans('backpack::crud.actions'),
+                    ],
+                ],
+                'route' => backpack_url('/client/client-list/search'),
+            ]
+        ]);
+
         $this->data['crud'] = $this->crud;
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
         $this->data['title_modal_create'] = trans('backpack::crud.menu.list_client');
         $this->data['title_modal_edit'] = 'Data Client';
         $this->data['title_modal_delete'] = 'Client';
+        $this->data['cards'] = $this->card;
 
         $breadcrumbs = [
             'Client' => backpack_url('vendor'),
@@ -102,7 +164,7 @@ class ClientCrudController extends CrudController
         ];
         $this->data['breadcrumbs'] = $breadcrumbs;
 
-        $list = "crud::list-custom" ?? $this->crud->getListView();
+        $list = "crud::list-blank" ?? $this->crud->getListView();
         return view($list, $this->data);
     }
 
@@ -190,17 +252,19 @@ class ClientCrudController extends CrudController
 
         CRUD::column(
             [
-                'label'  => trans('backpack::crud.client.column.name'),
-                'name' => 'name',
-                'type'  => 'wrap_text'
+                'label'       => trans('backpack::crud.client.column.name'),
+                'name'        => 'name',
+                'type'        => 'wrap_text',
+                'searchLogic' => 'text',
             ],
         );
 
         CRUD::column(
             [
-                'label'  => trans('backpack::crud.client.column.address'),
-                'name' => 'address',
-                'type'  => 'wrap_text'
+                'label'       => trans('backpack::crud.client.column.address'),
+                'name'        => 'address',
+                'type'        => 'wrap_text',
+                'searchLogic' => 'text',
             ],
         );
 
