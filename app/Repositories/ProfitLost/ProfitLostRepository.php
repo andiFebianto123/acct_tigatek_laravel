@@ -295,6 +295,53 @@ class ProfitLostRepository
         ];
     }
 
+    /**
+     * Total ringkasan (Exclude PPN / Total Jual & Total Laba Kotor) untuk Tab Laba Rugi Supplier.
+     */
+    public function getSupplierProfitLostTotals(ProfitLostFilterData $filter): array
+    {
+        $filter_year = $filter->year;
+
+        $supplierSubQuery = DB::table('invoice_clients as ic')
+            ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
+            ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
+            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
+            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type = "supplier" GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
+            ->where('ic.type_device', 'App\\Models\\DeviceStock')
+            ->select([
+                'ic.id as invoice_id',
+                'ic.invoice_date as supplier_date',
+                'ic.price_total_exclude_ppn_base as total_harga_jual_base',
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base")
+            ])
+            ->groupBy(
+                'ic.id',
+                'ic.invoice_date',
+                'ic.price_total_exclude_ppn_base',
+                'v_supp.total_voucher_supplier_base'
+            );
+
+        $query = DB::table('project_profit_lost')
+            ->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')
+            ->joinSub($supplierSubQuery, 'supplier_data', function ($join) {
+                $join->on('supplier_data.invoice_id', '=', 'project_profit_lost.orderable_id');
+            });
+
+        if ($filter_year && $filter_year != 'all') {
+            $query->whereYear('supplier_data.supplier_date', $filter_year);
+        }
+
+        $result = $query->selectRaw('
+            COALESCE(SUM(supplier_data.total_harga_jual_base), 0) AS total_sell_value,
+            COALESCE(SUM(supplier_data.laba_kotor_base), 0) AS total_profit_lost_supplier
+        ')->first();
+
+        return [
+            'total_price_exlude_ppn' => CustomHelper::formatRupiahWithCurrency($result->total_sell_value ?? 0),
+            'total_price_prift_lost_finals' => CustomHelper::formatRupiahWithCurrency($result->total_profit_lost_supplier ?? 0)
+        ];
+    }
+
     public function getProjectDetail(int $id, ?string $filterYear = null, bool $pure = false): array
     {
         $profitLost = ProjectProfitLost::findOrFail($id);

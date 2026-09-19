@@ -354,7 +354,14 @@ class ProfitLostAccountCrudController extends CrudController
     public function get_total_excl_ppn_final_profit()
     {
         $dto = ProfitLostFilterData::fromRequest(request());
-        $result = $this->repository->getProjectProfitLostTotals($dto);
+        $tab = request()->input('tab', 'project');
+
+        if ($tab === 'supplier') {
+            $result = $this->repository->getSupplierProfitLostTotals($dto);
+        } else {
+            $result = $this->repository->getProjectProfitLostTotals($dto);
+        }
+
         return response()->json($result);
     }
 
