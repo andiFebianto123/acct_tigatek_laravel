@@ -1451,7 +1451,15 @@ class InvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
+                        ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -1487,7 +1495,7 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-10',
                         ],
                     ],
                 ];
@@ -1565,7 +1573,15 @@ class InvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
+                        ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -1601,7 +1617,7 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-5'
+                            'class' => 'form-group col-md-10'
                         ],
                     ]
                 ];
@@ -2364,7 +2380,7 @@ class InvoiceClientCrudController extends CrudController
     {
         $data = [];
         $data['header'] = InvoiceClient::with('company')->where('id', $id)->first();
-        $data['details'] = InvoiceClientDetail::where('invoice_client_id', $id)->get();
+        $data['details'] = InvoiceClientDetail::with('deviceStock')->where('invoice_client_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-client-single-pdf', $data);
         $fileName = 'Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf';
