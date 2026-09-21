@@ -26,6 +26,7 @@ class ProfitLostService
 
     public function storeProjectProfitLost(ProjectProfitLostSaveData $dto): ProjectProfitLost
     {
+        dd($dto);
         return DB::transaction(function () use ($dto) {
             $item = new ProjectProfitLost();
             $item->voucher_id = $dto->voucher_id;

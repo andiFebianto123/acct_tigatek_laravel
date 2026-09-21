@@ -756,6 +756,7 @@ class ProfitLostRepository
             ->select([
                 'ic.id as invoice_id',
                 'ic.invoice_number as supplier_invoice_number',
+                'cpo.po_number as po_number',
                 'ic.invoice_date as supplier_date',
                 'c.name as supplier_name',
                 'ic.currency_code',
@@ -773,6 +774,7 @@ class ProfitLostRepository
             ->groupBy(
                 'ic.id',
                 'ic.invoice_number',
+                'cpo.po_number',
                 'ic.invoice_date',
                 'c.name',
                 'ic.currency_code',
@@ -795,6 +797,7 @@ class ProfitLostRepository
                 project_profit_lost.*,
                 supplier_data.supplier_name,
                 supplier_data.supplier_invoice_number,
+                supplier_data.po_number,
                 supplier_data.supplier_date,
                 supplier_data.currency_code,
                 supplier_data.total_qty_sold,

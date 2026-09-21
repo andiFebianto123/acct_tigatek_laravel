@@ -1431,7 +1431,7 @@ return [
                 'label' => 'PO Client Supplier',
             ],
             'supplier_invoice' => [
-                'label' => 'No. Invoice Supplier',
+                'label' => 'No. Invoice',
             ],
             'no_po' => [
                 'label' => 'No PO',

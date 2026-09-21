@@ -259,6 +259,12 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
+                                    'label'     => trans('backpack::crud.profit_lost.column.no_po') ?? 'No. PO Client',
+                                    'type'      => 'text',
+                                    'name'      => 'po_number',
+                                    'orderable' => true,
+                                ],
+                                [
                                     'label'     => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
                                     'type'      => 'date',
                                     'name'      => 'supplier_date',
@@ -625,7 +631,7 @@ class ProfitLostAccountCrudController extends CrudController
             // Field PO Client (untuk tipe Subkon)
             CRUD::addField([
                 'name'                  => 'work_code',
-                'label'                 => 'Invoice',
+                'label'                 => trans("backpack::crud.profit_lost.fields.supplier_invoice.label"),
                 'type'                  => 'select2_ajax_custom',
                 'attribute'             => 'invoice_number_display',
                 'entity'                => 'clientPo',
@@ -1084,6 +1090,19 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'text',
             ]);
 
+            // No. PO Client
+            CRUD::column([
+                'label'  => trans('backpack::crud.profit_lost.column.no_po') ?? 'No. PO Client',
+                'name'   => 'po_number',
+                'type'   => 'closure',
+                'function' => function ($entry) {
+                    return $entry->po_number ?? '-';
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('cpo.po_number', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+
             // Tanggal Invoice
             CRUD::column([
                 'label'  => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
@@ -1390,6 +1409,13 @@ class ProfitLostAccountCrudController extends CrudController
                 'label' => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
                 'name'  => 'supplier_invoice_number',
                 'type'  => 'text',
+            ]);
+
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.no_po') ?? 'No. PO Client',
+                'name'  => 'po_number',
+                'type'  => 'closure',
+                'function' => function ($entry) { return $entry->po_number ?? '-'; }
             ]);
 
             CRUD::column([
