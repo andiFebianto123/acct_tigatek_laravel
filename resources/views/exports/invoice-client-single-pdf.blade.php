@@ -284,13 +284,13 @@
         if (isset($details) && count($details) > 0) {
             foreach ($details as $detail) {
                 if (empty($detail->device_stock_id)) {
-                    // Jika device_stock_id NULL: deskripsi ambil dari name_alias (fallback ke name jika alias kosong), keterangan '-'
+                    // Jika device_stock_id NULL: deskripsi ambil dari name_alias (fallback ke name jika alias kosong), keterangan ambil dari reason
                     $itemName = !empty($detail->name_alias) ? $detail->name_alias : $detail->name;
-                    $keterangan = '-';
+                    $keterangan = !empty($detail->reason) ? $detail->reason : '-';
                 } else {
-                    // Jika device_stock_id TIDAK NULL: deskripsi ambil dari nama barang stock (deviceStock->name / detail->name), keterangan ambil dari name_alias
+                    // Jika device_stock_id TIDAK NULL: deskripsi ambil dari nama barang stock (deviceStock->name / detail->name), keterangan ambil dari reason (atau fallback ke name_alias)
                     $itemName = $detail->deviceStock->name ?? $detail->name;
-                    $keterangan = !empty($detail->name_alias) ? $detail->name_alias : '-';
+                    $keterangan = !empty($detail->reason) ? $detail->reason : (!empty($detail->name_alias) ? $detail->name_alias : '-');
                 }
 
                 $items[] = (object)[

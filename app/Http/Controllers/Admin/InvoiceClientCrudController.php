@@ -1455,7 +1455,7 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
+                        'name' => 'reason',
                         'type' => 'text',
                         'label' => 'Keterangan',
                         'wrapper' => [
@@ -1577,7 +1577,7 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
+                        'name' => 'reason',
                         'type' => 'text',
                         'label' => 'Keterangan',
                         'wrapper' => [

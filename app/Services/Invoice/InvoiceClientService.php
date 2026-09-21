@@ -435,17 +435,19 @@ class InvoiceClientService
             $price = $this->parseItemPrice($item['price'] ?? 0, $currencyCode);
             $itemName = $item['name'] ?? '';
             $nameAlias = $item['name_alias'] ?? null;
+            $reason = $item['reason'] ?? null;
 
             // Jika bukan mode Persediaan (misal Billing Device / SIMCARD), pastikan name_alias terisi
             if (!$isDeviceStock && empty($nameAlias) && !empty($itemName)) {
                 $nameAlias = $itemName;
             }
 
-            if ($price > 0 || !empty($itemName) || !empty($nameAlias)) {
+            if ($price > 0 || !empty($itemName) || !empty($nameAlias) || !empty($reason)) {
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
                 $invoice_item->name = $itemName;
                 $invoice_item->name_alias = $nameAlias;
+                $invoice_item->reason = $reason;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;
