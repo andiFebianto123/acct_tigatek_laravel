@@ -43,7 +43,7 @@
             </div>
         </div>
         <div class="col-md-6 mb-4">
-            <div class="card2">
+            <div class="card2 h-100">
                 <div class="card2-parent-header">
                     <div class="card2-header fs-6">
                         Realisasi Pekerjaan | Realisasi Penjualan
@@ -56,28 +56,26 @@
                             <div class="fw-bold fs-6 text-primary mb-3 pb-1 border-bottom d-flex align-items-center">
                                 <i class="la la-tasks me-2"></i> Realisasi Pekerjaan
                             </div>
-                            <div class="row">
-                                <div class="col">
-                                    <div class="label fw-bold mb-1">Rutin</div>
-                                    <div class="item">
-                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Omzet<br><strong id="rp_rutin_omzet_total">Rp0</strong></div>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Biaya<br><strong id="rp_rutin_biaya_total">Rp0</strong></div>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="label fw-bold mb-1">Rutin</div>
+                                <div class="item">
+                                    <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Omzet<br><strong id="rp_rutin_omzet_total">Rp0</strong></div>
                                 </div>
-                                <div class="col">
-                                    <div class="label fw-bold mb-1">Non Rutin</div>
-                                    <div class="item">
-                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Omzet<br><strong id="rp_non_rutin_omzet_total">Rp0</strong></div>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Biaya<br><strong id="rp_non_rutin_biaya_total">Rp0</strong></div>
-                                    </div>
+                                <div class="item">
+                                    <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Biaya<br><strong id="rp_rutin_biaya_total">Rp0</strong></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label fw-bold mb-1">Non Rutin</div>
+                                <div class="item">
+                                    <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Omzet<br><strong id="rp_non_rutin_omzet_total">Rp0</strong></div>
+                                </div>
+                                <div class="item">
+                                    <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Biaya<br><strong id="rp_non_rutin_biaya_total">Rp0</strong></div>
                                 </div>
                             </div>
                         </div>
@@ -87,28 +85,26 @@
                             <div class="fw-bold fs-6 text-success mb-3 pb-1 border-bottom d-flex align-items-center">
                                 <i class="la la-shopping-cart me-2"></i> Realisasi Penjualan
                             </div>
-                            <div class="row">
-                                <div class="col">
-                                    <div class="label fw-bold mb-1">Rutin</div>
-                                    <div class="item">
-                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Omzet<br><strong id="rp_rutin_omzet_penjualan">Rp0</strong></div>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Biaya<br><strong id="rp_rutin_biaya_penjualan">Rp0</strong></div>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="label fw-bold mb-1">Rutin</div>
+                                <div class="item">
+                                    <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Omzet<br><strong id="rp_rutin_omzet_penjualan">Rp0</strong></div>
                                 </div>
-                                <div class="col">
-                                    <div class="label fw-bold mb-1">Non Rutin</div>
-                                    <div class="item">
-                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Omzet<br><strong id="rp_non_rutin_omzet_penjualan">Rp0</strong></div>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div>Biaya<br><strong id="rp_non_rutin_biaya_penjualan">Rp0</strong></div>
-                                    </div>
+                                <div class="item">
+                                    <div class="icon cyan"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Biaya<br><strong id="rp_rutin_biaya_penjualan">Rp0</strong></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label fw-bold mb-1">Non Rutin</div>
+                                <div class="item">
+                                    <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Omzet<br><strong id="rp_non_rutin_omzet_penjualan">Rp0</strong></div>
+                                </div>
+                                <div class="item">
+                                    <div class="icon pink"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Biaya<br><strong id="rp_non_rutin_biaya_penjualan">Rp0</strong></div>
                                 </div>
                             </div>
                         </div>
@@ -117,7 +113,7 @@
             </div>
         </div>
         <div class="col-md-6 mb-4">
-            <div class="card2">
+            <div class="card2 h-100">
                 <div class="card2-parent-header">
                     <div class="card2-header fs-6">Laba Proyek | Laba Penjualan</div>
                 </div>
@@ -128,24 +124,28 @@
                             <div class="fw-bold fs-6 text-primary mb-3 pb-1 border-bottom d-flex align-items-center">
                                 <i class="la la-calculator me-2"></i> Laba Proyek
                             </div>
-                            <div class="row">
-                                <div class="col">
-                                    <div class="btn mb-3">
-                                        <button class="btn btn-primary btn-sm" id="btn-rutin">Rutin</button>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div><strong id="laba_rutin_total">Rp0</strong></div>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="label fw-bold">Rutin</span>
+                                    <button class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 11px;" id="btn-rutin" title="Lihat Detail">
+                                        <i class="la la-search me-1"></i>Detail
+                                    </button>
                                 </div>
-                                <div class="col">
-                                    <div class="btn mb-3">
-                                        <button class="btn btn-primary btn-sm" id="btn-non-rutin">Non Rutin</button>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div><strong id="laba_non_rutin_total">Rp0</strong></div>
-                                    </div>
+                                <div class="item">
+                                    <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Laba<br><strong id="laba_rutin_total" class="text-primary">Rp0</strong></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="label fw-bold">Non Rutin</span>
+                                    <button class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 11px;" id="btn-non-rutin" title="Lihat Detail">
+                                        <i class="la la-search me-1"></i>Detail
+                                    </button>
+                                </div>
+                                <div class="item">
+                                    <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Laba<br><strong id="laba_non_rutin_total" class="text-primary">Rp0</strong></div>
                                 </div>
                             </div>
                         </div>
@@ -155,24 +155,28 @@
                             <div class="fw-bold fs-6 text-success mb-3 pb-1 border-bottom d-flex align-items-center">
                                 <i class="la la-chart-line me-2"></i> Laba Penjualan
                             </div>
-                            <div class="row">
-                                <div class="col">
-                                    <div class="btn mb-3">
-                                        <button class="btn btn-success btn-sm" id="btn-rutin-penjualan">Rutin</button>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div><strong id="laba_rutin_penjualan_total">Rp0</strong></div>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="label fw-bold">Rutin</span>
+                                    <button class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 11px;" id="btn-rutin-penjualan" title="Lihat Detail">
+                                        <i class="la la-search me-1"></i>Detail
+                                    </button>
                                 </div>
-                                <div class="col">
-                                    <div class="btn mb-3">
-                                        <button class="btn btn-success btn-sm" id="btn-non-rutin-penjualan">Non Rutin</button>
-                                    </div>
-                                    <div class="item">
-                                        <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
-                                        <div><strong id="laba_non_rutin_penjualan_total">Rp0</strong></div>
-                                    </div>
+                                <div class="item">
+                                    <div class="icon blue"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Laba<br><strong id="laba_rutin_penjualan_total" class="text-success">Rp0</strong></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="label fw-bold">Non Rutin</span>
+                                    <button class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 11px;" id="btn-non-rutin-penjualan" title="Lihat Detail">
+                                        <i class="la la-search me-1"></i>Detail
+                                    </button>
+                                </div>
+                                <div class="item">
+                                    <div class="icon orange"><i class="la la-file-invoice-dollar fs-4"></i></div>
+                                    <div class="text-break">Laba<br><strong id="laba_non_rutin_penjualan_total" class="text-success">Rp0</strong></div>
                                 </div>
                             </div>
                         </div>
