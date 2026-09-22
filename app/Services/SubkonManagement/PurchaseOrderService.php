@@ -248,12 +248,15 @@ class PurchaseOrderService
                 }
             }
 
-            if ($price > 0 || !empty($name) || $refId) {
+            $nameAlias = $item['name_alias'] ?? null;
+
+            if ($price > 0 || !empty($name) || $refId || !empty($nameAlias)) {
                 $poItem = new \App\Models\PurchaseOrderDetail();
                 $poItem->purchase_order_id = $po->id;
                 $poItem->reference_id = $refId;
                 $poItem->reference_type = $refId ? \App\Models\DeviceStock::class : null;
                 $poItem->name = $name;
+                $poItem->name_alias = $nameAlias;
                 $poItem->qty = (int) ($item['qty'] ?? 1);
                 $poItem->price = $price;
                 $poItem->price_base = $price * $exchangeRate;

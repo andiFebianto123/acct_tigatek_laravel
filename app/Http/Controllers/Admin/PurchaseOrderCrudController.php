@@ -936,9 +936,9 @@ class PurchaseOrderCrudController extends CrudController
         if ($id && $id != 'create') {
             CRUD::addField([
                 'name' => 'purchase_order_details_edit',
-                'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
+                'label' => trans('backpack::crud.po.field.item.label') ?? 'PO Items',
                 'type' => 'repeatable',
-                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'new_item_label'  => trans('backpack::crud.po.field.item.new_item_label') ?? 'Tambah Item',
                 'wrapper' => [
                     'class' => 'form-group col-md-12',
                 ],
@@ -946,20 +946,31 @@ class PurchaseOrderCrudController extends CrudController
                     [
                         'name' => 'reference_id',
                         'type' => 'select2_ajax_device_stock',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label') ?? 'Nama Barang',
+                        'label' => trans('backpack::crud.po.field.item.items.name.label') ?? 'Nama Barang',
                         'data_source' => backpack_url('vendor/purchase-order/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
+                        'placeholder' => trans('backpack::crud.po.field.item.items.name.placeholder') ?? 'Pilih Nama Barang',
                         'minimum_input_length' => 0,
                         'model' => \App\Models\DeviceStock::class,
                         'attribute' => 'name',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-6',
+                        ],
+                        'attributes' => [
+                            'placeholder' => trans('backpack::crud.po.field.item.items.name_alias.placeholder') ?? 'Tulis Keterangan',
+                        ],
                     ],
                     [
                         'name' => 'qty',
                         'type' => 'number',
-                        'label' => 'QTY',
+                        'label' => trans('backpack::crud.po.field.item.items.qty.label') ?? 'QTY',
                         'default' => 1,
                         'wrapper' => [
                             'class' => 'form-group col-md-2',
@@ -970,12 +981,12 @@ class PurchaseOrderCrudController extends CrudController
                     ],
                     [
                         'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label') ?? 'Harga',
+                        'label' => trans('backpack::crud.po.field.item.items.price.label') ?? 'Harga',
                         'type' => 'mask_currency',
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-10',
                         ],
                     ],
                 ]
@@ -983,9 +994,9 @@ class PurchaseOrderCrudController extends CrudController
         } else {
             CRUD::addField([
                 'name' => 'purchase_order_details',
-                'label' => trans('backpack::crud.invoice_client.field.item.label') ?? 'PO Items',
+                'label' => trans('backpack::crud.po.field.item.label') ?? 'PO Items',
                 'type' => 'repeatable',
-                'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label') ?? 'Tambah Item',
+                'new_item_label'  => trans('backpack::crud.po.field.item.new_item_label') ?? 'Tambah Item',
                 'wrapper' => [
                     'class' => 'form-group col-md-12',
                 ],
@@ -993,20 +1004,31 @@ class PurchaseOrderCrudController extends CrudController
                     [
                         'name' => 'reference_id',
                         'type' => 'select2_ajax_device_stock',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label') ?? 'Nama Barang',
+                        'label' => trans('backpack::crud.po.field.item.items.name.label') ?? 'Nama Barang',
                         'data_source' => backpack_url('vendor/purchase-order/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
+                        'placeholder' => trans('backpack::crud.po.field.item.items.name.placeholder') ?? 'Pilih Nama Barang',
                         'minimum_input_length' => 0,
                         'model' => \App\Models\DeviceStock::class,
                         'attribute' => 'name',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-6',
+                        ],
+                        'attributes' => [
+                            'placeholder' => trans('backpack::crud.po.field.item.items.name_alias.placeholder') ?? 'Tulis Keterangan',
+                        ],
                     ],
                     [
                         'name' => 'qty',
                         'type' => 'number',
-                        'label' => 'QTY',
+                        'label' => trans('backpack::crud.po.field.item.items.qty.label') ?? 'QTY',
                         'default' => 1,
                         'wrapper' => [
                             'class' => 'form-group col-md-2',
@@ -1017,12 +1039,12 @@ class PurchaseOrderCrudController extends CrudController
                     ],
                     [
                         'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label') ?? 'Harga',
+                        'label' => trans('backpack::crud.po.field.item.items.price.label') ?? 'Harga',
                         'type' => 'mask_currency',
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-5'
+                            'class' => 'form-group col-md-10'
                         ],
                     ]
                 ]
@@ -1336,7 +1358,8 @@ class PurchaseOrderCrudController extends CrudController
                     $itemPrice = (float) $d->price;
                     $itemQty = (int) $d->qty;
                     $itemSubtotal = $itemPrice * $itemQty;
-                    $itemName = $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ')') : ($d->name ?? '-');
+                    $baseName = $d->device_stock ? ($d->device_stock->name . ' (' . $d->device_stock->code . ')') : ($d->name ?? '-');
+                    $itemName = !empty($d->name_alias) ? $d->name_alias . ' (' . $baseName . ')' : $baseName;
                     $html .= '<tr>';
                     $html .= '<td>' . e($itemName) . '</td>';
                     $html .= '<td class="text-center">' . $itemQty . '</td>';

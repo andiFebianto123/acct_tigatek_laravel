@@ -495,6 +495,27 @@ return [
             'additional_info' => [
                 'label' => 'Keterangan',
                 'placeholder' => 'Tulis Keterangan',
+            ],
+            'item' => [
+                'label' => 'PO Items',
+                'new_item_label' => 'Tambah Item',
+                'items' => [
+                    'name' => [
+                        'label' => 'Nama Barang',
+                        'placeholder' => 'Pilih Nama Barang',
+                    ],
+                    'name_alias' => [
+                        'label' => 'Keterangan',
+                        'placeholder' => 'Tulis Keterangan',
+                    ],
+                    'qty' => [
+                        'label' => 'QTY',
+                    ],
+                    'price' => [
+                        'label' => 'Harga',
+                        'placeholder' => '000.000',
+                    ]
+                ]
             ]
         ],
         'export' => [
