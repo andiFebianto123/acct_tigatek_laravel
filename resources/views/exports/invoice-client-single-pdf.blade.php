@@ -415,12 +415,11 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th width="4%">No.</th>
-                    <th width="30%" style="text-align: left;">DESCRIPTION</th>
-                    <th width="20%" style="text-align: left;">KETERANGAN</th>
+                    <th width="5%">No.</th>
+                    <th width="47%" style="text-align: left;">DESCRIPTION</th>
                     <th width="8%">QTY</th>
-                    <th width="19%">PRICE PER UNIT</th>
-                    <th width="19%">AMOUNT</th>
+                    <th width="20%">PRICE PER UNIT</th>
+                    <th width="20%">AMOUNT</th>
                 </tr>
             </thead>
             <tbody>
@@ -452,8 +451,14 @@
 
                     <tr>
                         <td class="text-center">{{ $key + 1 }}.</td>
-                        <td style="text-align: left;">{{ $item->name }}</td>
-                        <td style="text-align: left;">{{ $item->keterangan ?? '-' }}</td>
+                        <td style="text-align: left;">
+                            <div style="font-weight: normal;">{{ $item->name }}</div>
+                            @if(!empty($item->keterangan) && $item->keterangan !== '-')
+                                <div style="font-size: 9pt; color: #555; margin-top: 3px; font-style: italic;">
+                                    {{ $item->keterangan }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-center">{{ $qty }}</td>
                         <td class="text-right col-price">
                             {{ $symbol }} {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}
@@ -466,19 +471,19 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5" class="text-right" style="border-top: 2px solid #000; padding: 6px 4px; font-weight: normal;">TOTAL</td>
+                    <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 4px; font-weight: normal;">TOTAL</td>
                     <td class="text-right col-price" style="border-top: 2px solid #000; padding: 6px 4px;">
                         {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="5" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
+                    <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
                     <td class="text-right col-price" style="padding: 4px 4px;">
                         {{ $symbol }} {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
                     </td>
                 </tr>
                 <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
-                    <td colspan="5" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
+                    <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
                     <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">
                         {{ $symbol }} {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
                     </td>
