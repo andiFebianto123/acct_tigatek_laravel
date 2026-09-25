@@ -146,6 +146,14 @@
         .col-price {
             white-space: nowrap;
         }
+        .item-keterangan p {
+            margin: 0 0 3px 0;
+        }
+        .item-keterangan ul, .item-keterangan ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 3px;
+        }
         
         .totals-table-container {
             width: 100%;
@@ -427,6 +435,11 @@
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td style="text-align: left;">
                                 {!! nl2br(e($itemName)) !!}
+                                @if(!empty($detail->reason) && $detail->reason !== '-')
+                                    <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                        {!! $detail->reason !!}
+                                    </div>
+                                @endif
                             </td>
                             <td class="text-center">{{ $qty }} {{ $detail->unit ?? '' }}</td>
                             <td class="text-right col-price">

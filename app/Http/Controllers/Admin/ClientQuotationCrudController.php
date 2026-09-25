@@ -347,6 +347,7 @@ class ClientQuotationCrudController extends CrudController
         foreach ($entry->details as $d) {
             $d->qty = (float) $d->qty;
             $d->price = (float) ($d->unit_price ?? $d->price ?? 0);
+            $d->reason = $d->reason ?? '';
         }
         $entry->client_quotation_details_edit = $entry->details;
         $this->data['entry'] = $entry;
@@ -897,7 +898,7 @@ class ClientQuotationCrudController extends CrudController
                         'attribute' => 'name',
                         'method' => 'GET',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -920,8 +921,16 @@ class ClientQuotationCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-4',
                         ],
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
                     ],
                 ]
             ]);
@@ -943,7 +952,7 @@ class ClientQuotationCrudController extends CrudController
                         'attribute' => 'name',
                         'method' => 'GET',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -966,8 +975,16 @@ class ClientQuotationCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-4',
                         ],
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
                     ],
                 ]
             ]);

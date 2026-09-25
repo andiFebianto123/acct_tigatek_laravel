@@ -398,6 +398,11 @@ class InvoiceClientCrudController extends CrudController
         $entry->price_total_exclude_ppn = $entry->price_total_exclude_ppn;
         $entry->price_total_include_ppn = $entry->price_total_include_ppn;
 
+        if ($entry->invoice_client_details) {
+            foreach ($entry->invoice_client_details as $d) {
+                $d->reason = $d->reason ?? '';
+            }
+        }
         $entry->invoice_client_details_edit = $entry->invoice_client_details;
         $entry->client_name = $entry->client?->name ?? $entry->client_po?->client?->name;
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
@@ -1302,8 +1307,6 @@ class InvoiceClientCrudController extends CrudController
         //     ],
         // ]);
 
-
-
         CRUD::addField([
             'name' => 'invoice_document',
             'label' => trans('backpack::crud.invoice_client.field.invoice_document.label'),
@@ -1400,14 +1403,6 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => 'Nama',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
                         'name' => 'device_stock_id',
                         'type' => 'hidden',
                         'wrapper' => [
@@ -1440,8 +1435,16 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-10',
+                            'class' => 'form-group col-md-4',
                         ],
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => 'Nama',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
                     ],
                 ];
             } else {
@@ -1455,14 +1458,6 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'reason',
-                        'type' => 'text',
-                        'label' => 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
                         'name' => 'device_stock_id',
                         'type' => 'hidden',
                         'wrapper' => [
@@ -1495,8 +1490,16 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-10',
+                            'class' => 'form-group col-md-4',
                         ],
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
                     ],
                 ];
             }
@@ -1522,14 +1525,6 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => 'Nama',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
                         'name' => 'device_stock_id',
                         'type' => 'hidden',
                         'wrapper' => [
@@ -1562,9 +1557,17 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-10'
+                            'class' => 'form-group col-md-4'
                         ],
-                    ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'text',
+                        'label' => 'Nama',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
+                    ],
                 ];
             } else {
                 $createFields = [
@@ -1577,14 +1580,6 @@ class InvoiceClientCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'reason',
-                        'type' => 'text',
-                        'label' => 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
                         'name' => 'device_stock_id',
                         'type' => 'hidden',
                         'wrapper' => [
@@ -1617,9 +1612,17 @@ class InvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-10'
+                            'class' => 'form-group col-md-4'
                         ],
-                    ]
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
+                    ],
                 ];
             }
 

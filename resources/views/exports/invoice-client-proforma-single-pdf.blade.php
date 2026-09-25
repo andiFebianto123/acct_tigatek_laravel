@@ -138,6 +138,14 @@
         .col-price {
             white-space: nowrap;
         }
+        .item-keterangan p {
+            margin: 0 0 3px 0;
+        }
+        .item-keterangan ul, .item-keterangan ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 3px;
+        }
         
         .totals-table-container {
             width: 100%;
@@ -283,6 +291,7 @@
             foreach ($details as $detail) {
                 $items[] = (object)[
                     'name' => $detail->name,
+                    'keterangan' => !empty($detail->reason) ? $detail->reason : '-',
                     'price' => $detail->price,
                     'qty' => $detail->qty ?? 1
                 ];
@@ -290,6 +299,7 @@
         } else {
             $items[] = (object)[
                 'name' => $header->client_po->job_name ?? $header->name,
+                'keterangan' => '-',
                 'price' => $subtotal,
                 'qty' => 1
             ];
@@ -429,7 +439,14 @@
 
                     <tr>
                         <td class="text-center">{{ $key + 1 }}.</td>
-                        <td style="text-align: left;">{{ $item->name }}</td>
+                        <td style="text-align: left;">
+                            <div style="font-weight: normal;">{{ $item->name }}</div>
+                            @if(!empty($item->keterangan) && $item->keterangan !== '-')
+                                <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                    {!! $item->keterangan !!}
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-center">{{ $qty }}</td>
                         <td class="text-right col-price">
                             {{ $symbol }} {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}

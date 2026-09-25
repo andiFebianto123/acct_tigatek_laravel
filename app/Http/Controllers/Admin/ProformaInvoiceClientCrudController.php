@@ -197,9 +197,11 @@ class ProformaInvoiceClientCrudController extends CrudController
 
         $entry = $this->crud->getEntryWithLocale($id);
         $entry->nominal_exclude_ppn = $entry->price_total_exclude_ppn;
-        $entry->nominal_include_ppn = $entry->price_total_include_ppn;
-        $entry->send_invoice_normal = $entry->send_invoice_normal_date;
-        $entry->send_invoice_revision = $entry->send_invoice_revision_date;
+        if ($entry->proforma_invoice_client_details) {
+            foreach ($entry->proforma_invoice_client_details as $d) {
+                $d->reason = $d->reason ?? '';
+            }
+        }
         $entry->proforma_invoice_client_details_edit = $entry->proforma_invoice_client_details;
 
         $this->data['entry'] = $entry;
@@ -950,7 +952,7 @@ class ProformaInvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -979,8 +981,16 @@ class ProformaInvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-4',
                         ],
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
                     ],
                 ],
             ]);
@@ -996,7 +1006,7 @@ class ProformaInvoiceClientCrudController extends CrudController
                         'type' => 'text',
                         'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-5',
+                            'class' => 'form-group col-md-6',
                         ]
                     ],
                     [
@@ -1025,9 +1035,17 @@ class ProformaInvoiceClientCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-5'
+                            'class' => 'form-group col-md-4'
                         ],
-                    ]
+                    ],
+                    [
+                        'name' => 'reason',
+                        'type' => 'tinymce_8',
+                        'label' => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ]
+                    ],
                 ]
             ]);
         }

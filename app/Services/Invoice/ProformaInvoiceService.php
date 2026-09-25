@@ -148,6 +148,7 @@ class ProformaInvoiceService
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
                 $invoice_item->price_base = $price * $exchangeRate;
+                $invoice_item->reason = $item['reason'] ?? null;
                 $invoice_item->save();
             }
         }

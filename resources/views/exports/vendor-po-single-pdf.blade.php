@@ -124,6 +124,14 @@
         .col-price {
             white-space: nowrap;
         }
+        .item-keterangan p {
+            margin: 0 0 3px 0;
+        }
+        .item-keterangan ul, .item-keterangan ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 3px;
+        }
         .terms-section {
             margin-top: 40px;
             font-size: 9pt;
@@ -324,8 +332,8 @@
                             <td style="text-align: left;">
                                 <div style="font-weight: normal;">{{ $itemName }}</div>
                                 @if(!empty($keterangan) && $keterangan !== '-')
-                                    <div style="font-size: 9pt; color: #555; margin-top: 3px; font-style: italic;">
-                                        {{ $keterangan }}
+                                    <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                        {!! $keterangan !!}
                                     </div>
                                 @endif
                             </td>

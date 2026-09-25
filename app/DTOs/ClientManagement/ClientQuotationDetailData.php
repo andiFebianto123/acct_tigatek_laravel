@@ -14,6 +14,7 @@ class ClientQuotationDetailData
         public readonly float $total_price,
         public readonly float $unit_price_base,
         public readonly float $total_price_base,
+        public readonly ?string $reason = null,
     ) {}
 
     public static function fromArray(array $data, float $exchangeRate = 1.0): self
@@ -42,6 +43,7 @@ class ClientQuotationDetailData
             total_price: $total_price,
             unit_price_base: $unit_price_base,
             total_price_base: $total_price_base,
+            reason: $data['reason'] ?? null,
         );
     }
 
@@ -56,6 +58,7 @@ class ClientQuotationDetailData
             'total_price' => $this->total_price,
             'unit_price_base' => $this->unit_price_base,
             'total_price_base' => $this->total_price_base,
+            'reason' => $this->reason,
         ];
     }
 }

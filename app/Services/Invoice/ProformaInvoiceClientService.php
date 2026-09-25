@@ -168,6 +168,7 @@ class ProformaInvoiceClientService
                     ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
+                $invoice_item->reason = $item['reason'] ?? null;
 
                 $invoice_item->save();
             }

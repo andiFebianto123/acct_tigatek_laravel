@@ -138,6 +138,14 @@
         .col-price {
             white-space: nowrap;
         }
+        .item-keterangan p {
+            margin: 0 0 3px 0;
+        }
+        .item-keterangan ul, .item-keterangan ol {
+            margin: 0;
+            padding-left: 15px;
+            margin-bottom: 3px;
+        }
         
         .totals-table-container {
             width: 100%;
@@ -454,8 +462,8 @@
                         <td style="text-align: left;">
                             <div style="font-weight: normal;">{{ $item->name }}</div>
                             @if(!empty($item->keterangan) && $item->keterangan !== '-')
-                                <div style="font-size: 9pt; color: #555; margin-top: 3px; font-style: italic;">
-                                    {{ $item->keterangan }}
+                                <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                    {!! $item->keterangan !!}
                                 </div>
                             @endif
                         </td>

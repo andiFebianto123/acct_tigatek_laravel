@@ -379,6 +379,11 @@ class PurchaseOrderCrudController extends CrudController
 
         $entry = $this->crud->getEntryWithLocale($id);
         $entry->load('purchase_order_details.device_stock');
+        if ($entry->purchase_order_details) {
+            foreach ($entry->purchase_order_details as $d) {
+                $d->name_alias = $d->name_alias ?? '';
+            }
+        }
         $entry->purchase_order_details_edit = $entry->purchase_order_details;
         $this->data['entry'] = $entry;
 
@@ -957,17 +962,6 @@ class PurchaseOrderCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ],
-                        'attributes' => [
-                            'placeholder' => trans('backpack::crud.po.field.item.items.name_alias.placeholder') ?? 'Tulis Keterangan',
-                        ],
-                    ],
-                    [
                         'name' => 'qty',
                         'type' => 'number',
                         'label' => trans('backpack::crud.po.field.item.items.qty.label') ?? 'QTY',
@@ -986,7 +980,15 @@ class PurchaseOrderCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper' => [
-                            'class' => 'form-group col-md-10',
+                            'class' => 'form-group col-md-4',
+                        ],
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'tinymce_8',
+                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
                         ],
                     ],
                 ]
@@ -1015,17 +1017,6 @@ class PurchaseOrderCrudController extends CrudController
                         ]
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ],
-                        'attributes' => [
-                            'placeholder' => trans('backpack::crud.po.field.item.items.name_alias.placeholder') ?? 'Tulis Keterangan',
-                        ],
-                    ],
-                    [
                         'name' => 'qty',
                         'type' => 'number',
                         'label' => trans('backpack::crud.po.field.item.items.qty.label') ?? 'QTY',
@@ -1044,9 +1035,17 @@ class PurchaseOrderCrudController extends CrudController
                         'currency_name' => 'price_currency',
                         'default_currency' => 'IDR',
                         'wrapper'   => [
-                            'class' => 'form-group col-md-10'
+                            'class' => 'form-group col-md-4'
                         ],
-                    ]
+                    ],
+                    [
+                        'name' => 'name_alias',
+                        'type' => 'tinymce_8',
+                        'label' => trans('backpack::crud.po.field.item.items.name_alias.label') ?? 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
+                        ],
+                    ],
                 ]
             ]);
         }
