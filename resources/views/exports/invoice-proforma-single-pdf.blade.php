@@ -443,7 +443,7 @@
                         <td style="text-align: left;">
                             <div style="font-weight: normal;">{{ $item->name }}</div>
                             @if(!empty($item->keterangan) && $item->keterangan !== '-')
-                                <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                <div class="item-keterangan" style="font-size: 9pt; color: #000; margin-top: 3px;">
                                     {!! $item->keterangan !!}
                                 </div>
                             @endif

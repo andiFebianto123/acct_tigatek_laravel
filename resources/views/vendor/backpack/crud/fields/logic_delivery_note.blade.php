@@ -13,6 +13,57 @@
     >
 @include('crud::fields.inc.wrapper_end')
 
+<style>
+    #table-invoice-items {
+        table-layout: fixed !important;
+        width: 100% !important;
+        margin-bottom: 0;
+    }
+    #table-invoice-items td, #table-invoice-items th {
+        vertical-align: middle;
+        overflow: hidden;
+        word-wrap: break-word;
+    }
+    #table-invoice-items .select2-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #table-invoice-items .select2-selection--single {
+        height: 31px !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    #table-invoice-items .select2-selection__rendered {
+        line-height: 29px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        padding-right: 35px !important;
+        display: block !important;
+        width: 100% !important;
+    }
+    #table-invoice-items .select2-selection__clear {
+        position: absolute !important;
+        right: 20px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        font-weight: bold !important;
+        cursor: pointer !important;
+        float: none !important;
+    }
+    #table-invoice-items .select2-selection__arrow {
+        height: 29px !important;
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        right: 1px !important;
+    }
+</style>
+
 @push('crud_fields_scripts')
     <script>
         if (typeof window.DeliveryNoteLogicManager === 'undefined') {
@@ -163,7 +214,7 @@
 
                     var rowHtml = '<tr data-row-index="' + idx + '">' +
                         '<td class="text-center row-number-cell" style="vertical-align:middle; width:40px;">' + ($tbody.find('tr').length + 1) + '</td>' +
-                        '<td style="width:35%;">' +
+                        '<td style="width:38%;">' +
                             '<select name="' + selectStockName + '" class="form-control select2-stock-item" style="width:100%;">' +
                                 '<option></option>' +
                             '</select>' +
@@ -171,10 +222,10 @@
                         '<td>' +
                             '<input type="text" name="' + descName + '" class="form-control form-control-sm" value="' + ($('<div>').text(descVal).html()) + '" placeholder="' + '{{ trans("backpack::crud.delivery_note.field.items.description_placeholder") }}' + '">' +
                         '</td>' +
-                        '<td class="text-center" style="width:100px;">' +
+                        '<td class="text-center" style="width:90px;">' +
                             '<input type="number" name="' + qtyName + '" class="form-control form-control-sm text-center" value="' + qtyVal + '" min="1">' +
                         '</td>' +
-                        '<td class="text-center" style="vertical-align:middle; width:60px;">' +
+                        '<td class="text-center" style="vertical-align:middle; width:50px;">' +
                             '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-dn-row" title="Hapus"><i class="la la-trash"></i></button>' +
                         '</td>' +
                     '</tr>';

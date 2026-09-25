@@ -436,7 +436,7 @@
                             <td style="text-align: left;">
                                 {!! nl2br(e($itemName)) !!}
                                 @if(!empty($detail->reason) && $detail->reason !== '-')
-                                    <div class="item-keterangan" style="font-size: 9pt; color: #555; margin-top: 3px;">
+                                    <div class="item-keterangan" style="font-size: 9pt; color: #000; margin-top: 3px;">
                                         {!! $detail->reason !!}
                                     </div>
                                 @endif
