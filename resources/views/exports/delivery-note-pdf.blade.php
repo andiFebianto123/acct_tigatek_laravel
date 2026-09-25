@@ -229,9 +229,9 @@
         </table>
     </div>
 
-    <!-- Title Surat Jalan -->
+    <!-- Title Delivery Note -->
     <div class="sj-title-container">
-        <div class="sj-title">SURAT JALAN</div>
+        <div class="sj-title">DELIVERY NOTE</div>
         <div class="sj-subtitle">No : {{ $entry->number ?? '-' }}</div>
     </div>
 
@@ -320,8 +320,8 @@
     <div class="notice-section">
         <div class="notice-title">Perhatian :</div>
         <ol class="notice-list">
-            <li>Surat Jalan ini merupakan bukti resmi penerimaan barang</li>
-            <li>Surat Jalan ini bukan bukti penjualan</li>
+            <li>Delivery Note ini merupakan bukti resmi penerimaan barang</li>
+            <li>Delivery Note ini bukan bukti penjualan</li>
         </ol>
     </div>
 

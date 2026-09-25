@@ -254,7 +254,7 @@ return [
         'setting_system' => 'Pengaturan Sistem',
         'voucher_payment_plan' => 'Rencana Pembayaran',
         'tracker' => 'Monitoring Tracker',
-        'delivery_note' => 'Surat Jalan',
+        'delivery_note' => 'Delivery Note',
         'bast' => 'BAST',
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
@@ -288,7 +288,7 @@ return [
         'spk_prefix' => 'SPK Prefix',
         'voucher_prefix' => 'Voucher Prefix',
         'invoice_prefix' => 'Invoice Prefix',
-        'surat_jalan_prefix' => 'Surat Jalan Prefix',
+        'surat_jalan_prefix' => 'Delivery Note Prefix',
         'bast_prefix' => 'BAST Prefix',
         'company_name' => 'Nama Perusahaan',
         'city' => 'Kota/Kabupaten',
@@ -619,7 +619,7 @@ return [
             'date_po' => 'Tanggal PO',
         ],
         'error' => [
-            'has_delivery_notes' => 'Client PO tidak dapat dihapus karena masih digunakan pada Surat Jalan (Delivery Note).',
+            'has_delivery_notes' => 'Client PO tidak dapat dihapus karena masih digunakan pada Delivery Note.',
             'has_basts' => 'Client PO tidak dapat dihapus karena masih digunakan pada BAST.',
             'has_invoices' => 'Client PO tidak dapat dihapus karena sudah memiliki Invoice Client terkait.',
             'has_relations' => 'Client PO tidak dapat dihapus karena masih digunakan pada modul lain (:relations).',
@@ -714,7 +714,7 @@ return [
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
     ],
     'delivery_note' => [
-        'title_header' => 'Surat Jalan',
+        'title_header' => 'Delivery Note',
         'column' => [
             'number' => 'Nomer',
             'date' => 'Tanggal',
@@ -768,8 +768,8 @@ return [
                 'label' => 'Tanggal',
             ],
             'number' => [
-                'label' => 'No. Surat Jalan',
-                'placeholder' => 'Masukkan nomor surat jalan',
+                'label' => 'No. Delivery Note',
+                'placeholder' => 'Masukkan nomor delivery note',
             ],
             'items' => [
                 'header' => 'Daftar Item Barang / Pekerjaan',
@@ -783,8 +783,8 @@ return [
             ],
             'stock_insufficient' => 'Stok barang \':name\' tidak mencukupi. (Stok tersedia: :available, Dibutuhkan: :needed).',
             'at_least_one_item' => 'Minimal 1 item barang harus diisi.',
-            'cannot_edit_billed' => 'Surat Jalan tidak dapat diubah karena sudah diterbitkan Invoice Client-nya.',
-            'cannot_delete_billed' => 'Surat Jalan tidak dapat dihapus karena sudah terhubung ke Invoice Client. Hapus Invoice Client terkait terlebih dahulu.',
+            'cannot_edit_billed' => 'Delivery Note tidak dapat diubah karena sudah diterbitkan Invoice Client-nya.',
+            'cannot_delete_billed' => 'Delivery Note tidak dapat dihapus karena sudah terhubung ke Invoice Client. Hapus Invoice Client terkait terlebih dahulu.',
             'description' => [
                 'label' => 'Deskripsi / Item',
                 'placeholder' => 'Masukkan deskripsi item barang',
@@ -1035,7 +1035,7 @@ return [
         'count_include_ppn' => 'Jml nilai pekerjaan incld PPn',
         'count_exclude_ppn' => 'Jml nilai pekerjaan excld PPn',
         'error' => [
-            'has_delivery_notes' => 'Penawaran tidak dapat dihapus karena masih digunakan pada Surat Jalan (Delivery Note).',
+            'has_delivery_notes' => 'Penawaran tidak dapat dihapus karena masih digunakan pada Delivery Note.',
         ],
     ],
     'invoice_client' => [
@@ -1064,16 +1064,16 @@ return [
             'withholding_agent' => 'Wajib Pungut',
         ],
         'error' => [
-            'cannot_edit_delivery_note_exists' => 'Invoice tidak dapat diubah karena Surat Jalan (Delivery Note) sudah diterbitkan.',
-            'cannot_delete_delivery_note_exists' => 'Invoice tidak dapat dihapus karena Surat Jalan (Delivery Note) masih terhubung. Hapus Surat Jalan terlebih dahulu.',
-            'delivery_note_already_billed' => 'Surat Jalan terpilih sudah diterbitkan Invoicenya pada transaksi lain.',
-            'client_mismatch' => 'Pelanggan (Client) pada Invoice harus sama dengan Pelanggan pada Surat Jalan terpilih.',
+            'cannot_edit_delivery_note_exists' => 'Invoice tidak dapat diubah karena Delivery Note sudah diterbitkan.',
+            'cannot_delete_delivery_note_exists' => 'Invoice tidak dapat dihapus karena Delivery Note masih terhubung. Hapus Delivery Note terlebih dahulu.',
+            'delivery_note_already_billed' => 'Delivery Note terpilih sudah diterbitkan Invoicenya pada transaksi lain.',
+            'client_mismatch' => 'Pelanggan (Client) pada Invoice harus sama dengan Pelanggan pada Delivery Note terpilih.',
             'stock_insufficient_delta' => 'Stok barang \':name\' tidak mencukupi untuk penambahan kuantitas di Invoice. (Stok tersedia: :available, Dibutuhkan tambahan: :needed).',
         ],
         'field' => [
             'delivery_note_id' => [
-                'label' => 'No. Surat Jalan',
-                'placeholder' => '- PILIH SURAT JALAN (OPSIONAL) -',
+                'label' => 'No. Delivery Note',
+                'placeholder' => '- PILIH DELIVERY NOTE (OPSIONAL) -',
             ],
             'invoice_number' => [
                 'label' => 'No. Invoice',

@@ -691,12 +691,12 @@ class InvoiceClientCrudController extends CrudController
                 $hasDelivery = \App\Models\DeliveryNote::where('invoice_client_id', $entry->id)->exists();
                 if ($hasDelivery) {
                     return $status_file !== null 
-                        ? 'Surat Jalan Terbit (FIFO Posted)' 
-                        : '<span class="badge bg-success text-white" title="Stok sudah dipotong via Surat Jalan"><i class="la la-truck"></i> Dikirim (FIFO)</span>';
+                        ? 'Delivery Note Terbit (FIFO Posted)' 
+                        : '<span class="badge bg-success text-white" title="Stok sudah dipotong via Delivery Note"><i class="la la-truck"></i> Dikirim (FIFO)</span>';
                 }
                 return $status_file !== null 
                     ? 'Draft Stok' 
-                    : '<span class="badge bg-warning text-dark" title="Belum terbit Surat Jalan (Stok belum dipotong)"><i class="la la-clock"></i> Draft Stok</span>';
+                    : '<span class="badge bg-warning text-dark" title="Belum terbit Delivery Note (Stok belum dipotong)"><i class="la la-clock"></i> Draft Stok</span>';
             },
             'escaped' => false,
         ]);
@@ -2883,7 +2883,7 @@ class InvoiceClientCrudController extends CrudController
         $deliveryNote   = \App\Models\DeliveryNote::with(['details.device_stock', 'client', 'client_po'])->find($deliveryNoteId);
 
         if (!$deliveryNote) {
-            return response()->json(['success' => false, 'message' => 'Surat Jalan tidak ditemukan'], 404);
+            return response()->json(['success' => false, 'message' => 'Delivery Note tidak ditemukan'], 404);
         }
 
         // Cari Client PO baik dari kolom client_po_id langsung maupun dari reference_type / reference_id

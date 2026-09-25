@@ -198,7 +198,7 @@ class DeliveryNoteCrudController extends CrudController
         
         $breadcrumbs = [
             'Client' => backpack_url('client'),
-            'Surat Jalan' => backpack_url($this->crud->route)
+            'Delivery Note' => backpack_url($this->crud->route)
         ];
         $this->data['breadcrumbs'] = $breadcrumbs;
         $this->data['year_options'] = CustomHelper::getYearOptions('delivery_notes', 'date');
@@ -422,7 +422,7 @@ class DeliveryNoteCrudController extends CrudController
             $all_items[] = $row_items;
         }
 
-        $title = "DAFTAR SURAT JALAN";
+        $title = "DAFTAR DELIVERY NOTE";
 
         $pdf = Pdf::loadView('exports.table-pdf', [
             'columns' => $columns,
@@ -430,7 +430,7 @@ class DeliveryNoteCrudController extends CrudController
             'title' => $title
         ])->setPaper('A4', 'landscape');
 
-        $fileName = 'surat_jalan_' . now()->format('Ymd_His') . '.pdf';
+        $fileName = 'delivery_note_' . now()->format('Ymd_His') . '.pdf';
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
@@ -464,7 +464,7 @@ class DeliveryNoteCrudController extends CrudController
             $all_items[] = $row_items;
         }
 
-        $name = 'DAFTAR SURAT JALAN';
+        $name = 'DAFTAR DELIVERY NOTE';
 
         return response()->streamDownload(function () use ($columns, $items, $all_items) {
             echo Excel::raw(new ExportExcel(

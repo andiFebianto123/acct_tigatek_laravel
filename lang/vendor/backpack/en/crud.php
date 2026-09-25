@@ -210,7 +210,7 @@ return [
 
     'menu' => [
         'tracker' => 'Monitoring Tracker',
-        'delivery_note' => 'Surat Jalan',
+        'delivery_note' => 'Delivery Note',
         'bast' => 'BAST',
         'billing_device' => 'Billing Device',
         'billing_simcard' => 'Billing SIMCARD',
@@ -244,7 +244,7 @@ return [
         'spk_prefix' => 'SPK Prefix',
         'voucher_prefix' => 'Voucher Prefix',
         'invoice_prefix' => 'Invoice Prefix',
-        'surat_jalan_prefix' => 'Surat Jalan Prefix',
+        'surat_jalan_prefix' => 'Delivery Note Prefix',
         'bast_prefix' => 'BAST Prefix',
         'company_name' => 'Company Name',
         'city' => 'City',
