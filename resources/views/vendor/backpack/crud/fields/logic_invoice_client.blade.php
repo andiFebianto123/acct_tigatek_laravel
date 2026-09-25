@@ -449,7 +449,6 @@
                     });
 
                     var entry = {!! json_encode($set_value) !!};
-                    console.log(entry);
                     var hasNotificationId = {!! request()->has('notification_id') ? 'true' : 'false' !!};
 
                     if (hasNotificationId && entry != null) {
