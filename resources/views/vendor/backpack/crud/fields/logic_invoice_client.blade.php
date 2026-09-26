@@ -58,14 +58,14 @@
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
                     var str = val.toString().trim();
-                    // Jika data awal dari DB mengandung format desimal murni .00 atau .0000 (tanpa pemisah ribuan)
-                    if (isInitial && str.indexOf('.') !== -1 && !str.includes(',')) {
-                        var parts = str.split('.');
-                        if (parts.length === 2 && /^0+$/.test(parts[1])) {
-                            str = parts[0];
-                        }
+                    var isDbFloat = /^-?\d+\.\d+$/.test(str);
+                    var workingVal = isDbFloat ? str.replace('.', ',') : str;
+                    var clean = workingVal.replace(/\./g, '').replace(',', '.');
+                    var parts = clean.replace(/[^\d.-]/g, '').split('.');
+                    if (parts.length > 1) {
+                        return parts[0] + '.' + parts[1].substring(0, 2);
                     }
-                    return str.replace(/[^\d-]/g, '');
+                    return parts[0];
                 }
 
                 cleanValue(val, currency, isInitial = false) {

@@ -261,7 +261,8 @@ class CustomHelper
         }
 
         // Default IDR
-        return 'Rp ' . number_format($numericAmount, 0, ',', '.');
+        $decimals = (fmod((float)$numericAmount, 1) != 0) ? 2 : 0;
+        return 'Rp ' . number_format($numericAmount, $decimals, ',', '.');
     }
 
     // update or create journal_entry

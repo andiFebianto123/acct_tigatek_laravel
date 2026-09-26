@@ -43,13 +43,14 @@
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
                     var str = val.toString().trim();
-                    if (isInitial && str.includes('.')) {
-                        var num = parseFloat(str);
-                        if (!isNaN(num)) {
-                            return Math.round(num).toString();
-                        }
+                    var isDbFloat = /^-?\d+\.\d+$/.test(str);
+                    var workingVal = isDbFloat ? str.replace('.', ',') : str;
+                    var clean = workingVal.replace(/\./g, '').replace(',', '.');
+                    var parts = clean.replace(/[^\d.-]/g, '').split('.');
+                    if (parts.length > 1) {
+                        return parts[0] + '.' + parts[1].substring(0, 2);
                     }
-                    return str.replace(/[^\d-]/g, '');
+                    return parts[0];
                 }
 
                 cleanValue(val, currency, isInitial = false) {

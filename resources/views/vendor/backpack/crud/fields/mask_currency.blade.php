@@ -7,7 +7,11 @@
 
     // Ambil nilai nominal (prioritas: old() -> entry model -> value -> default)
     $amount_value = old($name) ?? $entry->{$name} ?? $field['value'] ?? $field['default'] ?? '';
-    $amount_value = preg_replace('/\.00$/', '', (string)$amount_value);
+    if (is_numeric($amount_value)) {
+        $amount_value = ((float)$amount_value == (int)$amount_value) ? (string)(int)$amount_value : (string)(float)$amount_value;
+    } else {
+        $amount_value = preg_replace('/\.00$/', '', (string)$amount_value);
+    }
 
     // Ambil nilai currency (prioritas: old() -> entry model -> currency_code -> default_currency)
     $currency_value = old($currency_name) ?? $entry->{$currency_name} ?? $entry->currency_code ?? $field['default_currency'] ?? 'IDR';
@@ -75,15 +79,33 @@
             let isNegative = val.startsWith('-');
 
             if (currency === 'IDR') {
-                let digits = val.replace(/[^\d]/g, '');
-                if (!digits) return '';
-                let sisa = digits.length % 3;
-                let rupiah = digits.substr(0, sisa);
-                let ribuan = digits.substr(sisa).match(/\d{3}/g);
+                // Deteksi apakah input berupa format float database (misal: "15000000.50" dari DB)
+                let isDbFloat = /^-?\d+\.\d+$/.test(val);
+                let workingVal = isDbFloat ? val.replace('.', ',') : val;
+
+                let hasCommaDecimal = workingVal.includes(',');
+                let clean = workingVal.replace(/\./g, '').replace(',', '.');
+                let cleanDigits = clean.replace(/[^\d.]/g, '');
+                let parts = cleanDigits.split('.');
+
+                let integerPart = parts[0] || '';
+                let sisa = integerPart.length % 3;
+                let rupiah = integerPart.substr(0, sisa);
+                let ribuan = integerPart.substr(sisa).match(/\d{3}/g);
                 if (ribuan) {
                     let separator = sisa ? '.' : '';
                     rupiah += separator + ribuan.join('.');
                 }
+
+                if (!rupiah && !hasCommaDecimal) return '';
+
+                if (parts.length > 1) {
+                    let decimalPart = parts[1].substring(0, 2);
+                    return (isNegative ? '-' : '') + (rupiah || '0') + ',' + decimalPart;
+                } else if (hasCommaDecimal) {
+                    return (isNegative ? '-' : '') + (rupiah || '0') + ',';
+                }
+
                 return (isNegative ? '-' : '') + rupiah;
 
             } else if (currency === 'EUR') {
@@ -190,8 +212,16 @@
                 val = val.toString().trim();
 
                 if (currency === 'IDR') {
-                    // IDR: Titik adalah pemisah ribuan, hapus titik dan semua non-digit
-                    return val.replace(/[^\d-]/g, '');
+                    // IDR: Titik adalah pemisah ribuan, koma adalah pemisah desimal
+                    let isDbFloat = /^-?\d+\.\d+$/.test(val);
+                    let workingVal = isDbFloat ? val.replace('.', ',') : val;
+
+                    let clean = workingVal.replace(/\./g, '').replace(',', '.');
+                    let parts = clean.replace(/[^\d.-]/g, '').split('.');
+                    if (parts.length > 1) {
+                        return parts[0] + '.' + parts[1].substring(0, 2);
+                    }
+                    return parts[0];
                 } else if (currency === 'EUR') {
                     // EUR: Titik adalah ribuan, koma adalah desimal
                     let clean = val.replace(/\./g, '').replace(',', '.');
