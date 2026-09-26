@@ -387,6 +387,8 @@ class PurchaseOrderCrudController extends CrudController
         $entry->purchase_order_details_edit = $entry->purchase_order_details;
         $this->data['entry'] = $entry;
 
+        // dd($this->data['entry']);
+
         $this->crud->setOperationSetting('fields', $this->crud->getUpdateFields());
 
         $this->data['crud'] = $this->crud;

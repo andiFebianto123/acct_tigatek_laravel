@@ -112,12 +112,14 @@ class ProformaInvoiceService
     private function parseItemPrice(mixed $val, string $currencyCode): float
     {
         if ($val === null || $val === '') return 0.0;
-        if (is_numeric($val)) return (float) $val;
+        if (is_numeric($val)) return round((float) $val, 2);
         $str = (string) $val;
         if (strtoupper($currencyCode) === 'USD') {
-            return (float) str_replace(',', '', $str);
+            return round((float) str_replace(',', '', $str), 2);
         }
-        return (float) str_replace('.', '', $str);
+        $str = str_replace('.', '', $str);
+        $str = str_replace(',', '.', $str);
+        return round((float) $str, 2);
     }
 
     private function saveDetails(ProformaInvoice $invoice, array $details): void

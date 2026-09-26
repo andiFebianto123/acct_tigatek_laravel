@@ -147,9 +147,7 @@
                             totalSum += (qty * (price || 0));
                         });
 
-                        if (activeCurr === 'IDR') {
-                            totalSum = Math.round(totalSum);
-                        }
+                        totalSum = Number(totalSum.toFixed(2));
 
                         var $jobValueHidden = $form.find('#job_value, input[name="job_value"]');
                         var $jobValueMasked = $form.find('#job_value_masked, input[data-alt="job_value_masked"]');
@@ -330,9 +328,7 @@
                                             }
                                             var activeCurr = $form.find('select[name="currency_code"]').val() || 'IDR';
                                             var rawPriceFromDb = parseFloat(itemData.price || 0);
-                                            if (activeCurr === 'IDR') {
-                                                rawPriceFromDb = Math.round(rawPriceFromDb);
-                                            }
+                                            rawPriceFromDb = Number(rawPriceFromDb.toFixed(2));
                                             $priceHidden.val(rawPriceFromDb);
                                             if ($priceMasked.length && typeof window.formatCurrency === 'function') {
                                                 $priceMasked.val(window.formatCurrency(rawPriceFromDb, activeCurr));
@@ -362,9 +358,7 @@
                                 ? parseFloat(data.buy_price) 
                                 : (data.sell_price !== undefined ? parseFloat(data.sell_price) : 0);
 
-                            if (activeCurr === 'IDR') {
-                                priceVal = Math.round(priceVal);
-                            }
+                            priceVal = Number(priceVal.toFixed(2));
 
                             if (priceVal > 0) {
                                 $priceHidden.val(priceVal);

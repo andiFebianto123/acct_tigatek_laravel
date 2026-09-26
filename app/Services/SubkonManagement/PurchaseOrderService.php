@@ -220,13 +220,15 @@ class PurchaseOrderService
     private function parseItemPrice($val, string $currencyCode = 'IDR'): float
     {
         if (is_numeric($val)) {
-            return (float) $val;
+            return round((float) $val, 2);
         }
         $str = (string) ($val ?? 0);
         if (strtoupper($currencyCode) === 'USD') {
-            return (float) str_replace(',', '', $str);
+            return round((float) str_replace(',', '', $str), 2);
         }
-        return (float) str_replace('.', '', $str);
+        $str = str_replace('.', '', $str);
+        $str = str_replace(',', '.', $str);
+        return round((float) $str, 2);
     }
 
     private function saveDetails(PurchaseOrder $po, array $details): void

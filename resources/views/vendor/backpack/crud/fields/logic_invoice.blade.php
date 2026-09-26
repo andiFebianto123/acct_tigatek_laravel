@@ -19,7 +19,8 @@
     <script>
         if (typeof setInputNumberCurrency === "undefined") {
             function setInputNumberCurrency(selected, value, curr = 'IDR') {
-                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
+                let num = parseFloat(value) || 0;
+                let cleanVal = Number(num.toFixed(2));
                 let nominal = (typeof window.formatCurrency === 'function')
                     ? window.formatCurrency(cleanVal, curr)
                     : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
@@ -53,15 +54,35 @@
 
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
-                    var str = val.toString().trim();
-                    var isDbFloat = /^-?\d+\.\d+$/.test(str);
-                    var workingVal = isDbFloat ? str.replace('.', ',') : str;
-                    var clean = workingVal.replace(/\./g, '').replace(',', '.');
-                    var parts = clean.replace(/[^\d.-]/g, '').split('.');
-                    if (parts.length > 1) {
-                        return parts[0] + '.' + parts[1].substring(0, 2);
+                    let str = val.toString().trim();
+                    let isNegative = str.startsWith('-');
+                    str = str.replace(/^-/, '');
+
+                    let integerPart = '';
+                    let decimalPart = null;
+
+                    if (str.includes(',')) {
+                        let clean = str.replace(/\./g, '');
+                        let parts = clean.split(',');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else if (/^\d+\.\d+$/.test(str) && !/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                        let parts = str.split('.');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else {
+                        integerPart = str.replace(/[^\d]/g, '');
                     }
-                    return parts[0];
+
+                    if (!integerPart && (decimalPart === null || decimalPart === '')) {
+                        return '';
+                    }
+
+                    let raw = (integerPart || '0');
+                    if (decimalPart !== null && decimalPart !== '') {
+                        raw += '.' + decimalPart;
+                    }
+                    return (isNegative ? '-' : '') + raw;
                 }
 
                 cleanValue(val, currency, isInitial = false) {
@@ -99,9 +120,9 @@
                     var curr = $(this.form + ' select[name="currency_code"]').val() || 'IDR';
                     var symbol = (curr === 'USD' ? '$' : 'Rp');
 
-                    // Delegated listener untuk seluruh input QTY
-                    $(this.form).off('input change keyup', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]')
-                               .on('input change keyup', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]', function() {
+                    // Delegated listener untuk seluruh input QTY dan Price
+                    $(this.form).off('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[name*="[price]"]')
+                               .on('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[name*="[price]"]', function() {
                         if (typeof self.onCalculate === 'function') self.onCalculate();
                     });
 
@@ -116,44 +137,38 @@
                         self.syncRowCurrency($row, curr, symbol);
 
                         var initialVal = $hiddenInput.val() || $maskedInput.val() || '';
-                        if (initialVal) {
+                        if (initialVal && !$maskedInput.val()) {
                             var cleanInitial = self.cleanValue(initialVal, curr, true);
                             $hiddenInput.val(cleanInitial);
                             if (typeof window.formatCurrency === 'function') {
                                 $maskedInput.val(window.formatCurrency(cleanInitial, curr));
                             }
                         }
-
-                        $maskedInput.off('input change keyup.custom_repeat').on('input change keyup.custom_repeat', function() {
-                            var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
-                            var rawVal = $(this).val() || '';
-                            var clean = self.cleanValue(rawVal, activeCurrency, false);
-
-                            $hiddenInput.val(clean);
-                            if (typeof window.formatCurrency === 'function') {
-                                $(this).val(window.formatCurrency(clean, activeCurrency));
-                            }
-                            if (typeof self.onCalculate === 'function') self.onCalculate();
-                        });
                     });
                 }
 
                 calculateTotalItems() {
+                    var self = this;
                     var total_price = 0;
-                    $(this.form + ' input[data-alt="price_masked"]').each(function() {
-                        var price_origin_field = $(this).parent().next();
-                        if (!price_origin_field.length) {
-                            price_origin_field = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row')
-                                                      .find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                    var curr = $(this.form + ' select[name="currency_code"]').val() || 'IDR';
+
+                    $(this.form + ' [data-repeatable-holder]').children().each(function() {
+                        var $row = $(this);
+                        var $masked = $row.find('input[data-alt="price_masked"]');
+                        var $hidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                        if (!$hidden.length) {
+                            $hidden = $masked.parent().next('input[type="hidden"]');
                         }
-                        var price_origin = Number(price_origin_field.val() || 0);
 
-                        var row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
-                        var qty = Number(row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1);
+                        var priceVal = 0;
+                        var rawValue = ($hidden.length && $hidden.val() !== '') ? $hidden.val() : ($masked.length ? $masked.val() : '0');
+                        priceVal = parseFloat(self.cleanValue(rawValue, curr, false)) || 0;
 
-                        total_price += (price_origin * qty);
+                        var qtyVal = parseFloat($row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1) || 1;
+
+                        total_price += (priceVal * qtyVal);
                     });
-                    return total_price;
+                    return Number(total_price.toFixed(2));
                 }
 
                 convertAllItems(previousCurrency, newCurrency, usdRate) {
@@ -619,25 +634,43 @@
                     }
 
                     function populateDeviceStockSelect2() {
-                        var details = (entry && (entry.proforma_invoice_details_edit || entry.proforma_invoice_details)) ? (entry.proforma_invoice_details_edit || entry.proforma_invoice_details) : null;
+                        var details = (entry && (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit)) ? (entry.proforma_invoice_details_edit || entry.proforma_invoice_details || entry.proforma_invoice_client_details || entry.proforma_invoice_client_details_edit) : null;
                         if (details && Array.isArray(details)) {
                             $(form + ' [data-repeatable-holder]').children().each(function(index, el) {
                                 var itemData = details[index];
                                 if (itemData) {
                                     var $select = $(el).find('select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]');
                                     if ($select.length) {
-                                        var refId = itemData.reference_id;
+                                        var refId = itemData.reference_id || itemData.device_stock_id;
                                         var refName = (itemData.device_stock && itemData.device_stock.name) ? itemData.device_stock.name : itemData.name;
                                         if (refId && refName) {
                                             if ($select.find("option[value='" + refId + "']").length === 0) {
                                                 var newOption = new Option(refName, refId, true, true);
-                                                $select.append(newOption).trigger('change');
+                                                $select.append(newOption);
+                                                $select.val(refId).trigger('change.select2');
                                             }
                                         } else if (refName) {
                                             if ($select.find("option[value='" + refName + "']").length === 0) {
                                                 var newOption = new Option(refName, refName, true, true);
-                                                $select.append(newOption).trigger('change');
+                                                $select.append(newOption);
+                                                $select.val(refName).trigger('change.select2');
                                             }
+                                        }
+                                    }
+
+                                    // Preservasi dan format harga dari DB (itemData.price) tanpa tertimpa harga master
+                                    if (itemData.price !== undefined && itemData.price !== null) {
+                                        var $priceMasked = $(el).find('input[data-alt="price_masked"]');
+                                        var $priceHidden = $(el).find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                                        if (!$priceHidden.length) {
+                                            $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
+                                        }
+                                        var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
+                                        var rawPriceFromDb = parseFloat(itemData.price || 0);
+                                        rawPriceFromDb = Number(rawPriceFromDb.toFixed(2));
+                                        $priceHidden.val(rawPriceFromDb);
+                                        if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                                            $priceMasked.val(window.formatCurrency(rawPriceFromDb, activeCurr));
                                         }
                                     }
                                 }
@@ -648,7 +681,7 @@
                     $(form).off('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]')
                            .on('select2:select.device_stock', 'select[data-repeatable-input-name="reference_id"], select[name*="[reference_id]"]', function(e) {
                         var data = e.params ? e.params.data : null;
-                        if (data && data.sell_price !== undefined) {
+                        if (data && (data.sell_price !== undefined || data.buy_price !== undefined)) {
                             var $row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
                             var $priceMasked = $row.find('input[data-alt="price_masked"]');
                             var $priceHidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
@@ -656,12 +689,17 @@
                                 $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
                             }
                             var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
-                            var priceVal = data.sell_price;
-                            $priceHidden.val(priceVal);
-                            if (typeof window.formatCurrency === 'function') {
-                                $priceMasked.val(window.formatCurrency(priceVal, activeCurr));
-                            } else {
-                                $priceMasked.val(priceVal);
+                            var priceVal = (data.sell_price !== undefined && data.sell_price !== null) 
+                                ? parseFloat(data.sell_price) 
+                                : (data.buy_price !== undefined ? parseFloat(data.buy_price) : 0);
+                            priceVal = Number(priceVal.toFixed(2));
+                            if (priceVal > 0) {
+                                $priceHidden.val(priceVal);
+                                if (typeof window.formatCurrency === 'function') {
+                                    $priceMasked.val(window.formatCurrency(priceVal, activeCurr));
+                                } else {
+                                    $priceMasked.val(priceVal);
+                                }
                             }
                             countTotalPrice();
                         }
@@ -806,15 +844,20 @@
                                         $hiddenDeviceStockId.val(selected.id);
                                     }
 
-                                    if (selected.sell_price !== undefined) {
+                                    if (selected.sell_price !== undefined || selected.buy_price !== undefined) {
                                         var $priceHidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"]').last();
                                         var $priceMasked = $row.find('input[data-alt="price_masked"]');
                                         var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
 
-                                        var priceVal = parseFloat(selected.sell_price) || 0;
-                                        if ($priceHidden.length) $priceHidden.val(priceVal);
-                                        if ($priceMasked.length && typeof window.formatCurrency === 'function') {
-                                            $priceMasked.val(window.formatCurrency(priceVal, activeCurrency)).trigger('change');
+                                        var priceVal = (selected.sell_price !== undefined && selected.sell_price !== null) 
+                                            ? parseFloat(selected.sell_price) 
+                                            : (selected.buy_price !== undefined ? parseFloat(selected.buy_price) : 0);
+                                        priceVal = Number(priceVal.toFixed(2));
+                                        if (priceVal > 0) {
+                                            if ($priceHidden.length) $priceHidden.val(priceVal);
+                                            if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                                                $priceMasked.val(window.formatCurrency(priceVal, activeCurrency)).trigger('change');
+                                            }
                                         }
                                         countTotalPrice();
                                     }

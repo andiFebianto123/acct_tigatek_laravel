@@ -19,7 +19,8 @@
     <script>
         if (typeof setInputNumberCurrency === "undefined") {
             function setInputNumberCurrency(selected, value, curr = 'IDR') {
-                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
+                let num = parseFloat(value) || 0;
+                let cleanVal = Number(num.toFixed(2));
                 let nominal = (typeof window.formatCurrency === 'function')
                     ? window.formatCurrency(cleanVal, curr)
                     : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
@@ -53,15 +54,35 @@
 
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
-                    var str = val.toString().trim();
-                    var isDbFloat = /^-?\d+\.\d+$/.test(str);
-                    var workingVal = isDbFloat ? str.replace('.', ',') : str;
-                    var clean = workingVal.replace(/\./g, '').replace(',', '.');
-                    var parts = clean.replace(/[^\d.-]/g, '').split('.');
-                    if (parts.length > 1) {
-                        return parts[0] + '.' + parts[1].substring(0, 2);
+                    let str = val.toString().trim();
+                    let isNegative = str.startsWith('-');
+                    str = str.replace(/^-/, '');
+
+                    let integerPart = '';
+                    let decimalPart = null;
+
+                    if (str.includes(',')) {
+                        let clean = str.replace(/\./g, '');
+                        let parts = clean.split(',');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else if (/^\d+\.\d+$/.test(str) && !/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                        let parts = str.split('.');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else {
+                        integerPart = str.replace(/[^\d]/g, '');
                     }
-                    return parts[0];
+
+                    if (!integerPart && (decimalPart === null || decimalPart === '')) {
+                        return '';
+                    }
+
+                    let raw = (integerPart || '0');
+                    if (decimalPart !== null && decimalPart !== '') {
+                        raw += '.' + decimalPart;
+                    }
+                    return (isNegative ? '-' : '') + raw;
                 }
 
                 cleanValue(val, currency, isInitial = false) {
@@ -116,25 +137,13 @@
                         self.syncRowCurrency($row, curr, symbol);
 
                         var initialVal = $hiddenInput.val() || $maskedInput.val() || '';
-                        if (initialVal) {
+                        if (initialVal && !$maskedInput.val()) {
                             var cleanInitial = self.cleanValue(initialVal, curr, true);
                             $hiddenInput.val(cleanInitial);
                             if (typeof window.formatCurrency === 'function') {
                                 $maskedInput.val(window.formatCurrency(cleanInitial, curr));
                             }
                         }
-
-                        $maskedInput.off('input change keyup.custom_repeat').on('input change keyup.custom_repeat', function() {
-                            var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
-                            var rawVal = $(this).val() || '';
-                            var clean = self.cleanValue(rawVal, activeCurrency, false);
-
-                            $hiddenInput.val(clean);
-                            if (typeof window.formatCurrency === 'function') {
-                                $(this).val(window.formatCurrency(clean, activeCurrency));
-                            }
-                            if (typeof self.onCalculate === 'function') self.onCalculate();
-                        });
                     });
                 }
 
@@ -544,7 +553,7 @@
 
                                 // 3. Update Nominal Exclude PPn dari job_value
                                 var rawJobValue = (poData.job_value !== undefined && poData.job_value !== null) ? poData.job_value : 0;
-                                var cleanJobValue = (activeCurr === 'IDR') ? Math.round(parseFloat(rawJobValue) || 0) : (parseFloat(rawJobValue) || 0);
+                                var cleanJobValue = Number((parseFloat(rawJobValue) || 0).toFixed(2));
 
                                 var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
                                 var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
@@ -802,7 +811,7 @@
 
                         // Auto-fill harga jual ke field price
                         var activeCurr = $(self.form + ' select[name="currency_code"]').val() || 'IDR';
-                        var cleanPrice = (activeCurr === 'IDR') ? Math.round(sellPrice) : sellPrice;
+                        var cleanPrice = Number((parseFloat(sellPrice) || 0).toFixed(2));
                         var formattedPrice = (typeof window.formatCurrency === 'function')
                             ? window.formatCurrency(cleanPrice, activeCurr)
                             : cleanPrice;
@@ -1029,7 +1038,7 @@
 
                         var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var priceVal = parseFloat(item.price || 0);
-                        var cleanPrice = (activeCurr === 'IDR') ? Math.round(priceVal) : priceVal;
+                        var cleanPrice = Number(priceVal.toFixed(2));
                         var formattedPrice = (typeof window.formatCurrency === 'function') ? window.formatCurrency(cleanPrice, activeCurr) : cleanPrice;
                         
                         if ($priceHidden.length) $priceHidden.val(cleanPrice);
@@ -1054,7 +1063,7 @@
                                 var $priceHidden = $targetRow.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
                                 var activeCurr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                                 var priceVal = parseFloat(item.price || 0);
-                                var cleanPrice = (activeCurr === 'IDR') ? Math.round(priceVal) : priceVal;
+                                var cleanPrice = Number(priceVal.toFixed(2));
                                 var formattedPrice = (typeof window.formatCurrency === 'function') ? window.formatCurrency(cleanPrice, activeCurr) : cleanPrice;
                                 if ($priceHidden.length) $priceHidden.val(cleanPrice);
                                 if ($priceMasked.length) $priceMasked.val(formattedPrice);
