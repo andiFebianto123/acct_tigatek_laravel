@@ -40,10 +40,10 @@ class ClientPoService
                 $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
 
                 $attributes['exchange_rate'] = $exchangeRate;
-                $attributes['rap_value_base'] = ($attributes['rap_value'] ?? 0) * $exchangeRate;
-                $attributes['job_value_base'] = ($attributes['job_value'] ?? 0) * $exchangeRate;
-                $attributes['job_value_include_ppn'] = ($attributes['job_value'] ?? 0) + (($attributes['job_value'] ?? 0) * (($attributes['tax_ppn'] ?? 0) / 100));
-                $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+                $attributes['rap_value_base'] = round(($attributes['rap_value'] ?? 0) * $exchangeRate, 2);
+                $attributes['job_value_base'] = round(($attributes['job_value'] ?? 0) * $exchangeRate, 2);
+                $attributes['job_value_include_ppn'] = round(($attributes['job_value'] ?? 0) + (($attributes['job_value'] ?? 0) * (($attributes['tax_ppn'] ?? 0) / 100)), 2);
+                $attributes['job_value_include_ppn_base'] = round($attributes['job_value_include_ppn'] * $exchangeRate, 2);
 
                 $po = ClientPo::create($attributes);
                 $this->linkVoucherToClientPo($po);
@@ -84,10 +84,10 @@ class ClientPoService
 
                 $attributes['currency_code'] = $currencyCode;
                 $attributes['exchange_rate'] = $exchangeRate;
-                $attributes['rap_value_base'] = ($quotation->rap_value ?? 0) * $exchangeRate;
-                $attributes['job_value_base'] = ($quotation->job_value ?? 0) * $exchangeRate;
-                $attributes['job_value_include_ppn'] = ($quotation->job_value ?? 0) + (($quotation->job_value ?? 0) * (($quotation->tax_ppn ?? 0) / 100));
-                $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+                $attributes['rap_value_base'] = round(($quotation->rap_value ?? 0) * $exchangeRate, 2);
+                $attributes['job_value_base'] = round(($quotation->job_value ?? 0) * $exchangeRate, 2);
+                $attributes['job_value_include_ppn'] = round(($quotation->job_value ?? 0) + (($quotation->job_value ?? 0) * (($quotation->tax_ppn ?? 0) / 100)), 2);
+                $attributes['job_value_include_ppn_base'] = round($attributes['job_value_include_ppn'] * $exchangeRate, 2);
 
                 // If user uploaded a new file in the form, use it instead of quotation's file
                 if ($data->document_path instanceof UploadedFile) {
@@ -136,10 +136,10 @@ class ClientPoService
             $exchangeRate = ($currencyCode === 'USD') ? (float) $usdRate : 1.0;
 
             $attributes['exchange_rate'] = $exchangeRate;
-            $attributes['rap_value_base'] = ($attributes['rap_value'] ?? 0) * $exchangeRate;
-            $attributes['job_value_base'] = ($attributes['job_value'] ?? 0) * $exchangeRate;
-            $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
-            $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+            $attributes['rap_value_base'] = round(($attributes['rap_value'] ?? 0) * $exchangeRate, 2);
+            $attributes['job_value_base'] = round(($attributes['job_value'] ?? 0) * $exchangeRate, 2);
+            $attributes['job_value_include_ppn'] = round($data->job_value + ($data->job_value * ($data->tax_ppn / 100)), 2);
+            $attributes['job_value_include_ppn_base'] = round($attributes['job_value_include_ppn'] * $exchangeRate, 2);
 
             if ($data->document_path instanceof UploadedFile) {
                 if ($clientPo->document_path) {

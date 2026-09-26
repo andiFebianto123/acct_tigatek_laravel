@@ -456,27 +456,65 @@ var API_REQUEST = async function (method, url, payload, header = {}) {
 }
 
 function getInputNumber(selected) {
-    let value = '';
-    value = $(selected).val() || 0;
-    return isNaN(value) ? 0 : parseFloat(value);
+    let $el = $(selected);
+    if (!$el.length) return 0;
+    let val = $el.val();
+    if (!val && val !== 0) return 0;
+    if (typeof val === 'number') return val;
+
+    let str = val.toString().trim();
+    if (!str) return 0;
+
+    // Jika input memiliki titik dan koma (misal "75.000,55" IDR atau "75,000.55" USD)
+    if (str.includes(',') && str.includes('.')) {
+        if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+            // Format IDR/EU: 75.000,55 -> 75000.55
+            str = str.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Format US: 75,000.55 -> 75000.55
+            str = str.replace(/,/g, '');
+        }
+    } else if (str.includes(',')) {
+        // Format dengan koma saja (misal "75000,55" atau "75,000")
+        if (/,\d{3}$/.test(str) && !str.includes('.')) {
+            // Ribuan USD murni misal 75,000
+            str = str.replace(/,/g, '');
+        } else {
+            // Desimal koma misal 75000,55
+            str = str.replace(/,/g, '.');
+        }
+    } else if (str.includes('.')) {
+        // Format dengan titik saja (misal "75.000" ribuan IDR atau "75000.55" desimal)
+        if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+            // Ribuan IDR murni misal 75.000
+            str = str.replace(/\./g, '');
+        }
+    }
+
+    let parsed = parseFloat(str);
+    return isNaN(parsed) ? 0 : parsed;
 }
 
 function setInputNumber(selected, value) {
-    if (value === null) {
+    if (value === null || typeof value === 'undefined') {
         return;
     }
     let str = value.toString();
-
     str = str.replace(/\.00$/, "");
-
     if (!isNaN(str) && str.trim() !== "") {
         str = Number(str);
     }
     $(selected).val(str).trigger('input');
 }
 
-function setInputNumber2(selected, value) {
-    let nominal = formatIdr(value);
+function setInputNumber2(selected, value, currency = 'IDR') {
+    if (value === null || typeof value === 'undefined') {
+        $(selected).val('').trigger('input');
+        return;
+    }
+    let nominal = (typeof window.formatCurrency === 'function') 
+        ? window.formatCurrency(value, currency)
+        : ((typeof formatIdr === 'function') ? formatIdr(value) : value);
     $(selected).val(nominal).trigger('input');
 }
 

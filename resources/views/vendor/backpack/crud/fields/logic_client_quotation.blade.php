@@ -254,43 +254,31 @@
                         this.repeatableManager.syncAllPrefixes(curr, symbol);
                     }
 
-                    var $jobValMasked = $(form+' #job_value_masked');
-                    var $jobValHidden = $(form+' #job_value');
-                    
-                    var rawJobVal = '';
-                    if ($jobValMasked.length && $jobValMasked.val()) {
-                        rawJobVal = $jobValMasked.val();
-                    } else if ($jobValHidden.length && $jobValHidden.val()) {
-                        rawJobVal = $jobValHidden.val();
-                    }
+                    var $jobHidden = $(form+' input[type="hidden"]#job_value, ' + form + ' input[type="hidden"][name="job_value"]').last();
+                    var rawJobValue = 0;
 
-                    var nilai_pekerjaan = 0;
-                    if (curr === 'USD') {
-                        var cleanUsd = rawJobVal.toString().replace(/,/g, '').replace(/[^\d.-]/g, '');
-                        nilai_pekerjaan = parseFloat(cleanUsd) || 0;
+                    if ($jobHidden.length && $jobHidden.val() !== '') {
+                        rawJobValue = parseFloat($jobHidden.val()) || 0;
                     } else {
-                        var cleanIdr = rawJobVal.toString().replace(/\./g, '').replace(/[^\d-]/g, '');
-                        nilai_pekerjaan = parseFloat(cleanIdr) || 0;
-                    }
-
-                    if ($jobValHidden.length) {
-                        $jobValHidden.val(curr === 'USD' ? (nilai_pekerjaan > 0 ? nilai_pekerjaan.toFixed(2) : 0) : nilai_pekerjaan);
+                        var maskedVal = $(form+' #job_value_masked').val() || '';
+                        if (curr === 'USD') {
+                            rawJobValue = parseFloat(maskedVal.replace(/,/g, '')) || 0;
+                        } else {
+                            rawJobValue = parseFloat(maskedVal.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                        }
                     }
 
                     var ppn = parseFloat($(form+' input[name="tax_ppn"]').val() || 0);
 
-                    var nilai_ppn = (ppn == 0) ? 0 : (nilai_pekerjaan * (ppn / 100));
-                    var total = nilai_pekerjaan + nilai_ppn;
-
-                    var formattedTotal = (typeof window.formatCurrency === 'function')
-                        ? window.formatCurrency(total, curr)
-                        : total;
+                    var nilai_ppn = (ppn == 0) ? 0 : (rawJobValue * (ppn / 100));
+                    var total = rawJobValue + nilai_ppn;
+                    total = Number(total.toFixed(2));
 
                     var $ppnHiddenInput = $(form+' input[type="hidden"][name="job_value_include_ppn"]');
                     if ($ppnHiddenInput.length) {
-                        $ppnHiddenInput.val(curr === 'USD' ? total.toFixed(2) : total);
+                        $ppnHiddenInput.val(total);
                     }
-                    $(form+' input[name="job_value_include_ppn"], ' + form + ' #job_value_include_ppn_masked').val(formattedTotal).trigger('change');
+                    setInputNumber2($(form+' input[name="job_value_include_ppn"], ' + form + ' #job_value_include_ppn_masked'), total, curr);
                 },
                 setupWithoutPoCount: function(form){
                     $.ajax({

@@ -99,9 +99,9 @@ class ProformaInvoiceClientService
 
         $invoice->currency_code = $currencyCode;
         $invoice->exchange_rate = $exchangeRate;
-        $invoice->price_total_exclude_ppn_base = $dto->nominal_exclude_ppn * $exchangeRate;
-        $invoice->price_total_include_ppn_base = $dto->nominal_include_ppn * $exchangeRate;
-        $invoice->discount_pph_base = $diskon_pph * $exchangeRate;
+        $invoice->price_total_exclude_ppn_base = round($dto->nominal_exclude_ppn * $exchangeRate, 2);
+        $invoice->price_total_include_ppn_base = round($dto->nominal_include_ppn * $exchangeRate, 2);
+        $invoice->discount_pph_base = round($diskon_pph * $exchangeRate, 2);
 
         $invoice->invoice_number = $dto->invoice_number;
         $invoice->name = 'proforma';
@@ -116,9 +116,9 @@ class ProformaInvoiceClientService
         $invoice->send_invoice_revision_date = $dto->send_invoice_revision;
         $invoice->price_total_exclude_ppn = $dto->nominal_exclude_ppn;
         $invoice->price_total_include_ppn = $dto->nominal_include_ppn;
-        $invoice->price_total = $total_price - $diskon_pph;
+        $invoice->price_total = round($total_price - $diskon_pph, 2);
         $invoice->pph = $dto->pph;
-        $invoice->discount_pph = $diskon_pph;
+        $invoice->discount_pph = round($diskon_pph, 2);
         $invoice->company_id = $dto->company_id;
         $invoice->account_source_id = $dto->account_source_id;
         $invoice->note = $dto->note;
@@ -160,7 +160,7 @@ class ProformaInvoiceClientService
                 $invoice_item->name = $itemName;
                 $invoice_item->qty = (int) ($item['qty'] ?? 1);
                 $invoice_item->price = $price;
-                $invoice_item->price_base = $price * $exchangeRate;
+                $invoice_item->price_base = round($price * $exchangeRate, 2);
 
                 // Simpan device_stock_id HANYA jika mode Persediaan
                 $rawStockId = $item['device_stock_id'] ?? null;

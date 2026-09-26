@@ -188,10 +188,17 @@
                         }
                     }
 
+                    var $jobHidden = $form.find('input[type="hidden"]#job_value, input[type="hidden"][name="job_value"]').last();
                     var $jobValInput = $form.find('#job_value, input[name="job_value"]');
-                    var rawJobValue = (typeof getInputNumber === 'function' && $jobValInput.length)
-                        ? getInputNumber($jobValInput[0])
-                        : parseFloat($jobValInput.val() || 0);
+                    var rawJobValue = 0;
+
+                    if ($jobHidden.length && $jobHidden.val() !== '') {
+                        rawJobValue = parseFloat($jobHidden.val()) || 0;
+                    } else if (typeof getInputNumber === 'function' && $jobValInput.length) {
+                        rawJobValue = getInputNumber($jobValInput[0]);
+                    } else {
+                        rawJobValue = parseFloat($jobValInput.val() || 0);
+                    }
 
                     var $taxInput = $form.find('input[name="tax_ppn"]');
                     var taxPpn = (typeof getInputNumber === 'function' && $taxInput.length)
@@ -200,6 +207,7 @@
 
                     var nilai_ppn = (taxPpn == 0) ? 0 : (rawJobValue * (taxPpn / 100));
                     var totalWithTax = rawJobValue + nilai_ppn;
+                    totalWithTax = Number(totalWithTax.toFixed(2));
 
                     setInputNumber2($totalField, totalWithTax, curr);
                 },

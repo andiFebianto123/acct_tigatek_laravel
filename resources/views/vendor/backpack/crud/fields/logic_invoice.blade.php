@@ -28,19 +28,15 @@
         }
 
         /* =========================================================================
-         * MODUL 1: GLOBAL UTILITY HELPERS (Fallback Format IDR)
+         * MODUL 1: GLOBAL UTILITY HELPERS (Format Currency)
          * ========================================================================= */
         if (typeof setInputNumber2 == "undefined") {
-            function formatIdr(angka) {
-                const formatter = new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR'
-                });
-                return formatter.format(angka).replace('Rp', '').trim();
-            }
-
-            function setInputNumber2(selected, value) {
-                let nominal = formatIdr(value);
+            function setInputNumber2(selected, value, currency = 'IDR') {
+                let num = parseFloat(value) || 0;
+                let formattedNum = Number(num.toFixed(2));
+                let nominal = (typeof window.formatCurrency === 'function') 
+                    ? window.formatCurrency(formattedNum, currency)
+                    : formattedNum;
                 $(selected).val(nominal).trigger('input');
             }
         }
@@ -339,26 +335,31 @@
                     }
 
                     // Kalkulasi PPN & Diskon PPh
-                    var nominal_exclude_ppn = getInputNumber(form + ' input[name="nominal_exclude_ppn"]');
-                    var tax_ppn = getInputNumber(form + ' input[name="tax_ppn"]');
+                    var $excHidden = $(form + ' input[type="hidden"]#nominal_exclude_ppn, ' + form + ' input[type="hidden"][name="nominal_exclude_ppn"]').last();
+                    var nominal_exclude_ppn = 0;
+
+                    if ($excHidden.length && $excHidden.val() !== '') {
+                        nominal_exclude_ppn = parseFloat($excHidden.val()) || 0;
+                    } else {
+                        var maskedVal = $(form + ' #nominal_exclude_ppn_masked').val() || '';
+                        if (curr === 'USD') {
+                            nominal_exclude_ppn = parseFloat(maskedVal.replace(/,/g, '')) || 0;
+                        } else {
+                            nominal_exclude_ppn = parseFloat(maskedVal.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                        }
+                    }
+
+                    var tax_ppn = parseFloat($(form + ' input[name="tax_ppn"]').val() || 0);
                     var nilai_ppn = (tax_ppn == 0) ? 0 : (nominal_exclude_ppn * (tax_ppn / 100));
-                    var total = nominal_exclude_ppn + nilai_ppn;
+                    var total = Number((nominal_exclude_ppn + nilai_ppn).toFixed(2));
 
-                    if (curr === 'IDR') {
-                        total = Math.round(total);
-                    }
+                    setInputNumber2(form + ' input[name="nominal_include_ppn"]', total, curr);
+                    instance.total_price = nominal_exclude_ppn;
 
-                    setInputNumberCurrency(form + ' input[name="nominal_include_ppn"]', total, curr);
-                    instance.total_price = Number($(form + ' input[name="nominal_exclude_ppn"]').val());
+                    var pph = parseFloat($(form + ' input[name="pph"]').val() || 0);
+                    var diskon_pph = (pph == 0) ? 0 : Number((nominal_exclude_ppn * (pph / 100)).toFixed(2));
 
-                    var pph = getInputNumber(form + ' input[name="pph"]');
-                    var diskon_pph = (pph == 0) ? 0 : nominal_exclude_ppn * (pph / 100);
-
-                    if (curr === 'IDR') {
-                        diskon_pph = Math.round(diskon_pph);
-                    }
-
-                    setInputNumberCurrency(form + ' input[name="discount_pph"]', diskon_pph, curr);
+                    setInputNumber2(form + ' input[name="discount_pph"]', diskon_pph, curr);
                 },
 
                 convertInvoiceTotals: function(previousCurrency, newCurrency, usdRate) {

@@ -20,7 +20,7 @@ class ClientQuotationService
         return DB::transaction(function () use ($data) {
             $attributes = $data->toArray();
 
-            $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
+            $attributes['job_value_include_ppn'] = round($data->job_value + ($data->job_value * ($data->tax_ppn / 100)), 2);
             $attributes['price_after_year'] = 0;
             $attributes['price_total'] = 0;
             $attributes['load_general_value'] = 0;
@@ -55,7 +55,7 @@ class ClientQuotationService
             $quotation = ClientQuotation::findOrFail($id);
             $attributes = $data->toArray();
 
-            $attributes['job_value_include_ppn'] = $data->job_value + ($data->job_value * ($data->tax_ppn / 100));
+            $attributes['job_value_include_ppn'] = round($data->job_value + ($data->job_value * ($data->tax_ppn / 100)), 2);
 
             // Hitung nilai multi-currency Opsi A (Base Amount & Exchange Rate)
             $this->calculateMultiCurrency($attributes, $data);
@@ -98,9 +98,9 @@ class ClientQuotationService
 
         $attributes['currency_code'] = $currencyCode;
         $attributes['exchange_rate'] = $exchangeRate;
-        $attributes['rap_value_base'] = $data->rap_value * $exchangeRate;
-        $attributes['job_value_base'] = $data->job_value * $exchangeRate;
-        $attributes['job_value_include_ppn_base'] = $attributes['job_value_include_ppn'] * $exchangeRate;
+        $attributes['rap_value_base'] = round($data->rap_value * $exchangeRate, 2);
+        $attributes['job_value_base'] = round($data->job_value * $exchangeRate, 2);
+        $attributes['job_value_include_ppn_base'] = round($attributes['job_value_include_ppn'] * $exchangeRate, 2);
     }
 
     /**

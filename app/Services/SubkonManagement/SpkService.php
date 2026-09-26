@@ -31,9 +31,9 @@ class SpkService
 
             // Calculate total value with tax
             $taxValue = ($data->job_value * ($data->tax_ppn ?? 0) / 100);
-            $totalWithTax = $data->job_value + $taxValue;
+            $totalWithTax = round($data->job_value + $taxValue, 2);
             $attributes['total_value_with_tax'] = $totalWithTax;
-            $attributes['total_value_with_tax_base'] = $totalWithTax * $exchangeRate;
+            $attributes['total_value_with_tax_base'] = round($totalWithTax * $exchangeRate, 2);
 
             if ($data->document_path instanceof UploadedFile) {
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
@@ -63,9 +63,9 @@ class SpkService
 
             // Calculate total value with tax
             $taxValue = ($data->job_value * ($data->tax_ppn ?? 0) / 100);
-            $totalWithTax = $data->job_value + $taxValue;
+            $totalWithTax = round($data->job_value + $taxValue, 2);
             $attributes['total_value_with_tax'] = $totalWithTax;
-            $attributes['total_value_with_tax_base'] = $totalWithTax * $exchangeRate;
+            $attributes['total_value_with_tax_base'] = round($totalWithTax * $exchangeRate, 2);
 
             if ($data->document_path instanceof UploadedFile) {
                 // Delete old file if exists

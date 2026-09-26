@@ -29,23 +29,14 @@ class VoucherService
         $pph4      = (float) ($inputs['pph_4'] ?? 0);
         $pph21     = (float) ($inputs['pph_21'] ?? 0);
 
-        $nilaiPpn = ($ppn == 0) ? 0 : ($billValue * ($ppn / 100));
-        if ($currency === 'IDR') $nilaiPpn = round($nilaiPpn);
+        $nilaiPpn = ($ppn == 0) ? 0 : round($billValue * ($ppn / 100), 2);
+        $total    = round($billValue + $nilaiPpn, 2);
 
-        $total    = $billValue + $nilaiPpn;
-        if ($currency === 'IDR') $total = round($total);
+        $diskonPph23 = ($pph23 == 0) ? 0 : round($billValue * ($pph23 / 100), 2);
+        $diskonPph4  = ($pph4  == 0) ? 0 : round($billValue * ($pph4  / 100), 2);
+        $diskonPph21 = ($pph21 == 0) ? 0 : round($billValue * ($pph21 / 100), 2);
 
-        $diskonPph23 = ($pph23 == 0) ? 0 : $billValue * ($pph23 / 100);
-        if ($currency === 'IDR') $diskonPph23 = round($diskonPph23);
-
-        $diskonPph4  = ($pph4  == 0) ? 0 : $billValue * ($pph4  / 100);
-        if ($currency === 'IDR') $diskonPph4 = round($diskonPph4);
-
-        $diskonPph21 = ($pph21 == 0) ? 0 : $billValue * ($pph21 / 100);
-        if ($currency === 'IDR') $diskonPph21 = round($diskonPph21);
-
-        $paymentTransfer = $total - $diskonPph23 - $diskonPph4 - $diskonPph21;
-        if ($currency === 'IDR') $paymentTransfer = round($paymentTransfer);
+        $paymentTransfer = round($total - $diskonPph23 - $diskonPph4 - $diskonPph21, 2);
 
         return [
             'bill_value'               => $billValue,
@@ -115,15 +106,15 @@ class VoucherService
 
         $exchangeRate = ($currencyCode === 'USD') ? $usdRate : 1.0;
 
-        $billValueBase       = $data->bill_value * $exchangeRate;
+        $billValueBase       = round($data->bill_value * $exchangeRate, 2);
         $dppValue            = (float) ($request->dpp_value ?? 0);
-        $dppValueBase        = $dppValue * $exchangeRate;
-        $totalPricePpnBase   = $hasilPerhitungan['nilai_ppn'] * $exchangeRate;
-        $totalBase           = $hasilPerhitungan['total'] * $exchangeRate;
-        $diskonPph23Base     = $hasilPerhitungan['diskon_pph_23'] * $exchangeRate;
-        $diskonPph4Base      = $hasilPerhitungan['diskon_pph_4'] * $exchangeRate;
-        $diskonPph21Base     = $hasilPerhitungan['diskon_pph_21'] * $exchangeRate;
-        $paymentTransferBase = $hasilPerhitungan['payment_transfer'] * $exchangeRate;
+        $dppValueBase        = round($dppValue * $exchangeRate, 2);
+        $totalPricePpnBase   = round($hasilPerhitungan['nilai_ppn'] * $exchangeRate, 2);
+        $totalBase           = round($hasilPerhitungan['total'] * $exchangeRate, 2);
+        $diskonPph23Base     = round($hasilPerhitungan['diskon_pph_23'] * $exchangeRate, 2);
+        $diskonPph4Base      = round($hasilPerhitungan['diskon_pph_4'] * $exchangeRate, 2);
+        $diskonPph21Base     = round($hasilPerhitungan['diskon_pph_21'] * $exchangeRate, 2);
+        $paymentTransferBase = round($hasilPerhitungan['payment_transfer'] * $exchangeRate, 2);
 
         $item->currency_code         = $currencyCode;
         $item->exchange_rate         = $exchangeRate;
@@ -271,15 +262,15 @@ class VoucherService
 
         $exchangeRate = ($currencyCode === 'USD') ? $usdRate : 1.0;
 
-        $billValueBase       = $data->bill_value * $exchangeRate;
+        $billValueBase       = round($data->bill_value * $exchangeRate, 2);
         $dppValue            = (float) ($request->dpp_value ?? 0);
-        $dppValueBase        = $dppValue * $exchangeRate;
-        $totalPricePpnBase   = $hasilPerhitungan['nilai_ppn'] * $exchangeRate;
-        $totalBase           = $hasilPerhitungan['total'] * $exchangeRate;
-        $diskonPph23Base     = $hasilPerhitungan['diskon_pph_23'] * $exchangeRate;
-        $diskonPph4Base      = $hasilPerhitungan['diskon_pph_4'] * $exchangeRate;
-        $diskonPph21Base     = $hasilPerhitungan['diskon_pph_21'] * $exchangeRate;
-        $paymentTransferBase = $hasilPerhitungan['payment_transfer'] * $exchangeRate;
+        $dppValueBase        = round($dppValue * $exchangeRate, 2);
+        $totalPricePpnBase   = round($hasilPerhitungan['nilai_ppn'] * $exchangeRate, 2);
+        $totalBase           = round($hasilPerhitungan['total'] * $exchangeRate, 2);
+        $diskonPph23Base     = round($hasilPerhitungan['diskon_pph_23'] * $exchangeRate, 2);
+        $diskonPph4Base      = round($hasilPerhitungan['diskon_pph_4'] * $exchangeRate, 2);
+        $diskonPph21Base     = round($hasilPerhitungan['diskon_pph_21'] * $exchangeRate, 2);
+        $paymentTransferBase = round($hasilPerhitungan['payment_transfer'] * $exchangeRate, 2);
 
         $item->currency_code         = $currencyCode;
         $item->exchange_rate         = $exchangeRate;

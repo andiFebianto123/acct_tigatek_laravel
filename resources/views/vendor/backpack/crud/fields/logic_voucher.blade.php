@@ -23,27 +23,13 @@
         /**
          * Global Helper Utility untuk Format Nominal
          */
-        if (typeof setInputNumberCurrency === "undefined") {
-            function setInputNumberCurrency(selected, value, curr = 'IDR') {
-                let cleanVal = (curr === 'IDR') ? Math.round(parseFloat(value) || 0) : value;
-                let nominal = (typeof window.formatCurrency === 'function')
-                    ? window.formatCurrency(cleanVal, curr)
-                    : (curr === 'USD' ? Number(cleanVal).toFixed(2) : formatIdr(cleanVal));
-                $(selected).val(nominal).trigger('input');
-            }
-        }
-
         if (typeof setInputNumber2 === "undefined") {
-            function formatIdr(angka) {
-                const formatter = new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR'
-                });
-                return formatter.format(angka).replace('Rp', '').trim();
-            }
-
-            function setInputNumber2(selector, value) {
-                let nominal = formatIdr(value);
+            function setInputNumber2(selector, value, currency = 'IDR') {
+                let num = parseFloat(value) || 0;
+                let formattedNum = Number(num.toFixed(2));
+                let nominal = (typeof window.formatCurrency === 'function') 
+                    ? window.formatCurrency(formattedNum, currency)
+                    : formattedNum;
                 $(selector).val(nominal).trigger('input');
             }
         }
@@ -77,35 +63,43 @@
                         }
                     });
 
-                    var billValue = getInputNumber(form + ' #bill_value');
-                    var ppnPercent = getInputNumber(form + ' input[name="tax_ppn"]');
+                    // Ambil angka murni dari hidden bill_value
+                    var $billHidden = this.getEl('input[type="hidden"]#bill_value, input[type="hidden"][name="bill_value"]').last();
+                    var billValue = 0;
 
-                    var nilaiPpn = (ppnPercent === 0) ? 0 : (billValue * (ppnPercent / 100));
-                    if (curr === 'IDR') nilaiPpn = Math.round(nilaiPpn);
-                    setInputNumberCurrency(form + ' input[name="total_price_ppn"]', nilaiPpn, curr);
+                    if ($billHidden.length && $billHidden.val() !== '') {
+                        billValue = parseFloat($billHidden.val()) || 0;
+                    } else {
+                        var maskedVal = this.getEl('#bill_value_masked').val() || '';
+                        if (curr === 'USD') {
+                            billValue = parseFloat(maskedVal.replace(/,/g, '')) || 0;
+                        } else {
+                            billValue = parseFloat(maskedVal.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                        }
+                    }
 
-                    var total = billValue + nilaiPpn;
-                    if (curr === 'IDR') total = Math.round(total);
-                    setInputNumberCurrency(form + ' input[name="total"]', total, curr);
+                    var ppnPercent = parseFloat(this.getEl('input[name="tax_ppn"]').val() || 0);
 
-                    var pph23Percent = getInputNumber(form + ' input[name="pph_23"]');
-                    var diskonPph23 = (pph23Percent === 0) ? 0 : (billValue * (pph23Percent / 100));
-                    if (curr === 'IDR') diskonPph23 = Math.round(diskonPph23);
-                    setInputNumberCurrency(form + ' input[name="discount_pph_23"]', diskonPph23, curr);
+                    var nilaiPpn = (ppnPercent === 0) ? 0 : Number((billValue * (ppnPercent / 100)).toFixed(2));
+                    setInputNumber2(form + ' input[name="total_price_ppn"]', nilaiPpn, curr);
 
-                    var pph4Percent = getInputNumber(form + ' input[name="pph_4"]');
-                    var diskonPph4 = (pph4Percent === 0) ? 0 : (billValue * (pph4Percent / 100));
-                    if (curr === 'IDR') diskonPph4 = Math.round(diskonPph4);
-                    setInputNumberCurrency(form + ' input[name="discount_pph_4"]', diskonPph4, curr);
+                    var total = Number((billValue + nilaiPpn).toFixed(2));
+                    setInputNumber2(form + ' input[name="total"]', total, curr);
 
-                    var pph21Percent = getInputNumber(form + ' input[name="pph_21"]');
-                    var diskonPph21 = (pph21Percent === 0) ? 0 : (billValue * (pph21Percent / 100));
-                    if (curr === 'IDR') diskonPph21 = Math.round(diskonPph21);
-                    setInputNumberCurrency(form + ' input[name="discount_pph_21"]', diskonPph21, curr);
+                    var pph23Percent = parseFloat(this.getEl('input[name="pph_23"]').val() || 0);
+                    var diskonPph23 = (pph23Percent === 0) ? 0 : Number((billValue * (pph23Percent / 100)).toFixed(2));
+                    setInputNumber2(form + ' input[name="discount_pph_23"]', diskonPph23, curr);
 
-                    var paymentTransfer = total - diskonPph23 - diskonPph4 - diskonPph21;
-                    if (curr === 'IDR') paymentTransfer = Math.round(paymentTransfer);
-                    setInputNumberCurrency(form + ' input[name="payment_transfer"]', paymentTransfer, curr);
+                    var pph4Percent = parseFloat(this.getEl('input[name="pph_4"]').val() || 0);
+                    var diskonPph4 = (pph4Percent === 0) ? 0 : Number((billValue * (pph4Percent / 100)).toFixed(2));
+                    setInputNumber2(form + ' input[name="discount_pph_4"]', diskonPph4, curr);
+
+                    var pph21Percent = parseFloat(this.getEl('input[name="pph_21"]').val() || 0);
+                    var diskonPph21 = (pph21Percent === 0) ? 0 : Number((billValue * (pph21Percent / 100)).toFixed(2));
+                    setInputNumber2(form + ' input[name="discount_pph_21"]', diskonPph21, curr);
+
+                    var paymentTransfer = Number((total - diskonPph23 - diskonPph4 - diskonPph21).toFixed(2));
+                    setInputNumber2(form + ' input[name="payment_transfer"]', paymentTransfer, curr);
                 },
 
                 /**

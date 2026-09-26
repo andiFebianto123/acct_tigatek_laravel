@@ -242,10 +242,24 @@
                     let isNegative = str.startsWith('-');
                     str = str.replace(/^-/, '');
 
-                    let clean = str.replace(/\./g, '');
-                    let parts = clean.split(',');
-                    let integerPart = parts[0].replace(/[^\d]/g, '');
-                    let decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    let integerPart = '';
+                    let decimalPart = null;
+
+                    if (str.includes(',')) {
+                        // Input dari ketikan layar dengan koma desimal misal "12.000,32"
+                        let clean = str.replace(/\./g, '');
+                        let parts = clean.split(',');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else if (/^\d+\.\d+$/.test(str) && !/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                        // Input dari nilai mentah database / JSON misal "12000.32"
+                        let parts = str.split('.');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else {
+                        // Input teks ribuan murni misal "12.000" atau "12000"
+                        integerPart = str.replace(/[^\d]/g, '');
+                    }
 
                     if (!integerPart && (decimalPart === null || decimalPart === '')) {
                         return '';
@@ -277,10 +291,15 @@
 
             // Inisialisasi awal
             var initialCurrency = $currencySelect.val() || 'IDR';
-            var initialRaw = getCleanValue($maskedInput.val(), initialCurrency);
-            if (!initialRaw && $hiddenInput.val()) {
-                initialRaw = $hiddenInput.val();
+            var rawFromHidden = $hiddenInput.val();
+            var initialRaw = '';
+
+            if (rawFromHidden !== '' && typeof rawFromHidden !== 'undefined' && rawFromHidden !== null) {
+                initialRaw = getCleanValue(rawFromHidden, initialCurrency);
+            } else {
+                initialRaw = getCleanValue($maskedInput.val(), initialCurrency);
             }
+
             $maskedInput.val(window.formatCurrency(initialRaw, initialCurrency));
             $hiddenInput.val(initialRaw);
 

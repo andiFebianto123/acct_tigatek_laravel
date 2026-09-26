@@ -27,11 +27,11 @@ class PurchaseOrderService
 
             $payload['currency_code'] = $currencyCode;
             $payload['exchange_rate'] = $exchangeRate;
-            $payload['job_value_base'] = $data->job_value * $exchangeRate;
+            $payload['job_value_base'] = round($data->job_value * $exchangeRate, 2);
 
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
-            $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+            $payload['total_value_with_tax_base'] = round($payload['total_value_with_tax'] * $exchangeRate, 2);
 
             // Auto generate work_code & fallback values for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
@@ -59,9 +59,9 @@ class PurchaseOrderService
                     }
                     if ($calculatedJobValue > 0) {
                         $payload['job_value'] = $calculatedJobValue;
-                        $payload['job_value_base'] = $calculatedJobValue * $exchangeRate;
+                        $payload['job_value_base'] = round($calculatedJobValue * $exchangeRate, 2);
                         $payload['total_value_with_tax'] = $this->calculateTotalWithTax($calculatedJobValue, $data->tax_ppn);
-                        $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+                        $payload['total_value_with_tax_base'] = round($payload['total_value_with_tax'] * $exchangeRate, 2);
                     }
                 }
             }
@@ -107,7 +107,7 @@ class PurchaseOrderService
 
             // Centralized Tax Calculation
             $payload['total_value_with_tax'] = $this->calculateTotalWithTax($data->job_value, $data->tax_ppn);
-            $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+            $payload['total_value_with_tax_base'] = round($payload['total_value_with_tax'] * $exchangeRate, 2);
 
             // Auto generate work_code & fallback values for Supplier PO
             if (($payload['po_type'] ?? null) === 'supplier') {
@@ -135,9 +135,9 @@ class PurchaseOrderService
                     }
                     if ($calculatedJobValue > 0) {
                         $payload['job_value'] = $calculatedJobValue;
-                        $payload['job_value_base'] = $calculatedJobValue * $exchangeRate;
+                        $payload['job_value_base'] = round($calculatedJobValue * $exchangeRate, 2);
                         $payload['total_value_with_tax'] = $this->calculateTotalWithTax($calculatedJobValue, $data->tax_ppn);
-                        $payload['total_value_with_tax_base'] = $payload['total_value_with_tax'] * $exchangeRate;
+                        $payload['total_value_with_tax_base'] = round($payload['total_value_with_tax'] * $exchangeRate, 2);
                     }
                 }
             }
@@ -270,7 +270,7 @@ class PurchaseOrderService
      */
     private function calculateTotalWithTax(float $value, float $taxPercent): float
     {
-        return $value + ($value * $taxPercent / 100);
+        return round($value + ($value * $taxPercent / 100), 2);
     }
 
     /**

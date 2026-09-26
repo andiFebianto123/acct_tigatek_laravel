@@ -264,9 +264,10 @@
         $currencyCode = $header->currency_code ?? 'IDR';
         $isUsd = strtoupper($currencyCode) === 'USD';
         $symbol = $isUsd ? '$' : 'Rp';
-        $decimals = $isUsd ? 2 : 0;
-        $decPoint = $isUsd ? '.' : ',';
-        $thousandsSep = $isUsd ? ',' : '.';
+
+        $formatPrice = function($amount) use ($currencyCode) {
+            return \App\Http\Helpers\CustomHelper::formatCurrency($amount, $currencyCode);
+        };
 
         $subtotal = (float) ($header->price_total_exclude_ppn ?? 0);
         $grand_total = (float) ($header->price_total_include_ppn ?? 0);
@@ -279,9 +280,9 @@
             $ppn_percent = 11;
         }
 
-        $ppn_nominal = $grand_total > $subtotal ? ($grand_total - $subtotal) : (($subtotal * $ppn_percent) / 100);
+        $ppn_nominal = round($grand_total > $subtotal ? ($grand_total - $subtotal) : (($subtotal * $ppn_percent) / 100), 2);
         if ($grand_total == 0 && $subtotal > 0) {
-            $grand_total = $subtotal + $ppn_nominal;
+            $grand_total = round($subtotal + $ppn_nominal, 2);
         }
         
         $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
@@ -469,10 +470,10 @@
                         </td>
                         <td class="text-center">{{ $qty }}</td>
                         <td class="text-right col-price">
-                            {{ $symbol }} {{ number_format($unit_price, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $formatPrice($unit_price) }}
                         </td>
                         <td class="text-right col-price">
-                            {{ $symbol }} {{ number_format($qty * $unit_price, $decimals, $decPoint, $thousandsSep) }}
+                            {{ $formatPrice($qty * $unit_price) }}
                         </td>
                     </tr>
                 @endforeach
@@ -481,19 +482,19 @@
                 <tr>
                     <td colspan="4" class="text-right" style="border-top: 2px solid #000; padding: 6px 4px; font-weight: normal;">TOTAL</td>
                     <td class="text-right col-price" style="border-top: 2px solid #000; padding: 6px 4px;">
-                        {{ $symbol }} {{ number_format($subtotal, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $formatPrice($subtotal) }}
                     </td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPN {{ $ppn_percent_display }}%</td>
                     <td class="text-right col-price" style="padding: 4px 4px;">
-                        {{ $symbol }} {{ number_format($ppn_nominal, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $formatPrice($ppn_nominal) }}
                     </td>
                 </tr>
                 <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
                     <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
                     <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">
-                        {{ $symbol }} {{ number_format($grand_total, $decimals, $decPoint, $thousandsSep) }}
+                        {{ $formatPrice($grand_total) }}
                     </td>
                 </tr>
             </tfoot>
