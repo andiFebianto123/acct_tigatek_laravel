@@ -72,23 +72,52 @@
     window.usdRate = {{ (float)$usd_rate }};
 
     // Fungsi Pemformatan Tunggal Global untuk Currency
-    if (typeof window.formatCurrency === 'undefined') {
-        window.formatCurrency = function(val, currency = 'IDR') {
+    window.formatCurrency = function(val, currency = 'IDR') {
             if (!val && val !== 0) return '';
             val = val.toString();
             let isNegative = val.startsWith('-');
 
             if (currency === 'IDR') {
-                // Deteksi apakah input berupa format float database (misal: "15000000.50" dari DB)
-                let isDbFloat = /^-?\d+\.\d+$/.test(val);
-                let workingVal = isDbFloat ? val.replace('.', ',') : val;
+                let isNumericType = (typeof val === 'number');
+                let str = val.toString().trim();
+                let isNegative = str.startsWith('-');
+                str = str.replace(/^-/, '');
 
-                let hasCommaDecimal = workingVal.includes(',');
-                let clean = workingVal.replace(/\./g, '').replace(',', '.');
-                let cleanDigits = clean.replace(/[^\d.]/g, '');
-                let parts = cleanDigits.split('.');
+                let integerPart = '';
+                let decimalPart = null;
+                let hasComma = str.includes(',');
 
-                let integerPart = parts[0] || '';
+                if (isNumericType) {
+                    // Nilai angka murni dari kalkulasi JS atau database (misal: 12000 atau 12000.5)
+                    let parts = str.split('.');
+                    integerPart = parts[0].replace(/[^\d]/g, '');
+                    decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    if (decimalPart !== null && /^0+$/.test(decimalPart)) {
+                        decimalPart = null;
+                    }
+                } else if (hasComma) {
+                    // Berasal dari input teks yang mengandung koma (misal: "12.000,50" atau "12000,")
+                    let parts = str.split(',');
+                    integerPart = parts[0].replace(/[^\d]/g, '');
+                    decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : '';
+                } else {
+                    // String input standar tanpa koma (misal: "12000", "12.000", atau "12000.50" dari hidden input)
+                    // Jika memiliki tepat 1 titik dan diikuti 1-2 angka di ujung dan string tidak memiliki titik ribuan lain (misal "12000.50" dari database)
+                    // Namun jika berasal dari ketikan user (seperti "1.200"), jangan anggap sebagai desimal!
+                    if (/^\d+\.\d{1,2}$/.test(str) && !/^\d{1,3}\.\d{3}$/.test(str)) {
+                        let parts = str.split('.');
+                        integerPart = parts[0];
+                        decimalPart = parts[1];
+                        if (/^0+$/.test(decimalPart)) {
+                            decimalPart = null;
+                        }
+                    } else {
+                        integerPart = str.replace(/[^\d]/g, '');
+                    }
+                }
+
+                if (!integerPart && !hasComma && decimalPart === null) return '';
+
                 let sisa = integerPart.length % 3;
                 let rupiah = integerPart.substr(0, sisa);
                 let ribuan = integerPart.substr(sisa).match(/\d{3}/g);
@@ -97,16 +126,14 @@
                     rupiah += separator + ribuan.join('.');
                 }
 
-                if (!rupiah && !hasCommaDecimal) return '';
-
-                if (parts.length > 1) {
-                    let decimalPart = parts[1].substring(0, 2);
-                    return (isNegative ? '-' : '') + (rupiah || '0') + ',' + decimalPart;
-                } else if (hasCommaDecimal) {
-                    return (isNegative ? '-' : '') + (rupiah || '0') + ',';
+                let formatted = rupiah || '0';
+                if (decimalPart !== null && decimalPart !== '') {
+                    formatted += ',' + decimalPart;
+                } else if (hasComma) {
+                    formatted += ',';
                 }
 
-                return (isNegative ? '-' : '') + rupiah;
+                return (isNegative ? '-' : '') + formatted;
 
             } else if (currency === 'EUR') {
                 let hasCommaDecimal = val.includes(',');
@@ -197,7 +224,6 @@
 
             return Math.round(baseIdr).toString();
         };
-    }
 
     if (typeof bpFieldInitMaskCurrencyElement === 'undefined') {
         function bpFieldInitMaskCurrencyElement(element){
@@ -212,16 +238,24 @@
                 val = val.toString().trim();
 
                 if (currency === 'IDR') {
-                    // IDR: Titik adalah pemisah ribuan, koma adalah pemisah desimal
-                    let isDbFloat = /^-?\d+\.\d+$/.test(val);
-                    let workingVal = isDbFloat ? val.replace('.', ',') : val;
+                    let str = val;
+                    let isNegative = str.startsWith('-');
+                    str = str.replace(/^-/, '');
 
-                    let clean = workingVal.replace(/\./g, '').replace(',', '.');
-                    let parts = clean.replace(/[^\d.-]/g, '').split('.');
-                    if (parts.length > 1) {
-                        return parts[0] + '.' + parts[1].substring(0, 2);
+                    let clean = str.replace(/\./g, '');
+                    let parts = clean.split(',');
+                    let integerPart = parts[0].replace(/[^\d]/g, '');
+                    let decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+
+                    if (!integerPart && (decimalPart === null || decimalPart === '')) {
+                        return '';
                     }
-                    return parts[0];
+
+                    let raw = (integerPart || '0');
+                    if (decimalPart !== null && decimalPart !== '') {
+                        raw += '.' + decimalPart;
+                    }
+                    return (isNegative ? '-' : '') + raw;
                 } else if (currency === 'EUR') {
                     // EUR: Titik adalah ribuan, koma adalah desimal
                     let clean = val.replace(/\./g, '').replace(',', '.');
