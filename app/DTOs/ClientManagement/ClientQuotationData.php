@@ -52,7 +52,11 @@ class ClientQuotationData
         if (is_array($rawDetails)) {
             foreach ($rawDetails as $item) {
                 if (is_array($item)) {
-                    $deviceStockId = isset($item['device_stock_id']) && $item['device_stock_id'] !== '' ? (int) $item['device_stock_id'] : null;
+                    $itemType = $item['item_type'] ?? (!empty($item['device_stock_id']) ? 'persediaan' : 'non_persediaan');
+                    $deviceStockId = ($itemType === 'persediaan' && isset($item['device_stock_id']) && $item['device_stock_id'] !== '')
+                        ? (int) $item['device_stock_id']
+                        : null;
+                    
                     $name = $item['item_name'] ?? $item['name'] ?? '';
                     if (empty($name) && $deviceStockId) {
                         $device = DeviceStock::find($deviceStockId);
@@ -63,11 +67,13 @@ class ClientQuotationData
 
                     if (!empty($name) || $deviceStockId) {
                         $normalizedItem = [
+                            'item_type' => $itemType,
                             'device_stock_id' => $deviceStockId,
                             'item_name' => $name,
                             'qty' => $item['qty'] ?? 1,
                             'unit' => $item['unit'] ?? null,
                             'unit_price' => $item['unit_price'] ?? $item['price'] ?? 0,
+                            'reason' => $item['reason'] ?? null,
                         ];
                         $items[] = ClientQuotationDetailData::fromArray($normalizedItem, $exchangeRate);
                     }

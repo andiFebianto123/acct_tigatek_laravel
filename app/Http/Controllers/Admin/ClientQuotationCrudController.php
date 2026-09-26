@@ -348,6 +348,8 @@ class ClientQuotationCrudController extends CrudController
             $d->qty = (float) $d->qty;
             $d->price = (float) ($d->unit_price ?? $d->price ?? 0);
             $d->reason = $d->reason ?? '';
+            $d->item_type = $d->item_type ?? (!empty($d->device_stock_id) ? 'persediaan' : 'non_persediaan');
+            $d->item_name = $d->item_name ?? '';
         }
         $entry->client_quotation_details_edit = $entry->details;
         $this->data['entry'] = $entry;
@@ -880,113 +882,94 @@ class ClientQuotationCrudController extends CrudController
 
         $id = request()->segment(4);
 
+        $quotationItemFields = [
+            [
+                'name'        => 'item_type',
+                'type'        => 'select_from_array',
+                'label'       => trans('backpack::crud.invoice_client.field.type_device.label') ?? 'Tipe Barang',
+                'options'     => [
+                    'persediaan'     => 'Persediaan',
+                    'non_persediaan' => 'Non Persediaan (Manual)',
+                ],
+                'default'     => 'persediaan',
+                'allows_null' => false,
+                'wrapper'     => [
+                    'class' => 'form-group col-md-6 quotation-item-type-wrapper',
+                ],
+            ],
+            [
+                'name'                 => 'device_stock_id',
+                'type'                 => 'select2_ajax_device_stock',
+                'label'                => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                'data_source'          => backpack_url('client/quotation/select2-device-stock'),
+                'placeholder'          => 'Pilih Nama Barang',
+                'minimum_input_length' => 0,
+                'model'                => \App\Models\DeviceStock::class,
+                'attribute'            => 'name',
+                'method'               => 'GET',
+                'wrapper'              => [
+                    'class' => 'form-group col-md-6 quotation-device-stock-wrapper',
+                ],
+            ],
+            [
+                'name'       => 'item_name',
+                'type'       => 'text',
+                'label'      => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                'wrapper'    => [
+                    'class' => 'form-group col-md-6 quotation-item-name-wrapper',
+                ],
+                'attributes' => [
+                    'placeholder' => 'Ketik Nama Barang / Jasa...',
+                ],
+            ],
+            [
+                'name'       => 'qty',
+                'type'       => 'number',
+                'label'      => 'QTY',
+                'default'    => 1,
+                'wrapper'    => [
+                    'class' => 'form-group col-md-6',
+                ],
+                'attributes' => [
+                    'min'  => 0,
+                    'step' => 'any',
+                ],
+            ],
+            [
+                'name'             => 'price',
+                'label'            => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                'type'             => 'mask_currency',
+                'currency_name'    => 'price_currency',
+                'default_currency' => 'IDR',
+                'wrapper'          => [
+                    'class' => 'form-group col-md-6',
+                ],
+            ],
+            [
+                'name'    => 'reason',
+                'type'    => 'tinymce_8',
+                'label'   => 'Keterangan',
+                'wrapper' => [
+                    'class' => 'form-group col-md-12',
+                ],
+            ],
+        ];
+
         if ($id && $id != 'create') {
             CRUD::addField([
-                'name' => 'client_quotation_details_edit',
-                'label' => trans('backpack::crud.invoice_client.field.item.label'),
-                'type' => 'repeatable',
+                'name'            => 'client_quotation_details_edit',
+                'label'           => trans('backpack::crud.invoice_client.field.item.label'),
+                'type'            => 'repeatable',
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
-                'fields' => [
-                    [
-                        'name' => 'device_stock_id',
-                        'type' => 'select2_ajax_device_stock',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
-                        'data_source' => backpack_url('client/quotation/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
-                        'minimum_input_length' => 0,
-                        'model' => \App\Models\DeviceStock::class,
-                        'attribute' => 'name',
-                        'method' => 'GET',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
-                        'name' => 'qty',
-                        'type' => 'number',
-                        'label' => 'QTY',
-                        'default' => 1,
-                        'wrapper' => [
-                            'class' => 'form-group col-md-2',
-                        ],
-                        'attributes' => [
-                            'min' => 0,
-                            'step' => 'any',
-                        ]
-                    ],
-                    [
-                        'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
-                        'type' => 'mask_currency',
-                        'currency_name' => 'price_currency',
-                        'default_currency' => 'IDR',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-4',
-                        ],
-                    ],
-                    [
-                        'name' => 'reason',
-                        'type' => 'tinymce_8',
-                        'label' => 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-12',
-                        ]
-                    ],
-                ]
+                'fields'          => $quotationItemFields,
             ]);
         } else {
             CRUD::addField([
-                'name' => 'client_quotation_details',
-                'label' => trans('backpack::crud.invoice_client.field.item.label'),
-                'type' => 'repeatable',
+                'name'            => 'client_quotation_details',
+                'label'           => trans('backpack::crud.invoice_client.field.item.label'),
+                'type'            => 'repeatable',
                 'new_item_label'  => trans('backpack::crud.invoice_client.field.item.new_item_label'),
-                'fields' => [
-                    [
-                        'name' => 'device_stock_id',
-                        'type' => 'select2_ajax_device_stock',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
-                        'data_source' => backpack_url('client/quotation/select2-device-stock'),
-                        'placeholder' => 'Pilih Nama Barang',
-                        'minimum_input_length' => 0,
-                        'model' => \App\Models\DeviceStock::class,
-                        'attribute' => 'name',
-                        'method' => 'GET',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
-                        'name' => 'qty',
-                        'type' => 'number',
-                        'label' => 'QTY',
-                        'default' => 1,
-                        'wrapper' => [
-                            'class' => 'form-group col-md-2',
-                        ],
-                        'attributes' => [
-                            'min' => 0,
-                            'step' => 'any',
-                        ]
-                    ],
-                    [
-                        'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
-                        'type' => 'mask_currency',
-                        'currency_name' => 'price_currency',
-                        'default_currency' => 'IDR',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-4',
-                        ],
-                    ],
-                    [
-                        'name' => 'reason',
-                        'type' => 'tinymce_8',
-                        'label' => 'Keterangan',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-12',
-                        ]
-                    ],
-                ]
+                'fields'          => $quotationItemFields,
             ]);
         }
 

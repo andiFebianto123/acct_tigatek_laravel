@@ -309,12 +309,31 @@
                     var settings = {!! json_encode($settings) !!};
                     var entry = {!! json_encode($entry_value) !!};
 
+                    function syncItemTypeRow($row, initialType = null) {
+                        var $typeSelect = $row.find('select[data-repeatable-input-name="item_type"], select[name*="[item_type]"], select[name="item_type"]');
+                        var selectedType = initialType || $typeSelect.val() || 'persediaan';
+
+                        var $stockWrapper = $row.find('.quotation-device-stock-wrapper').length
+                            ? $row.find('.quotation-device-stock-wrapper')
+                            : $row.find('select[data-init-function="bpFieldInitSelect2AjaxDeviceStock"], select[data-repeatable-input-name="device_stock_id"]').closest('.form-group');
+
+                        var $nameWrapper = $row.find('.quotation-item-name-wrapper').length
+                            ? $row.find('.quotation-item-name-wrapper')
+                            : $row.find('input[data-repeatable-input-name="item_name"], input[name*="[item_name]"]').closest('.form-group');
+
+                        if (selectedType === 'non_persediaan') {
+                            $stockWrapper.hide();
+                            $nameWrapper.show();
+                        } else {
+                            $stockWrapper.show();
+                            $nameWrapper.hide();
+                        }
+                    }
+
                     function populateDeviceStockSelect2() {
                         var details = (entry && (entry.client_quotation_details_edit || entry.client_quotation_details || entry.details)) 
                             ? (entry.client_quotation_details_edit || entry.client_quotation_details || entry.details) 
                             : null;
-
-                        if (!details || !Array.isArray(details)) return;
 
                         var $rows = $(form).find('.repeatable-element');
                         if (!$rows.length) {
@@ -322,12 +341,29 @@
                         }
 
                         $rows.each(function(index, el) {
-                            var itemData = details[index];
+                            var $row = $(el);
+                            var itemData = (details && Array.isArray(details)) ? details[index] : null;
+
+                            var itemType = itemData ? (itemData.item_type || (itemData.device_stock_id ? 'persediaan' : 'non_persediaan')) : 'persediaan';
+                            var $typeSelect = $row.find('select[data-repeatable-input-name="item_type"], select[name*="[item_type]"], select[name="item_type"]');
+                            if ($typeSelect.length && itemData) {
+                                $typeSelect.val(itemType).trigger('change');
+                            }
+
+                            syncItemTypeRow($row, itemType);
+
                             if (!itemData) return;
 
-                            var $select = $(el).find('select[data-init-function="bpFieldInitSelect2AjaxDeviceStock"], select[data-repeatable-input-name="device_stock_id"], select[data-repeatable-input-name="reference_id"], select[name*="device_stock"], select[name*="reference"]').not('.currency-select-dropdown');
+                            if (itemType === 'non_persediaan' || itemData.item_name) {
+                                var $nameInput = $row.find('input[data-repeatable-input-name="item_name"], input[name*="[item_name]"]');
+                                if ($nameInput.length && itemData.item_name) {
+                                    $nameInput.val(itemData.item_name);
+                                }
+                            }
+
+                            var $select = $row.find('select[data-init-function="bpFieldInitSelect2AjaxDeviceStock"], select[data-repeatable-input-name="device_stock_id"], select[data-repeatable-input-name="reference_id"], select[name*="device_stock"], select[name*="reference"]').not('.currency-select-dropdown');
                             if (!$select.length) {
-                                $select = $(el).find('select').not('.currency-select-dropdown').first();
+                                $select = $row.find('select').not('.currency-select-dropdown').first();
                             }
                             if ($select.length) {
                                 var refId = itemData.device_stock_id || itemData.reference_id || itemData.id;
@@ -335,9 +371,9 @@
                                     ? itemData.device_stock.name 
                                     : (itemData.item_name || itemData.name);
 
-                                if (refId || refName) {
-                                    var targetVal = refId || refName;
-                                    var targetText = refName || refId;
+                                if (refId && refName) {
+                                    var targetVal = refId;
+                                    var targetText = refName;
 
                                     var newOption = new Option(targetText, targetVal, true, true);
                                     $select.html(newOption).val(targetVal).trigger('change');
@@ -349,6 +385,26 @@
                             }
                         });
                     }
+
+                    // Event listener saat item_type berganti
+                    $(form).off('change.quotation_item_type', 'select[data-repeatable-input-name="item_type"], select[name*="[item_type]"], select[name="item_type"]')
+                           .on('change.quotation_item_type', 'select[data-repeatable-input-name="item_type"], select[name*="[item_type]"], select[name="item_type"]', function() {
+                        var $row = $(this).closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
+                        var typeVal = $(this).val();
+                        syncItemTypeRow($row, typeVal);
+
+                        if (typeVal === 'non_persediaan') {
+                            var $stockSelect = $row.find('select[data-init-function="bpFieldInitSelect2AjaxDeviceStock"], select[data-repeatable-input-name="device_stock_id"], select[name*="device_stock"]').not('.currency-select-dropdown');
+                            if ($stockSelect.length) {
+                                $stockSelect.val(null).trigger('change');
+                            }
+                        } else {
+                            var $nameInput = $row.find('input[data-repeatable-input-name="item_name"], input[name*="[item_name]"]');
+                            if ($nameInput.length) {
+                                $nameInput.val('');
+                            }
+                        }
+                    });
 
                     this.repeatableManager = new QuotationRepeatableManager(form, function() {
                         var totalItems = instance.repeatableManager.calculateTotalItems();
@@ -469,6 +525,9 @@
                                 instance.repeatableManager.initHandlers();
                                 instance.repeatableManager.onCalculate();
                             }
+                            $(form).find('.repeatable-element').each(function() {
+                                syncItemTypeRow($(this));
+                            });
                         }, 100);
                     });
 

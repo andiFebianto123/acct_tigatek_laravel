@@ -15,6 +15,7 @@ class ClientQuotationDetailData
         public readonly float $unit_price_base,
         public readonly float $total_price_base,
         public readonly ?string $reason = null,
+        public readonly ?string $item_type = 'persediaan',
     ) {}
 
     public static function fromArray(array $data, float $exchangeRate = 1.0): self
@@ -33,6 +34,8 @@ class ClientQuotationDetailData
             ? (float) str_replace(',', '', $data['total_price_base'])
             : ($total_price * $exchangeRate);
 
+        $itemType = $data['item_type'] ?? (!empty($data['device_stock_id']) ? 'persediaan' : 'non_persediaan');
+
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             device_stock_id: isset($data['device_stock_id']) && $data['device_stock_id'] !== '' ? (int) $data['device_stock_id'] : null,
@@ -44,6 +47,7 @@ class ClientQuotationDetailData
             unit_price_base: $unit_price_base,
             total_price_base: $total_price_base,
             reason: $data['reason'] ?? null,
+            item_type: $itemType,
         );
     }
 
@@ -59,6 +63,7 @@ class ClientQuotationDetailData
             'unit_price_base' => $this->unit_price_base,
             'total_price_base' => $this->total_price_base,
             'reason' => $this->reason,
+            'item_type' => $this->item_type,
         ];
     }
 }
