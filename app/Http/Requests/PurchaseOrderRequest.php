@@ -40,7 +40,7 @@ class PurchaseOrderRequest extends FormRequest
             'job_description' => 'required',
             'job_value' => 'required|numeric|min:' . $minJobValue,
             'status' => 'required|in:open,close',
-            'document_path' => ValidUpload::field('required')->file('mimes:pdf|max:5000'),
+            'document_path' => ValidUpload::field('nullable')->file('mimes:pdf|max:5000'),
             'company_id' => 'required|exists:companies,id',
             'term' => 'nullable|string',
             'pic' => 'required|string|max:150',
