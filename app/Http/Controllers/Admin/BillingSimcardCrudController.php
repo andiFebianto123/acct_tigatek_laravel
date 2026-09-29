@@ -106,6 +106,11 @@ class BillingSimcardCrudController extends CrudController
                 'label' => trans('backpack::crud.billing_simcard.column.client') ?? 'Klien',
             ],
             [
+                'name'  => 'code_billing',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.billing_simcard.column.code_billing') ?? 'Kode Billing',
+            ],
+            [
                 'name'  => 'product',
                 'type'  => 'text',
                 'label' => trans('backpack::crud.billing_simcard.column.product') ?? 'Produk',
@@ -264,6 +269,12 @@ class BillingSimcardCrudController extends CrudController
             'entity'    => 'client',
             'attribute' => 'name',
             'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_simcard.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text'
         ]);
 
         CRUD::column([
@@ -450,7 +461,7 @@ class BillingSimcardCrudController extends CrudController
 
         $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        $this->crud->delete($id);
+        $this->service->deleteBillingSimcard((int) $id);
 
         $messages['success'][] = trans('backpack::crud.delete_confirmation_message') ?? 'Item has been deleted.';
         $messages['events'] = [
@@ -518,6 +529,12 @@ class BillingSimcardCrudController extends CrudController
             'entity'    => 'client',
             'attribute' => 'name',
             'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_simcard.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text'
         ]);
 
         CRUD::column([
@@ -635,6 +652,15 @@ class BillingSimcardCrudController extends CrudController
             'minimum_input_length'    => 0,
             'placeholder'             => '- Pilih Klien -',
             'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'code_billing',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.billing_simcard.column.code_billing') ?? 'Kode Billing',
+            'wrapper' => [
                 'class' => 'form-group col-md-6',
             ],
         ]);
@@ -911,6 +937,7 @@ class BillingSimcardCrudController extends CrudController
 
         $columns = [
             ['label' => 'client'],
+            ['label' => 'code_billing'],
             ['label' => 'product'],
             ['label' => 'device_name'],
             ['label' => 'technology'],
@@ -927,6 +954,7 @@ class BillingSimcardCrudController extends CrudController
         $data = [
             [
                 'PT Client Contoh',
+                'BILL-SIM-001',
                 'Telkomsel IoT',
                 'Device Tracker A',
                 '4G / LTE',

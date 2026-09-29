@@ -15,6 +15,40 @@
     >
 @include('crud::fields.inc.wrapper_end')
 
+@push('after_styles')
+<style>
+    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single {
+        height: 38px !important;
+        line-height: 1.5 !important;
+        padding: 6px 24px 6px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+        padding-left: 0 !important;
+        padding-right: 20px !important;
+        line-height: normal !important;
+        display: block !important;
+        width: 100% !important;
+    }
+    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__clear {
+        position: absolute !important;
+        right: 24px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin-right: 0 !important;
+        font-size: 16px !important;
+    }
+    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {
+        position: absolute !important;
+        right: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        height: auto !important;
+    }
+</style>
+@endpush
+
 @push('crud_fields_scripts')
     <script>
         if (typeof setInputNumberCurrency === "undefined") {
@@ -443,6 +477,9 @@
                                     }
                                 });
                             }
+                            if (instance.repeatableManager) {
+                                instance.repeatableManager.initHandlers();
+                            }
                             instance.logicFormulaNoPO();
                         }, 300);
                     }
@@ -669,11 +706,11 @@
                 }
 
                 isDeviceStockMode() {
-                    // Hanya aktif jika BUKAN invoice recurring / notification_id
+                    // Selalu aktif jika merupakan invoice recurring
                     if (this.isRecurring) {
-                        return false;
+                        return true;
                     }
-                    // Hanya aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
+                    // Jika non-recurring, aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
                     var currentType = $(this.form + ' select[name="type_device"]').val();
                     return currentType === this.deviceStockType;
                 }
@@ -770,6 +807,11 @@
                         allowClear: true,
                         width: '100%',
                         dropdownParent: dropdownParent,
+                        templateSelection: function(item) {
+                            if (!item.id) return item.text;
+                            var text = item.name || item.text || '';
+                            return $('<span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; line-height: 1.5;"></span>').text(text);
+                        },
                         ajax: {
                             url: self.ajaxUrl,
                             dataType: 'json',
@@ -835,14 +877,15 @@
                     });
 
                     // Set nilai awal jika sudah ada (misal pada form Edit atau prefill)
-                    if (currentStockId) {
-                        var initialText = currentVal || ('ID: ' + currentStockId);
+                    if (currentStockId && currentStockId !== 'null' && currentStockId !== '') {
+                        var initialText = (currentVal && currentVal !== 'null') ? currentVal : ('ID: ' + currentStockId);
                         var opt = new Option(initialText, currentStockId, true, true);
                         $select.append(opt).trigger('change');
-                    } else if (currentVal) {
-                        // Coba cari option dengan teks yang sama atau set sebagai text option sementara
+                    } else if (currentVal && currentVal !== 'null' && currentVal !== '') {
                         var opt = new Option(currentVal, '', true, true);
                         $select.append(opt);
+                    } else {
+                        $select.val(null).trigger('change');
                     }
                 }
 

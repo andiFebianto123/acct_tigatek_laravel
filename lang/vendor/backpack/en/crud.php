@@ -662,6 +662,7 @@ return [
         'title_header' => 'Billing Device',
         'column' => [
             'client' => 'Client',
+            'code_billing' => 'Billing Code',
             'device_id' => 'Device Id',
             'phone' => 'Phone',
             'vehicle_uid' => 'Vehicle Uid',
@@ -681,6 +682,7 @@ return [
         'title_header' => 'Billing SIMCARD',
         'column' => [
             'client' => 'Client',
+            'code_billing' => 'Billing Code',
             'product' => 'Product',
             'device_name' => 'Device Name',
             'technology' => 'Technology',
@@ -698,6 +700,7 @@ return [
     'billing_notification' => [
         'title_header' => 'Billing Notification',
         'column' => [
+            'code_billing' => 'Billing Code',
             'billable_type' => 'Billing Type',
             'billable_id' => 'Item ID',
             'notification_date' => 'Notification Date',

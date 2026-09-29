@@ -864,6 +864,7 @@ return [
         'title_header' => 'Billing Device',
         'column' => [
             'client' => 'Klien',
+            'code_billing' => 'Kode Billing',
             'device_id' => 'Device Id',
             'phone' => 'Phone',
             'vehicle_uid' => 'Vehicle Uid',
@@ -883,6 +884,7 @@ return [
         'title_header' => 'Billing SIMCARD',
         'column' => [
             'client' => 'Klien',
+            'code_billing' => 'Kode Billing',
             'product' => 'Produk',
             'device_name' => 'Nama Device',
             'technology' => 'Teknologi',
@@ -900,6 +902,7 @@ return [
     'billing_notification' => [
         'title_header' => 'Notifikasi Tagihan',
         'column' => [
+            'code_billing' => 'Kode Billing',
             'billable_type' => 'Jenis Tagihan',
             'billable_id' => 'ID Item',
             'notification_date' => 'Tanggal Notifikasi',

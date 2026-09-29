@@ -26,6 +26,7 @@ class BillingSimcardRequest extends FormRequest
         return [
             'company_id' => 'required|exists:companies,id',
             'client_id' => 'nullable|exists:clients,id',
+            'code_billing' => 'nullable|string|max:20',
             'product' => 'nullable|string|max:100',
             'device_name' => 'nullable|string|max:150',
             'technology' => 'nullable|string|max:50',

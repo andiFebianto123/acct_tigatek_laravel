@@ -875,80 +875,101 @@ class InvoiceClientCrudController extends CrudController
         CRUD::setValidation(InvoiceClientRequest::class);
         $detailsValue = null;
         $client_po_id_default = null;
-          if (request()->has('notification_id')) {
+        if (request()->has('notification_id')) {
             $notificationId = request('notification_id');
             $notification = \App\Models\BillingNotification::find($notificationId);
             if ($notification) {
-                $searchKey = '';
                 $companyId = $notification->company_id;
-                $typeDevice = $notification->billable_type;
+                $codeBilling = $notification->code_billing;
 
-                if ($typeDevice === \App\Models\BillingSimcard::class) {
-                    $simcard = \App\Models\BillingSimcard::find($notification->billable_id);
-                    $searchKey = $simcard ? $simcard->device_profile_id : '';
-                } else if ($typeDevice === \App\Models\BillingDevice::class) {
-                    $device = \App\Models\BillingDevice::find($notification->billable_id);
-                    $searchKey = $device ? $device->device_id : '';
+                $devices = collect();
+                $simcards = collect();
+
+                if (!empty($codeBilling)) {
+                    $devices = \App\Models\BillingDevice::where('code_billing', $codeBilling)->get();
+                    $simcards = \App\Models\BillingSimcard::where('code_billing', $codeBilling)->get();
+                } else {
+                    if ($notification->billable_type === \App\Models\BillingDevice::class && $notification->billable) {
+                        $devices = collect([$notification->billable]);
+                    } elseif ($notification->billable_type === \App\Models\BillingSimcard::class && $notification->billable) {
+                        $simcards = collect([$notification->billable]);
+                    }
                 }
 
-                $previousDetail = \App\Models\InvoiceClientDetail::where('name', $searchKey)
-                    ->latest()
-                    ->first();
+                // Cari client_id dari device atau simcard
+                $clientId = null;
+                foreach ($devices as $d) {
+                    if ($d->client_id) {
+                        $clientId = $d->client_id;
+                        break;
+                    }
+                }
+                if (!$clientId) {
+                    foreach ($simcards as $s) {
+                        if ($s->client_id) {
+                            $clientId = $s->client_id;
+                            break;
+                        }
+                    }
+                }
 
                 $invoice = new \App\Models\InvoiceClient();
+                $invoice->company_id = $companyId;
+                $invoice->client_id = $clientId;
+                $invoice->status = 'Unpaid';
+                $invoice->is_recurring = 1;
+                $invoice->type_device = 'App\\Models\\DeviceStock';
 
-                $existingAlias = '';
-                if ($previousDetail && !empty($previousDetail->name_alias)) {
-                    $existingAlias = $previousDetail->name_alias;
-                } else if ($typeDevice === \App\Models\BillingDevice::class && isset($device)) {
-                    $existingAlias = $device->vehicle_name ?? $device->vehicle_uid ?? '';
-                } else if ($typeDevice === \App\Models\BillingSimcard::class && isset($simcard)) {
-                    $existingAlias = $simcard->device_name ?? $simcard->product ?? '';
+                // Cari Client PO terakhir dari klien tersebut jika ada
+                if ($clientId) {
+                    $latestInvoice = \App\Models\InvoiceClient::where('client_id', $clientId)
+                        ->where('company_id', $companyId)
+                        ->latest()
+                        ->first();
+                    if ($latestInvoice && $latestInvoice->client_po) {
+                        $invoice->client_po_id = $latestInvoice->client_po_id;
+                        $client_po_id_default = $latestInvoice->client_po_id;
+                        $invoice->address_po = $latestInvoice->address_po;
+                        $invoice->account_source_id = $latestInvoice->account_source_id;
+                        $invoice->tax_ppn = $latestInvoice->tax_ppn;
+                        $invoice->pph = $latestInvoice->pph;
+                        $invoice->withholding_agent = $latestInvoice->withholding_agent;
+                        $invoice->setAttribute('client_po_number', $latestInvoice->client_po->po_number ?? '');
+                        $invoice->setAttribute('client_name', $latestInvoice->client_po->client->name ?? '');
+                        $invoice->setAttribute('po_date', \Carbon\Carbon::parse($latestInvoice->client_po->date_po)->format('d/m/Y'));
+                        $invoice->setAttribute('kdp', $latestInvoice->client_po->work_code ?? '');
+                    }
                 }
 
-                if ($previousDetail && $previousDetail->invoice_client) {
-                    $prevInvoice = $previousDetail->invoice_client;
-                    $invoice->company_id = $prevInvoice->company_id;
-                    $invoice->client_id = $prevInvoice->client_id;
-                    $invoice->client_po_id = $prevInvoice->client_po_id;
-                    $client_po_id_default = $prevInvoice->client_po_id;
-                    $invoice->type_device = $prevInvoice->type_device;
-                    $invoice->address_po = $prevInvoice->address_po;
-                    $invoice->setAttribute('nominal_exclude_ppn', $prevInvoice->price_total_exclude_ppn);
-                    $invoice->setAttribute('nominal_include_ppn', $prevInvoice->price_total_include_ppn);
-                    $invoice->tax_ppn = $prevInvoice->tax_ppn;
-                    $invoice->pph = $prevInvoice->pph;
-                    $invoice->setAttribute('dpp_other', $prevInvoice->price_dpp);
-                    $invoice->withholding_agent = $prevInvoice->withholding_agent;
-                    $invoice->setAttribute('withholding_agent', $prevInvoice->withholding_agent);
-                    $invoice->account_source_id = $prevInvoice->account_source_id;
-                    $invoice->description = $prevInvoice->description;
+                $detailsValue = [];
 
-                    if ($prevInvoice->client_po) {
-                        $invoice->setAttribute('client_po_number', $prevInvoice->client_po->po_number ?? '');
-                        $invoice->setAttribute('client_name', $prevInvoice->client_po->client->name ?? '');
-                        $invoice->setAttribute('po_date', \Carbon\Carbon::parse($prevInvoice->client_po->date_po)->format('d/m/Y'));
-                        $invoice->setAttribute('kdp', $prevInvoice->client_po->work_code ?? '');
-                    }
-
-                    foreach ($prevInvoice->invoice_client_details as $detail) {
-                        $detailsValue[] = [
-                            'name' => $detail->name,
-                            'name_alias' => !empty($detail->name_alias) ? $detail->name_alias : $existingAlias,
-                            'qty' => $detail->qty,
-                            'price' => (int) $detail->price,
-                        ];
-                    }
-                } else {
-                    $invoice->company_id = $companyId;
-                    $invoice->type_device = $typeDevice;
-                    $invoice->status = 'Unpaid';
+                // 1. Baris repeatable untuk Device jika ada
+                if ($devices->isNotEmpty()) {
+                    $deviceCount = $devices->count();
+                    $sampleDevice = $devices->first();
 
                     $detailsValue[] = [
-                        'name' => $searchKey,
-                        'name_alias' => $existingAlias,
-                        'qty' => 1,
-                        'price' => '0',
+                        'code_billing'    => $codeBilling ?: ($sampleDevice->code_billing ?? '-'),
+                        'name'            => '',
+                        'device_stock_id' => null,
+                        'item_type'       => 'Device',
+                        'qty'             => $deviceCount,
+                        'price'           => 0,
+                    ];
+                }
+
+                // 2. Baris repeatable untuk SIMCARD jika ada
+                if ($simcards->isNotEmpty()) {
+                    $simcardCount = $simcards->count();
+                    $sampleSim = $simcards->first();
+
+                    $detailsValue[] = [
+                        'code_billing'    => $codeBilling ?: ($sampleSim->code_billing ?? '-'),
+                        'name'            => '',
+                        'device_stock_id' => null,
+                        'item_type'       => 'SIMCARD',
+                        'qty'             => $simcardCount,
+                        'price'           => 0,
                     ];
                 }
 
@@ -1376,18 +1397,21 @@ class InvoiceClientCrudController extends CrudController
         }
         $isRecurring = $hasNotification || ($currentEntry && $currentEntry->is_recurring !== null);
 
-        // Pertahankan status is_recurring agar tidak berubah saat form diedit
+        // Pertahankan status is_recurring agar tidak berubah saat form dibuat atau diedit
+        $isRecurringValue = null;
         if ($currentEntry && $currentEntry->is_recurring !== null) {
-            CRUD::addField([
-                'name'  => 'is_recurring',
-                'type'  => 'hidden',
-                'value' => $currentEntry->is_recurring ? 1 : 0,
-            ]);
+            $isRecurringValue = $currentEntry->is_recurring ? 1 : 0;
+        } elseif ($this->crud->entry && $this->crud->entry->is_recurring !== null) {
+            $isRecurringValue = $this->crud->entry->is_recurring ? 1 : 0;
         } elseif ($hasNotification) {
+            $isRecurringValue = 1;
+        }
+
+        if ($isRecurringValue !== null) {
             CRUD::addField([
                 'name'  => 'is_recurring',
                 'type'  => 'hidden',
-                'value' => 1,
+                'value' => $isRecurringValue,
             ]);
         }
 
@@ -1395,56 +1419,63 @@ class InvoiceClientCrudController extends CrudController
             if ($isRecurring) {
                 $editFields = [
                     [
-                        'name' => 'name',
-                        'type' => 'text',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
-                        'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
-                    ],
-                    [
-                        'name' => 'device_stock_id',
-                        'type' => 'hidden',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-0 d-none',
-                        ],
-                    ],
-                    [
-                        'name' => 'delivery_note_detail_id',
-                        'type' => 'hidden',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-0 d-none',
-                        ],
-                    ],
-                    [
-                        'name' => 'qty',
-                        'type' => 'number',
-                        'label' => 'QTY',
-                        'default' => 1,
-                        'wrapper' => [
-                            'class' => 'form-group col-md-2',
-                        ],
-                        'attributes' => [
-                            'min' => 1,
-                        ]
-                    ],
-                    [
-                        'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
-                        'type' => 'mask_currency',
-                        'currency_name' => 'price_currency',
-                        'default_currency' => 'IDR',
+                        'name'    => 'code_billing',
+                        'type'    => 'text',
+                        'label'   => 'Kode Billing',
                         'wrapper' => [
                             'class' => 'form-group col-md-4',
                         ],
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => 'Nama',
+                        'name'    => 'name',
+                        'type'    => 'text',
+                        'label'   => trans('backpack::crud.invoice_client.field.item.items.name.label'),
                         'wrapper' => [
-                            'class' => 'form-group col-md-12',
-                        ]
+                            'class' => 'form-group col-md-8',
+                        ],
+                    ],
+                    [
+                        'name'    => 'device_stock_id',
+                        'type'    => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name'    => 'item_type',
+                        'type'    => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name'    => 'delivery_note_detail_id',
+                        'type'    => 'hidden',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name'       => 'qty',
+                        'type'       => 'number',
+                        'label'      => 'QTY',
+                        'default'    => 1,
+                        'wrapper'    => [
+                            'class' => 'form-group col-md-4',
+                        ],
+                        'attributes' => [
+                            'min' => 1,
+                        ],
+                    ],
+                    [
+                        'name'             => 'price',
+                        'label'            => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                        'type'             => 'mask_currency',
+                        'currency_name'    => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper'          => [
+                            'class' => 'form-group col-md-8',
+                        ],
                     ],
                 ];
             } else {
@@ -1517,56 +1548,63 @@ class InvoiceClientCrudController extends CrudController
             if ($isRecurring) {
                 $createFields = [
                     [
-                        'name' => 'name',
-                        'type' => 'text',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'name'    => 'code_billing',
+                        'type'    => 'text',
+                        'label'   => 'Kode Billing',
                         'wrapper' => [
-                            'class' => 'form-group col-md-6',
-                        ]
+                            'class' => 'form-group col-md-4',
+                        ],
                     ],
                     [
-                        'name' => 'device_stock_id',
-                        'type' => 'hidden',
+                        'name'    => 'name',
+                        'type'    => 'text',
+                        'label'   => trans('backpack::crud.invoice_client.field.item.items.name.label'),
+                        'wrapper' => [
+                            'class' => 'form-group col-md-8',
+                        ],
+                    ],
+                    [
+                        'name'    => 'device_stock_id',
+                        'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
                         ],
                     ],
                     [
-                        'name' => 'delivery_note_detail_id',
-                        'type' => 'hidden',
+                        'name'    => 'item_type',
+                        'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
                         ],
                     ],
                     [
-                        'name' => 'qty',
-                        'type' => 'number',
-                        'label' => 'QTY',
-                        'default' => 1,
+                        'name'    => 'delivery_note_detail_id',
+                        'type'    => 'hidden',
                         'wrapper' => [
-                            'class' => 'form-group col-md-2',
+                            'class' => 'form-group col-md-0 d-none',
+                        ],
+                    ],
+                    [
+                        'name'       => 'qty',
+                        'type'       => 'number',
+                        'label'      => 'QTY',
+                        'default'    => 1,
+                        'wrapper'    => [
+                            'class' => 'form-group col-md-4',
                         ],
                         'attributes' => [
                             'min' => 1,
-                        ]
-                    ],
-                    [
-                        'name' => 'price',
-                        'label' => trans('backpack::crud.invoice_client.field.item.items.price.label'),
-                        'type' => 'mask_currency',
-                        'currency_name' => 'price_currency',
-                        'default_currency' => 'IDR',
-                        'wrapper'   => [
-                            'class' => 'form-group col-md-4'
                         ],
                     ],
                     [
-                        'name' => 'name_alias',
-                        'type' => 'text',
-                        'label' => 'Nama',
-                        'wrapper' => [
-                            'class' => 'form-group col-md-12',
-                        ]
+                        'name'             => 'price',
+                        'label'            => trans('backpack::crud.invoice_client.field.item.items.price.label'),
+                        'type'             => 'mask_currency',
+                        'currency_name'    => 'price_currency',
+                        'default_currency' => 'IDR',
+                        'wrapper'          => [
+                            'class' => 'form-group col-md-8',
+                        ],
                     ],
                 ];
             } else {

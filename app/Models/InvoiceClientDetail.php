@@ -52,6 +52,11 @@ class InvoiceClientDetail extends Model
         return $this->belongsTo(\App\Models\DeliveryNoteDetail::class, 'delivery_note_detail_id');
     }
 
+    function recurring_items()
+    {
+        return $this->hasMany(\App\Models\InvoiceClientRecurringItem::class, 'invoice_client_detail_id');
+    }
+
 
     /*
     |--------------------------------------------------------------------------

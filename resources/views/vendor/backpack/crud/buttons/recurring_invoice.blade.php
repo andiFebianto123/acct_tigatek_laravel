@@ -1,4 +1,5 @@
 @php
+    $codeBilling = !empty($entry->code_billing) ? trim($entry->code_billing) : null;
     $isExpired = false;
     if ($entry->billable && $entry->billable->expired_date) {
         $isExpired = \Carbon\Carbon::parse($entry->billable->expired_date)->startOfDay()->lt(\Carbon\Carbon::today());
@@ -7,7 +8,7 @@
     $hasInvoice = !empty($entry->has_invoice_this_month);
 @endphp
 
-@if (!$isExpired && !$hasInvoice)
+@if (!empty($codeBilling) && !$isExpired && !$hasInvoice)
 <a href="javascript:void(0)" 
     onclick="recurringInvoice(this)" 
     data-bs-toggle="modal"

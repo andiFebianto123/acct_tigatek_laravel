@@ -26,6 +26,7 @@ class BillingDeviceRequest extends FormRequest
         return [
             'company_id' => 'required|exists:companies,id',
             'client_id' => 'nullable|exists:clients,id',
+            'code_billing' => 'nullable|string|max:20',
             'device_id' => 'required|string|max:100',
             'phone' => 'nullable|string|max:50',
             'vehicle_uid' => 'nullable|string|max:100',

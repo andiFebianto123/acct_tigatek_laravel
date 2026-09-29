@@ -169,7 +169,7 @@ class InvoiceClientRequest extends FormRequest
                         }
                     }
                 ];
-                $rule['invoice_client_details_edit.*.name'] = 'required|max:120';
+                $rule['invoice_client_details_edit.*.name'] = 'required|max:200';
                 $rule['invoice_client_details_edit.*.price'] = 'required';
             }
         } else {
@@ -207,7 +207,7 @@ class InvoiceClientRequest extends FormRequest
                         }
                     }
                 ];
-                $rule['invoice_client_details.*.name'] = 'required|max:120';
+                $rule['invoice_client_details.*.name'] = 'required|max:200';
                 $rule['invoice_client_details.*.price'] = 'required';
             }
         }

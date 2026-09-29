@@ -72,6 +72,11 @@ class InvoiceClient extends Model
         return $this->belongsTo(CastAccount::class, 'account_source_id');
     }
 
+    function recurring_items()
+    {
+        return $this->hasMany(InvoiceClientRecurringItem::class, 'invoice_client_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

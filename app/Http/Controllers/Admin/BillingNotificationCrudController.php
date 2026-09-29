@@ -83,6 +83,11 @@ class BillingNotificationCrudController extends CrudController
 
         $columns = array_merge($columns, [
             [
+                'name'  => 'code_billing',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
+            ],
+            [
                 'name'  => 'billable_type_label',
                 'type'  => 'text',
                 'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
@@ -175,6 +180,15 @@ class BillingNotificationCrudController extends CrudController
             'entity'    => 'company',
             'attribute' => 'name',
             'model'     => "App\Models\Company",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text',
+            'orderLogic' => function ($query, $column, $columnDirection) {
+                return $query->orderByRaw("code_billing_order IS NULL, code_billing_order {$columnDirection}");
+            },
         ]);
 
         CRUD::column([
@@ -315,6 +329,12 @@ class BillingNotificationCrudController extends CrudController
         ]);
 
         CRUD::column([
+            'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text'
+        ]);
+
+        CRUD::column([
             'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
             'name'  => 'billable_type_label',
             'type'  => 'text'
@@ -354,6 +374,15 @@ class BillingNotificationCrudController extends CrudController
             'name'    => 'company_id',
             'options' => \App\Models\Company::whereIn('id', $accessibleCompanyIds)->pluck('name', 'id')->toArray(),
             'allows_null' => false,
+            'wrapper' => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'code_billing',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
             'wrapper' => [
                 'class' => 'form-group col-md-6',
             ],

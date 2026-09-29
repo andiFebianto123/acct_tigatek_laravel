@@ -106,6 +106,11 @@ class BillingDeviceCrudController extends CrudController
                 'label' => trans('backpack::crud.billing_device.column.client') ?? 'Klien',
             ],
             [
+                'name'  => 'code_billing',
+                'type'  => 'text',
+                'label' => trans('backpack::crud.billing_device.column.code_billing') ?? 'Kode Billing',
+            ],
+            [
                 'name'  => 'device_id',
                 'type'  => 'text',
                 'label' => trans('backpack::crud.billing_device.column.device_id') ?? 'Device Id',
@@ -264,6 +269,12 @@ class BillingDeviceCrudController extends CrudController
             'entity'    => 'client',
             'attribute' => 'name',
             'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_device.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text'
         ]);
 
         CRUD::column([
@@ -451,7 +462,7 @@ class BillingDeviceCrudController extends CrudController
 
         $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        $this->crud->delete($id);
+        $this->service->deleteBillingDevice((int) $id);
 
         $messages['success'][] = trans('backpack::crud.delete_confirmation_message') ?? 'Item has been deleted.';
         $messages['events'] = [
@@ -519,6 +530,12 @@ class BillingDeviceCrudController extends CrudController
             'entity'    => 'client',
             'attribute' => 'name',
             'model'     => "App\Models\Client",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_device.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
+            'type'  => 'text'
         ]);
 
         CRUD::column([
@@ -638,6 +655,15 @@ class BillingDeviceCrudController extends CrudController
             'minimum_input_length'    => 0,
             'placeholder'             => '- Pilih Klien -',
             'wrapper'                 => [
+                'class' => 'form-group col-md-6',
+            ],
+        ]);
+
+        CRUD::addField([
+            'name'  => 'code_billing',
+            'type'  => 'text',
+            'label' => trans('backpack::crud.billing_device.column.code_billing') ?? 'Kode Billing',
+            'wrapper' => [
                 'class' => 'form-group col-md-6',
             ],
         ]);
@@ -925,6 +951,7 @@ class BillingDeviceCrudController extends CrudController
 
         $columns = [
             ['label' => 'client'],
+            ['label' => 'code_billing'],
             ['label' => 'device_id'],
             ['label' => 'phone'],
             ['label' => 'vehicle_uid'],
@@ -942,6 +969,7 @@ class BillingDeviceCrudController extends CrudController
         $data = [
             [
                 'PT Client Contoh',
+                'BILL-DEV-001',
                 'DEV-1001',
                 '6281234567890',
                 'VEH-9921',

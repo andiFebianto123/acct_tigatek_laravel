@@ -111,6 +111,7 @@ class InvoiceClientService
                     delivery_note_id: $dto->delivery_note_id,
                     pic: $dto->pic,
                     category: $dto->category,
+                    is_recurring: $dto->is_recurring,
                 );
             }
 
@@ -439,15 +440,17 @@ class InvoiceClientService
             $itemName = $item['name'] ?? '';
             $nameAlias = $item['name_alias'] ?? null;
             $reason = $item['reason'] ?? null;
+            $codeBilling = !empty($item['code_billing']) ? trim($item['code_billing']) : null;
 
             // Jika bukan mode Persediaan (misal Billing Device / SIMCARD), pastikan name_alias terisi
             if (!$isDeviceStock && empty($nameAlias) && !empty($itemName)) {
                 $nameAlias = $itemName;
             }
 
-            if ($price > 0 || !empty($itemName) || !empty($nameAlias) || !empty($reason)) {
+            if ($price > 0 || !empty($itemName) || !empty($nameAlias) || !empty($reason) || !empty($codeBilling)) {
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
+                $invoice_item->code_billing = $codeBilling;
                 $invoice_item->name = $itemName;
                 $invoice_item->name_alias = $nameAlias;
                 $invoice_item->reason = $reason;
@@ -455,9 +458,9 @@ class InvoiceClientService
                 $invoice_item->price = $price;
                 $invoice_item->price_base = round($price * $exchangeRate, 2);
 
-                // Simpan device_stock_id HANYA jika mode Persediaan
+                // Simpan device_stock_id jika ada
                 $rawStockId = $item['device_stock_id'] ?? null;
-                $deviceStockId = ($isDeviceStock && $rawStockId !== null && (int) $rawStockId > 0)
+                $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
                     ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
@@ -470,6 +473,65 @@ class InvoiceClientService
                 $invoice_item->delivery_note_detail_id = $dnDetailId;
 
                 $invoice_item->save();
+
+                // Simpan snapshot bukti sejarah jika ada kode billing atau mode recurring
+                if (!empty($codeBilling) || $invoice->is_recurring) {
+                    $this->saveRecurringSnapshots($invoice, $invoice_item, $item);
+                }
+            }
+        }
+    }
+
+    /**
+     * Simpan bukti sejarah snapshot item Device dan SIM Card untuk invoice recurring.
+     */
+    private function saveRecurringSnapshots(InvoiceClient $invoice, InvoiceClientDetail $invoiceDetail, array $item): void
+    {
+        $codeBilling = trim($item['code_billing'] ?? '');
+        if (empty($codeBilling)) {
+            return;
+        }
+
+        $companyId = $invoice->company_id;
+        $itemType = $item['item_type'] ?? null;
+
+        // 1. Snapshot Device jika item adalah tipe Device atau belum ditentukan
+        if (!$itemType || strtolower($itemType) === 'device') {
+            $devices = \App\Models\BillingDevice::where('code_billing', $codeBilling)->get();
+
+            foreach ($devices as $device) {
+                \App\Models\InvoiceClientRecurringItem::create([
+                    'invoice_client_id'        => $invoice->id,
+                    'invoice_client_detail_id' => $invoiceDetail->id,
+                    'code_billing'             => $codeBilling,
+                    'item_type'                => 'Device',
+                    'billable_type'            => \App\Models\BillingDevice::class,
+                    'billable_id'              => $device->id,
+                    'identifier'               => $device->device_id,
+                    'secondary_identifier'     => $device->vehicle_uid ?? $device->imei,
+                    'item_name'                => $device->vehicle_name ?? $device->model,
+                    'snapshot_data'            => $device->toArray(),
+                ]);
+            }
+        }
+
+        // 2. Snapshot SIMCARD jika item adalah tipe SIMCARD atau belum ditentukan
+        if (!$itemType || strtolower($itemType) === 'simcard' || strtolower($itemType) === 'sim') {
+            $simcards = \App\Models\BillingSimcard::where('code_billing', $codeBilling)->get();
+
+            foreach ($simcards as $simcard) {
+                \App\Models\InvoiceClientRecurringItem::create([
+                    'invoice_client_id'        => $invoice->id,
+                    'invoice_client_detail_id' => $invoiceDetail->id,
+                    'code_billing'             => $codeBilling,
+                    'item_type'                => 'SIMCARD',
+                    'billable_type'            => \App\Models\BillingSimcard::class,
+                    'billable_id'              => $simcard->id,
+                    'identifier'               => $simcard->msisdn,
+                    'secondary_identifier'     => $simcard->iccid ?? $simcard->device_profile_id,
+                    'item_name'                => $simcard->device_name ?? $simcard->product,
+                    'snapshot_data'            => $simcard->toArray(),
+                ]);
             }
         }
     }

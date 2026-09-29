@@ -26,6 +26,7 @@ class BillingNotification extends Model
     ];
 
     protected $appends = [
+        'code_billing',
         'billable_type_label',
         'billable_target',
     ];
@@ -44,6 +45,14 @@ class BillingNotification extends Model
     public function billable()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Accessor for code billing.
+     */
+    public function getCodeBillingAttribute(): ?string
+    {
+        return $this->billable?->code_billing;
     }
 
     /**

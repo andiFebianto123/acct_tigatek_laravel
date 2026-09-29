@@ -17,6 +17,7 @@ class BillingSimcard extends Model
     protected $fillable = [
         'company_id',
         'client_id',
+        'code_billing',
         'product',
         'device_name',
         'technology',
