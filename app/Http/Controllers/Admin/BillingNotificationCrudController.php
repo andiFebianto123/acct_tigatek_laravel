@@ -88,14 +88,21 @@ class BillingNotificationCrudController extends CrudController
                 'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
             ],
             [
-                'name'  => 'billable_type_label',
-                'type'  => 'text',
-                'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
-            ],
-            [
-                'name'  => 'billable_target',
-                'type'  => 'text',
-                'label' => trans('backpack::crud.billing_notification.column.billable_id') ?? 'Item Tagihan',
+                'name'  => 'total_items',
+                'type'  => 'closure',
+                'label' => trans('backpack::crud.billing_notification.column.total_items') ?? 'Jumlah Item',
+                'function' => function ($entry) {
+                    $dev = (int) ($entry->total_devices ?? 0);
+                    $sim = (int) ($entry->total_simcards ?? 0);
+                    $total = (int) ($entry->total_items ?? ($dev + $sim));
+                    
+                    $details = [];
+                    if ($dev > 0) $details[] = "{$dev} Device";
+                    if ($sim > 0) $details[] = "{$sim} SIMCARD";
+
+                    $sub = !empty($details) ? '<br><small class="text-muted">(' . implode(', ', $details) . ')</small>' : '';
+                    return '<strong>' . $total . ' Item</strong>' . $sub;
+                }
             ],
             [
                 'name'   => 'notification_date',
@@ -186,21 +193,25 @@ class BillingNotificationCrudController extends CrudController
             'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
             'name'  => 'code_billing',
             'type'  => 'text',
-            'orderLogic' => function ($query, $column, $columnDirection) {
-                return $query->orderByRaw("code_billing_order IS NULL, code_billing_order {$columnDirection}");
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_notification.column.total_items') ?? 'Jumlah Item',
+            'name'  => 'total_items',
+            'type'  => 'closure',
+            'function' => function ($entry) {
+                $dev = (int) ($entry->total_devices ?? 0);
+                $sim = (int) ($entry->total_simcards ?? 0);
+                $total = (int) ($entry->total_items ?? ($dev + $sim));
+                
+                $details = [];
+                if ($dev > 0) $details[] = "{$dev} Device";
+                if ($sim > 0) $details[] = "{$sim} SIMCARD";
+
+                $sub = !empty($details) ? '<br><small class="text-muted">(' . implode(', ', $details) . ')</small>' : '';
+                return '<strong>' . $total . ' Item</strong>' . $sub;
             },
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
-            'name'  => 'billable_type_label',
-            'type'  => 'text'
-        ]);
-
-        CRUD::column([
-            'label' => trans('backpack::crud.billing_notification.column.billable_id') ?? 'Item Tagihan',
-            'name'  => 'billable_target',
-            'type'  => 'text'
+            'escaped' => false,
         ]);
 
         CRUD::column([
@@ -279,7 +290,27 @@ class BillingNotificationCrudController extends CrudController
 
         $id = $this->crud->getCurrentEntryId() ?? $id;
 
-        $this->crud->delete($id);
+        $notification = BillingNotification::find($id);
+        if ($notification) {
+            $codeBilling = $notification->code_billing;
+            $companyId = $notification->company_id;
+
+            if (!empty($codeBilling)) {
+                $notificationsToDelete = BillingNotification::where('company_id', $companyId)
+                    ->where(function ($q) use ($codeBilling) {
+                        $q->whereHasMorph('billable', [\App\Models\BillingDevice::class, \App\Models\BillingSimcard::class], function ($subQuery) use ($codeBilling) {
+                            $subQuery->where('code_billing', $codeBilling);
+                        });
+                    })
+                    ->get();
+
+                foreach ($notificationsToDelete as $item) {
+                    $item->delete();
+                }
+            } else {
+                $notification->delete();
+            }
+        }
 
         $messages['success'][] = trans('backpack::crud.delete_confirmation_message') ?? 'Item has been deleted.';
         $messages['events'] = [

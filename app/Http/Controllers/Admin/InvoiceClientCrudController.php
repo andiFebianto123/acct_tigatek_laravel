@@ -401,6 +401,19 @@ class InvoiceClientCrudController extends CrudController
         if ($entry->invoice_client_details) {
             foreach ($entry->invoice_client_details as $d) {
                 $d->reason = $d->reason ?? '';
+                if (empty($d->item_type)) {
+                    // Cek dari relation recurring_items jika ada
+                    $firstRecurring = $d->recurring_items?->first() ?? \App\Models\InvoiceClientRecurringItem::where('invoice_client_detail_id', $d->id)->first();
+                    if ($firstRecurring && !empty($firstRecurring->item_type)) {
+                        $d->item_type = strtoupper($firstRecurring->item_type);
+                    } elseif (!empty($d->code_billing)) {
+                        // Fallback cek apakah code_billing ada di billing_devices atau billing_simcards
+                        $isDevice = \App\Models\BillingDevice::where('code_billing', $d->code_billing)->exists();
+                        $d->item_type = $isDevice ? 'DEVICE' : 'SIMCARD';
+                    } else {
+                        $d->item_type = '-';
+                    }
+                }
             }
         }
         $entry->invoice_client_details_edit = $entry->invoice_client_details;
@@ -952,7 +965,7 @@ class InvoiceClientCrudController extends CrudController
                         'code_billing'    => $codeBilling ?: ($sampleDevice->code_billing ?? '-'),
                         'name'            => '',
                         'device_stock_id' => null,
-                        'item_type'       => 'Device',
+                        'item_type'       => 'DEVICE',
                         'qty'             => $deviceCount,
                         'price'           => 0,
                     ];
@@ -1419,10 +1432,13 @@ class InvoiceClientCrudController extends CrudController
             if ($isRecurring) {
                 $editFields = [
                     [
-                        'name'    => 'code_billing',
-                        'type'    => 'text',
-                        'label'   => 'Kode Billing',
-                        'wrapper' => [
+                        'name'       => 'item_type',
+                        'type'       => 'text',
+                        'label'      => 'Jenis Item',
+                        'attributes' => [
+                            'readonly' => 'readonly',
+                        ],
+                        'wrapper'    => [
                             'class' => 'form-group col-md-4',
                         ],
                     ],
@@ -1435,14 +1451,14 @@ class InvoiceClientCrudController extends CrudController
                         ],
                     ],
                     [
-                        'name'    => 'device_stock_id',
+                        'name'    => 'code_billing',
                         'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
                         ],
                     ],
                     [
-                        'name'    => 'item_type',
+                        'name'    => 'device_stock_id',
                         'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
@@ -1548,10 +1564,13 @@ class InvoiceClientCrudController extends CrudController
             if ($isRecurring) {
                 $createFields = [
                     [
-                        'name'    => 'code_billing',
-                        'type'    => 'text',
-                        'label'   => 'Kode Billing',
-                        'wrapper' => [
+                        'name'       => 'item_type',
+                        'type'       => 'text',
+                        'label'      => 'Jenis Item',
+                        'attributes' => [
+                            'readonly' => 'readonly',
+                        ],
+                        'wrapper'    => [
                             'class' => 'form-group col-md-4',
                         ],
                     ],
@@ -1564,14 +1583,14 @@ class InvoiceClientCrudController extends CrudController
                         ],
                     ],
                     [
-                        'name'    => 'device_stock_id',
+                        'name'    => 'code_billing',
                         'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
                         ],
                     ],
                     [
-                        'name'    => 'item_type',
+                        'name'    => 'device_stock_id',
                         'type'    => 'hidden',
                         'wrapper' => [
                             'class' => 'form-group col-md-0 d-none',
@@ -2421,7 +2440,7 @@ class InvoiceClientCrudController extends CrudController
     {
         $data = [];
         $data['header'] = InvoiceClient::with('company')->where('id', $id)->first();
-        $data['details'] = InvoiceClientDetail::with('deviceStock')->where('invoice_client_id', $id)->get();
+        $data['details'] = InvoiceClientDetail::with(['deviceStock', 'recurring_items'])->where('invoice_client_id', $id)->get();
 
         $pdf = Pdf::loadView('exports.invoice-client-single-pdf', $data);
         $fileName = 'Invoice-' . ($data['header']->invoice_number ?? $id) . '.pdf';

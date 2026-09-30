@@ -257,6 +257,40 @@
             margin-top: 5px;
             color: #000;
         }
+
+        /* Page break for recurring IMEI / SIMCARD information */
+        .page-break {
+            page-break-before: always;
+        }
+        .imei-info-section {
+            margin-top: 20px;
+            width: 100%;
+        }
+        .imei-group-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 10px;
+        }
+        .imei-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+        .imei-table th {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            font-size: 10pt;
+            font-weight: bold;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        .imei-table td {
+            border: 1px solid #000;
+            padding: 5px 8px;
+            font-size: 9.5pt;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -567,6 +601,171 @@
         </div>
         <div class="clearfix"></div>
     </div>
+
+    @if(!empty($header->is_recurring))
+        @php
+            // Kumpulkan semua recurring items dari detail invoice atau query langsung
+            $recurringItems = collect();
+            if (isset($details)) {
+                foreach ($details as $d) {
+                    if ($d->recurring_items && $d->recurring_items->count() > 0) {
+                        $recurringItems = $recurringItems->concat($d->recurring_items);
+                    }
+                }
+            }
+
+            // Jika belum terload dari relation, coba load langsung dari DB
+            if ($recurringItems->isEmpty()) {
+                $recurringItems = \App\Models\InvoiceClientRecurringItem::where('invoice_client_id', $header->id)->get();
+            }
+
+            // Fallback: Jika tabel snapshot belum terisi (misal data invoice dibuat sebelum migrasi), query dari billing_devices & billing_simcards
+            if ($recurringItems->isEmpty()) {
+                $codeBillings = [];
+                if (isset($details)) {
+                    foreach ($details as $d) {
+                        if (!empty($d->code_billing)) {
+                            $codeBillings[] = trim($d->code_billing);
+                        }
+                    }
+                }
+                $codeBillings = array_unique(array_filter($codeBillings));
+
+                if (!empty($codeBillings)) {
+                    $fallbackDevices = \App\Models\BillingDevice::whereIn('code_billing', $codeBillings)->get();
+                    foreach ($fallbackDevices as $dev) {
+                        $recurringItems->push((object)[
+                            'item_type'            => 'Device',
+                            'identifier'           => $dev->device_id,
+                            'secondary_identifier' => $dev->imei ?? $dev->vehicle_uid,
+                            'item_name'            => $dev->model ?? $dev->vehicle_name,
+                            'code_billing'         => $dev->code_billing,
+                            'snapshot_data'        => $dev->toArray(),
+                        ]);
+                    }
+
+                    $fallbackSimcards = \App\Models\BillingSimcard::whereIn('code_billing', $codeBillings)->get();
+                    foreach ($fallbackSimcards as $sim) {
+                        $recurringItems->push((object)[
+                            'item_type'            => 'SIMCARD',
+                            'identifier'           => $sim->msisdn,
+                            'secondary_identifier' => $sim->iccid ?? $sim->device_profile_id,
+                            'item_name'            => $sim->product ?? $sim->device_name,
+                            'code_billing'         => $sim->code_billing,
+                            'snapshot_data'        => $sim->toArray(),
+                        ]);
+                    }
+                }
+            }
+
+            $clientName = $header->client->name ?? $header->client_name ?? ($header->resolved_client_po->client->name ?? 'Client');
+            $deviceItems = $recurringItems->where('item_type', 'Device');
+            $simcardItems = $recurringItems->filter(function($i) {
+                return strtoupper($i->item_type) === 'SIMCARD' || strtoupper($i->item_type) === 'SIM';
+            });
+        @endphp
+
+        @if($recurringItems->isNotEmpty())
+            <div class="page-break"></div>
+
+            <div class="header">
+                <table class="header-table">
+                    <tr>
+                        <td class="logo-td">
+                            @if($logoData)
+                                <img src="data:{{ $mimeType }};base64,{{ $logoData }}" class="logo-img" alt="Logo">
+                            @else
+                                <div style="color: #c9a227; font-size: 30pt; font-weight: bold;">{{ substr($company->name ?? 'T', 0, 1) }}</div>
+                            @endif
+                        </td>
+                        <td class="info-td">
+                            <div class="company-name">{{ $company->name ?? 'PT. TIGA TEKNOLOGI PERSADA' }}</div>
+                            <div class="company-info">
+                                @if($company)
+                                    {!! nl2br(e($company->address ?? '')) !!}
+                                    @if($company->city || $company->province)
+                                        <br>{{ implode(', ', array_filter([$company->city, $company->province, $company->postal_code])) }}
+                                    @endif
+                                    @if($company->phone)
+                                        <br>Telp: {{ $company->phone }}
+                                    @endif
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="imei-info-section">
+                @if($deviceItems->isNotEmpty())
+                    @php
+                        $deviceCount = $deviceItems->count();
+                        $firstModel = $deviceItems->first()->item_name ?? 'DEVICE';
+                        // Format title: "1 UNIT FMC 125 for PT Naufalindo Multi Mandiri"
+                        $groupTitle = "{$deviceCount} UNIT " . strtoupper($firstModel) . " for {$clientName}";
+                    @endphp
+
+                    <div class="imei-group-title">{{ $groupTitle }}</div>
+                    <table class="imei-table">
+                        <thead>
+                            <tr>
+                                <th width="10%">No</th>
+                                <th width="45%">IMEI</th>
+                                <th width="45%">SN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($deviceItems->values() as $idx => $dev)
+                                @php
+                                    $snap = is_array($dev->snapshot_data) ? $dev->snapshot_data : (json_decode($dev->snapshot_data, true) ?: []);
+                                    $imei = $snap['imei'] ?? $dev->secondary_identifier ?? '-';
+                                    $sn = $snap['device_id'] ?? $dev->identifier ?? '-';
+                                @endphp
+                                <tr>
+                                    <td class="text-center">{{ $idx + 1 }}</td>
+                                    <td class="text-center">{{ $imei }}</td>
+                                    <td class="text-center">{{ $sn }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+
+                @if($simcardItems->isNotEmpty())
+                    @php
+                        $simCount = $simcardItems->count();
+                        $firstProduct = $simcardItems->first()->item_name ?? 'SIMCARD';
+                        $simGroupTitle = "{$simCount} SIMCARD " . strtoupper($firstProduct) . " for {$clientName}";
+                    @endphp
+
+                    <div class="imei-group-title">{{ $simGroupTitle }}</div>
+                    <table class="imei-table">
+                        <thead>
+                            <tr>
+                                <th width="10%">No</th>
+                                <th width="45%">MSISDN</th>
+                                <th width="45%">ICCID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($simcardItems->values() as $idx => $sim)
+                                @php
+                                    $snap = is_array($sim->snapshot_data) ? $sim->snapshot_data : (json_decode($sim->snapshot_data, true) ?: []);
+                                    $msisdn = $snap['msisdn'] ?? $sim->identifier ?? '-';
+                                    $iccid = $snap['iccid'] ?? $sim->secondary_identifier ?? '-';
+                                @endphp
+                                <tr>
+                                    <td class="text-center">{{ $idx + 1 }}</td>
+                                    <td class="text-center">{{ $msisdn }}</td>
+                                    <td class="text-center">{{ $iccid }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        @endif
+    @endif
 
 </body>
 </html>

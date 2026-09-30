@@ -15,41 +15,58 @@
     >
 @include('crud::fields.inc.wrapper_end')
 
-@push('after_styles')
+@push('crud_fields_scripts')
 <style>
-    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single {
+    /* Styling Select2 pada Repeatable Device Stock / Item */
+    .invoice-device-select2-wrapper .select2-container .select2-selection--single {
         height: 38px !important;
-        line-height: 1.5 !important;
-        padding: 6px 24px 6px 12px !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 0.25rem !important;
+        padding: 5px 28px 5px 12px !important;
         display: flex !important;
         align-items: center !important;
+        background-color: #fff !important;
+        box-sizing: border-box !important;
     }
-    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__rendered {
+    .invoice-device-select2-wrapper .select2-container .select2-selection--single .select2-selection__rendered {
         padding-left: 0 !important;
-        padding-right: 20px !important;
+        padding-right: 15px !important;
         line-height: normal !important;
+        font-size: 0.875rem !important;
+        color: #495057 !important;
         display: block !important;
         width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
-    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__clear {
+    .invoice-device-select2-wrapper .select2-container .select2-selection--single .select2-selection__clear {
         position: absolute !important;
-        right: 24px !important;
+        right: 22px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
-        margin-right: 0 !important;
-        font-size: 16px !important;
+        margin: 0 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        color: #888 !important;
+        cursor: pointer !important;
+        z-index: 2 !important;
     }
-    .invoice-device-select2-wrapper .select2-container--bootstrap .select2-selection--single .select2-selection__arrow {
+    .invoice-device-select2-wrapper .select2-container .select2-selection--single .select2-selection__arrow {
         position: absolute !important;
-        right: 8px !important;
+        right: 6px !important;
         top: 50% !important;
         transform: translateY(-50%) !important;
         height: auto !important;
+        width: 20px !important;
+    }
+    .invoice-device-select2-wrapper .select2-container.select2-container--open .select2-selection--single,
+    .invoice-device-select2-wrapper .select2-container.select2-container--focus .select2-selection--single {
+        border-color: #86b7fe !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
 </style>
-@endpush
-
-@push('crud_fields_scripts')
     <script>
         if (typeof setInputNumberCurrency === "undefined") {
             function setInputNumberCurrency(selected, value, curr = 'IDR') {
@@ -706,9 +723,9 @@
                 }
 
                 isDeviceStockMode() {
-                    // Selalu aktif jika merupakan invoice recurring
+                    // Invoice recurring tidak menggunakan mode DeviceStock Select2 (tetap text input jenis item & name)
                     if (this.isRecurring) {
-                        return true;
+                        return false;
                     }
                     // Jika non-recurring, aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
                     var currentType = $(this.form + ' select[name="type_device"]').val();
@@ -802,7 +819,6 @@
 
                     // Inisialisasi Select2 AJAX
                     $select.select2({
-                        theme: 'bootstrap',
                         placeholder: 'Pilih Barang Persediaan',
                         allowClear: true,
                         width: '100%',
@@ -810,7 +826,7 @@
                         templateSelection: function(item) {
                             if (!item.id) return item.text;
                             var text = item.name || item.text || '';
-                            return $('<span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; line-height: 1.5;"></span>').text(text);
+                            return $('<span style="display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;"></span>').text(text);
                         },
                         ajax: {
                             url: self.ajaxUrl,

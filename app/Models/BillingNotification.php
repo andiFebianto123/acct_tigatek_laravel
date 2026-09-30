@@ -52,7 +52,7 @@ class BillingNotification extends Model
      */
     public function getCodeBillingAttribute(): ?string
     {
-        return $this->billable?->code_billing;
+        return $this->attributes['code_billing'] ?? $this->attributes['code_billing_calc'] ?? $this->billable?->code_billing;
     }
 
     /**

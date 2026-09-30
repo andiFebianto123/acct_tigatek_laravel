@@ -22,6 +22,7 @@ class InvoiceClientDetail extends Model
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
+    protected $appends = ['item_type'];
     // protected $fillable = [];
     // protected $hidden = [];
 
@@ -69,6 +70,26 @@ class InvoiceClientDetail extends Model
     | ACCESSORS
     |--------------------------------------------------------------------------
     */
+    public function getItemTypeAttribute(): ?string
+    {
+        if (!empty($this->attributes['item_type'])) {
+            return $this->attributes['item_type'];
+        }
+
+        // Cek relation recurring_items
+        $firstRecurring = $this->recurring_items?->first();
+        if ($firstRecurring && !empty($firstRecurring->item_type)) {
+            return strtoupper($firstRecurring->item_type);
+        }
+
+        // Fallback dari code_billing
+        if (!empty($this->code_billing)) {
+            $isDevice = \App\Models\BillingDevice::where('code_billing', $this->code_billing)->exists();
+            return $isDevice ? 'DEVICE' : 'SIMCARD';
+        }
+
+        return null;
+    }
 
     /*
     |--------------------------------------------------------------------------
