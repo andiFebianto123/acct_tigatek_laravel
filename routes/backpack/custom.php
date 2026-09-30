@@ -87,7 +87,7 @@ Route::group([
         Route::crud('subkon', 'SubkonCrudController');
         Route::post('subkon/export-pdf', [SubkonCrudController::class, 'exportPdf']);
         Route::post('subkon/export-excel', [SubkonCrudController::class, 'exportExcel']);
-        Route::post('select2-subkon-id', 'PurchaseOrderCrudController@select2SubkonId')->name('select2-subkon-id');
+        Route::match(['get', 'post', 'put'], 'select2-subkon-id', [PurchaseOrderCrudController::class, 'select2SubkonId'])->name('select2-subkon-id');
         Route::crud('purchase-order', 'PurchaseOrderCrudController');
         Route::post('purchase-order/{id}/post-stock', [PurchaseOrderCrudController::class, 'postStock']);
         Route::match(['get', 'post', 'put'], 'purchase-order/select2-device-stock', [PurchaseOrderCrudController::class, 'select2DeviceStock']);

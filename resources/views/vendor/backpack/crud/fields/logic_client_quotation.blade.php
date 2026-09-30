@@ -42,15 +42,35 @@
 
                 getCleanIdrValue(val, isInitial = false) {
                     if (!val && val !== 0) return '';
-                    var str = val.toString().trim();
-                    var isDbFloat = /^-?\d+\.\d+$/.test(str);
-                    var workingVal = isDbFloat ? str.replace('.', ',') : str;
-                    var clean = workingVal.replace(/\./g, '').replace(',', '.');
-                    var parts = clean.replace(/[^\d.-]/g, '').split('.');
-                    if (parts.length > 1) {
-                        return parts[0] + '.' + parts[1].substring(0, 2);
+                    let str = val.toString().trim();
+                    let isNegative = str.startsWith('-');
+                    str = str.replace(/^-/, '');
+
+                    let integerPart = '';
+                    let decimalPart = null;
+
+                    if (str.includes(',')) {
+                        let clean = str.replace(/\./g, '');
+                        let parts = clean.split(',');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else if (/^\d+\.\d+$/.test(str) && !/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                        let parts = str.split('.');
+                        integerPart = parts[0].replace(/[^\d]/g, '');
+                        decimalPart = parts.length > 1 ? parts[1].replace(/[^\d]/g, '').substring(0, 2) : null;
+                    } else {
+                        integerPart = str.replace(/[^\d]/g, '');
                     }
-                    return parts[0];
+
+                    if (!integerPart && (decimalPart === null || decimalPart === '')) {
+                        return '';
+                    }
+
+                    let raw = (integerPart || '0');
+                    if (decimalPart !== null && decimalPart !== '') {
+                        raw += '.' + decimalPart;
+                    }
+                    return (isNegative ? '-' : '') + raw;
                 }
 
                 cleanValue(val, currency, isInitial = false) {
@@ -104,8 +124,9 @@
                         }
                     });
 
-                    $(this.form).off('input change keyup.quotation_repeat', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]')
-                               .on('input change keyup.quotation_repeat', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]', function() {
+                    // Delegated listener untuk seluruh input QTY dan Price
+                    $(this.form).off('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[data-alt="unit_price_masked"], input[name*="[price]"], input[name*="[unit_price]"]')
+                               .on('input.calc change.calc keyup.calc', 'input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"], input[data-alt="price_masked"], input[data-alt="unit_price_masked"], input[name*="[price]"], input[name*="[unit_price]"]', function() {
                         if (typeof self.onCalculate === 'function') self.onCalculate();
                     });
 
@@ -120,28 +141,13 @@
                         self.syncRowCurrency($row, curr, symbol);
 
                         var initialVal = $hiddenInput.val() || $maskedInput.val() || '';
-                        if (initialVal) {
+                        if (initialVal && !$maskedInput.val()) {
                             var cleanInitial = self.cleanValue(initialVal, curr, true);
                             $hiddenInput.val(cleanInitial);
                             if (typeof window.formatCurrency === 'function') {
                                 $maskedInput.val(window.formatCurrency(cleanInitial, curr));
                             }
                         }
-
-                        $maskedInput.off('input change keyup.custom_repeat').on('input change keyup.custom_repeat', function() {
-                            var activeCurrency = $(self.form + ' select[name="currency_code"]').val() || $('select[name="currency_code"]').val() || 'IDR';
-                            var activeSymbol = (activeCurrency === 'USD' ? '$' : 'Rp');
-                            self.syncRowCurrency($row, activeCurrency, activeSymbol);
-
-                            var rawVal = $(this).val() || '';
-                            var clean = self.cleanValue(rawVal, activeCurrency, false);
-
-                            $hiddenInput.val(clean);
-                            if (typeof window.formatCurrency === 'function') {
-                                $(this).val(window.formatCurrency(clean, activeCurrency));
-                            }
-                            if (typeof self.onCalculate === 'function') self.onCalculate();
-                        });
                     });
                 }
 
@@ -158,10 +164,11 @@
                             $hidden = $masked.parent().next('input[type="hidden"]');
                         }
 
-                        var cleanStr = self.cleanValue($masked.val() || $hidden.val() || '0', curr, false);
+                        var rawVal = ($hidden.length && $hidden.val() !== '') ? $hidden.val() : ($masked.length ? $masked.val() : '0');
+                        var cleanStr = self.cleanValue(rawVal, curr, false);
                         var price_origin = parseFloat(cleanStr) || 0;
 
-                        if ($hidden.length) {
+                        if ($hidden.length && cleanStr !== '') {
                             $hidden.val(cleanStr);
                         }
 
@@ -169,7 +176,7 @@
 
                         total_price += (price_origin * qty);
                     });
-                    return total_price;
+                    return Number(total_price.toFixed(2));
                 }
 
                 convertAllItems(previousCurrency, newCurrency, usdRate) {
@@ -370,6 +377,22 @@
                                     if ($select.hasClass('select2-hidden-accessible')) {
                                         $select.trigger('change.select2');
                                     }
+                                }
+                            }
+
+                            // Preservasi dan format harga dari DB tanpa tertimpa
+                            if (itemData.price !== undefined && itemData.price !== null) {
+                                var $priceMasked = $row.find('input[data-alt="price_masked"], input[data-alt="unit_price_masked"]');
+                                var $priceHidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name*="[unit_price]"], input[type="hidden"][name="price"]').last();
+                                if (!$priceHidden.length) {
+                                    $priceHidden = $priceMasked.parent().next('input[type="hidden"]');
+                                }
+                                var activeCurr = $(form + ' select[name="currency_code"]').val() || $('select[name="currency_code"]').val() || 'IDR';
+                                var rawPriceFromDb = parseFloat(itemData.price || itemData.unit_price || 0);
+                                rawPriceFromDb = Number(rawPriceFromDb.toFixed(2));
+                                $priceHidden.val(rawPriceFromDb);
+                                if ($priceMasked.length && typeof window.formatCurrency === 'function') {
+                                    $priceMasked.val(window.formatCurrency(rawPriceFromDb, activeCurr));
                                 }
                             }
                         });
