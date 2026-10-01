@@ -465,10 +465,8 @@ class BillingNotificationCrudController extends CrudController
         $count = 0;
         if (backpack_user()) {
             $permissions = backpack_user()->getPermissionsViaRoles()->pluck('name');
-            if ($permissions->contains('MENU INDEX CLIENT NOTIFIKASI TAGIHAN')) {
-                $count = backpack_user()->canAccessAllCompanies()
-                    ? \App\Models\BillingNotification::count()
-                    : \App\Models\BillingNotification::whereIn('company_id', backpack_user()->getAccessibleCompanyIds())->count();
+            if ($permissions->contains('MENU INDEX CLIENT NOTIFIKASI TAGIHAN') || backpack_user()->can('AKSES SEMUA MENU ACCOUNTING')) {
+                $count = $this->repository->getGroupedNotificationCount();
             }
         }
         return response()->json(['count' => $count]);

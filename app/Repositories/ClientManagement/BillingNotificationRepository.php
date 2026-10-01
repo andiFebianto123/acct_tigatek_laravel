@@ -151,4 +151,18 @@ class BillingNotificationRepository
 
         return $query->pluck('billing_notifications.id')->toArray();
     }
+
+    /**
+     * Get count of grouped billing notifications considering user company access.
+     */
+    public function getGroupedNotificationCount(): int
+    {
+        $filters = new BillingNotificationFilterData();
+        $query = $this->getFilteredData($filters);
+
+        return \Illuminate\Support\Facades\DB::table(
+            $query->toBase()->cloneWithout(['orders', 'limit', 'offset']),
+            'grouped_notifications'
+        )->count();
+    }
 }
