@@ -624,13 +624,26 @@
                         instance.logicFormulaNoPO();
                     });
 
-                    // Kalkulasi Real-time Selisih Item
+                    // Kalkulasi Real-time Akumulasi Item ke Nominal Exclude PPN
                     var countTotalPrice = function() {
                         var curr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var total_items = instance.repeatableManager.calculateTotalItems();
-                        var price_between = instance.total_price - total_items;
 
-                        instance.formManager.updateNominalInformationUI(price_between, curr);
+                        var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+                        var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+
+                        var formattedVal = (typeof window.formatCurrency === 'function')
+                            ? window.formatCurrency(total_items, curr)
+                            : total_items;
+
+                        if ($maskedExc.length) {
+                            $maskedExc.val(formattedVal);
+                        }
+                        if ($hiddenExc.length) {
+                            $hiddenExc.val(total_items);
+                        }
+
+                        instance.logicFormulaNoPO();
                     }
 
                     function populateDeviceStockSelect2() {

@@ -451,19 +451,26 @@ class InvoiceClientService
                 $invoice_item = new InvoiceClientDetail();
                 $invoice_item->invoice_client_id = $invoice->id;
                 $invoice_item->code_billing = $codeBilling;
-                $invoice_item->name = $itemName;
-                $invoice_item->name_alias = $nameAlias;
-                $invoice_item->reason = $reason;
-                $invoice_item->qty = (int) ($item['qty'] ?? 1);
-                $invoice_item->price = $price;
-                $invoice_item->price_base = round($price * $exchangeRate, 2);
-
                 // Simpan device_stock_id jika ada
                 $rawStockId = $item['device_stock_id'] ?? null;
                 $deviceStockId = ($rawStockId !== null && (int) $rawStockId > 0)
                     ? (int) $rawStockId
                     : null;
                 $invoice_item->device_stock_id = $deviceStockId;
+
+                // Ambil nama barang murni jika berasal dari device stock (tidak menyimpan kode di kolom name)
+                if ($deviceStockId) {
+                    $deviceStock = \App\Models\DeviceStock::find($deviceStockId);
+                    if ($deviceStock) {
+                        $itemName = $deviceStock->name;
+                    }
+                }
+                $invoice_item->name = $itemName;
+                $invoice_item->name_alias = $nameAlias;
+                $invoice_item->reason = $reason;
+                $invoice_item->qty = (int) ($item['qty'] ?? 1);
+                $invoice_item->price = $price;
+                $invoice_item->price_base = round($price * $exchangeRate, 2);
 
                 // Simpan delivery_note_detail_id jika ada
                 $rawDnId = $item['delivery_note_detail_id'] ?? null;
