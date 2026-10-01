@@ -723,9 +723,9 @@
                 }
 
                 isDeviceStockMode() {
-                    // Invoice recurring tidak menggunakan mode DeviceStock Select2 (tetap text input jenis item & name)
+                    // Selalu aktif jika merupakan invoice recurring
                     if (this.isRecurring) {
-                        return false;
+                        return true;
                     }
                     // Jika non-recurring, aktif jika type_device adalah Persediaan (App\Models\DeviceStock)
                     var currentType = $(this.form + ' select[name="type_device"]').val();
