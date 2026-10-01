@@ -224,7 +224,8 @@ class BillingNotificationCrudController extends CrudController
         CRUD::column([
             'label' => trans('backpack::crud.billing_notification.column.message') ?? 'Pesan',
             'name'  => 'message',
-            'type'  => 'wrap_text'
+            'type'  => 'wrap_text',
+            'escaped' => false,
         ]);
 
         CRUD::addButtonFromView('line', 'recurring_invoice', 'recurring_invoice', 'beginning');
