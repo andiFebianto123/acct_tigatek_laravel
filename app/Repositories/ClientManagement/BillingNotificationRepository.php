@@ -26,17 +26,18 @@ class BillingNotificationRepository
                     WHEN bd.id IS NOT NULL AND bd.expired_date < CURDATE() THEN 1 
                     WHEN bs.id IS NOT NULL AND bs.expired_date < CURDATE() THEN 1 
                     ELSE 0 
-                END) as is_expired
+                END) as is_expired,
+                MAX(CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM invoice_clients ic
+                        INNER JOIN invoice_client_details icd ON ic.id = icd.invoice_client_id
+                        WHERE YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)
+                          AND MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)
+                          AND icd.code_billing = COALESCE(bd.code_billing, bs.code_billing)
+                    ) THEN 1
+                    ELSE 0
+                END) as has_invoice_this_month
             ")
-            ->selectSub(function ($sub) {
-                $sub->selectRaw('1')
-                    ->from('invoice_clients')
-                    ->join('invoice_client_details', 'invoice_clients.id', '=', 'invoice_client_details.invoice_client_id')
-                    ->whereRaw('YEAR(invoice_clients.invoice_date) = YEAR(MAX(billing_notifications.notification_date))')
-                    ->whereRaw('MONTH(invoice_clients.invoice_date) = MONTH(MAX(billing_notifications.notification_date))')
-                    ->whereColumn('invoice_client_details.code_billing', \Illuminate\Support\Facades\DB::raw('COALESCE(MAX(bd.code_billing), MAX(bs.code_billing))'))
-                    ->limit(1);
-            }, 'has_invoice_this_month')
             ->leftJoin('billing_devices as bd', function ($join) {
                 $join->on('billing_notifications.billable_id', '=', 'bd.id')
                      ->where('billing_notifications.billable_type', 'like', '%BillingDevice%');
