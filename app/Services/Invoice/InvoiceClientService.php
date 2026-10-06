@@ -42,47 +42,47 @@ class InvoiceClientService
 
             $newPo = null;
             if ($clientId) {
-                if($originalPo == null){
-                    $newPo = new \App\Models\ClientPo();
-                    $newPo->client_id = $clientId;
-                    $newPo->company_id = $dto->company_id;
+                // if($originalPo == null){
+                //     $newPo = new \App\Models\ClientPo();
+                //     $newPo->client_id = $clientId;
+                //     $newPo->company_id = $dto->company_id;
 
-                    // Auto generate work_code
-                    do {
-                        $workCode = 'WRK-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
-                    } while (\App\Models\ClientPo::where('work_code', $workCode)->exists());
-                    $newPo->work_code = $workCode;
+                //     // Auto generate work_code
+                //     do {
+                //         $workCode = 'WRK-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+                //     } while (\App\Models\ClientPo::where('work_code', $workCode)->exists());
+                //     $newPo->work_code = $workCode;
 
-                    // Auto generate po_number
-                    do {
-                        $poNumber = 'PO-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
-                    } while (\App\Models\ClientPo::where('po_number', $poNumber)->exists());
-                    $newPo->po_number = $poNumber;
+                //     // Auto generate po_number
+                //     do {
+                //         $poNumber = 'PO-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+                //     } while (\App\Models\ClientPo::where('po_number', $poNumber)->exists());
+                //     $newPo->po_number = $poNumber;
 
-                    $newPo->job_name = $dto->description;
-                    $newPo->job_value = $dto->nominal_exclude_ppn;
-                    $newPo->tax_ppn = $dto->tax_ppn;
-                    $newPo->job_value_include_ppn = $dto->nominal_include_ppn;
-                    $newPo->date_po = $dto->invoice_date;
-                    $newPo->status = "ADA PO";
+                //     $newPo->job_name = $dto->description;
+                //     $newPo->job_value = $dto->nominal_exclude_ppn;
+                //     $newPo->tax_ppn = $dto->tax_ppn;
+                //     $newPo->job_value_include_ppn = $dto->nominal_include_ppn;
+                //     $newPo->date_po = $dto->invoice_date;
+                //     $newPo->status = "ADA PO";
 
-                    $currencyCode = $dto->currency_code ?? 'IDR';
-                    $exchangeRate = ($currencyCode === 'USD') ? (float) (\App\Models\Setting::first()->usd_rate ?? 16000) : 1.0;
-                    $newPo->currency_code = $currencyCode;
-                    $newPo->exchange_rate = $exchangeRate;
-                    $newPo->rap_value_base = round($rapValue * $exchangeRate, 2);
-                    $newPo->job_value_base = round($newPo->job_value * $exchangeRate, 2);
-                    $newPo->job_value_include_ppn_base = round($newPo->job_value_include_ppn * $exchangeRate, 2);
+                //     $currencyCode = $dto->currency_code ?? 'IDR';
+                //     $exchangeRate = ($currencyCode === 'USD') ? (float) (\App\Models\Setting::first()->usd_rate ?? 16000) : 1.0;
+                //     $newPo->currency_code = $currencyCode;
+                //     $newPo->exchange_rate = $exchangeRate;
+                //     $newPo->rap_value_base = round($rapValue * $exchangeRate, 2);
+                //     $newPo->job_value_base = round($newPo->job_value * $exchangeRate, 2);
+                //     $newPo->job_value_include_ppn_base = round($newPo->job_value_include_ppn * $exchangeRate, 2);
 
-                    $newPo->start_date = $startDate;
-                    $newPo->end_date = $endDate;
-                    $newPo->reimburse_type = $reimburseType;
-                    $newPo->category = $category;
-                    $newPo->rap_value = $rapValue;
-                    $newPo->price_total = $priceTotal;
-                    $newPo->profit_and_loss = $profitAndLoss;
-                    $newPo->save();
-                }
+                //     $newPo->start_date = $startDate;
+                //     $newPo->end_date = $endDate;
+                //     $newPo->reimburse_type = $reimburseType;
+                //     $newPo->category = $category;
+                //     $newPo->rap_value = $rapValue;
+                //     $newPo->price_total = $priceTotal;
+                //     $newPo->profit_and_loss = $profitAndLoss;
+                //     $newPo->save();
+                // }
 
                 $dto = new InvoiceClientSaveData(
                     invoice_number: $dto->invoice_number,
@@ -183,7 +183,7 @@ class InvoiceClientService
                 $po->job_value_base = $po->job_value * $exchangeRate;
                 $po->job_value_include_ppn_base = $po->job_value_include_ppn * $exchangeRate;
 
-                $po->save();
+                // $po->save();
             } else if ($dto->client_id) {
                 $po = new \App\Models\ClientPo();
                 $po->client_id = $dto->client_id;
@@ -219,7 +219,7 @@ class InvoiceClientService
                 $po->job_value_base = $po->job_value * $exchangeRate;
                 $po->job_value_include_ppn_base = $po->job_value_include_ppn * $exchangeRate;
 
-                $po->save();
+                // $po->save();
 
                 // Re-create DTO with new PO details
                 $dto = new InvoiceClientSaveData(
