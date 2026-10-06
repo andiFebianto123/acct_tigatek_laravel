@@ -45,7 +45,7 @@ class ClientPoData
             start_date: $request->start_date,
             end_date: $request->end_date,
             date_po: $request->date_po,
-            document_path: $request->file('document_path') ?? $request->document_path,
+            document_path: $request->file('document_path') ?? ($request->has('document_path') && $request->input('document_path') === '' ? '' : null),
             category: $request->category,
             status: $request->status,
             quotation_ids: $request->quotation_ids ? (is_array($request->quotation_ids) ? $request->quotation_ids : explode(',', $request->quotation_ids)) : null,

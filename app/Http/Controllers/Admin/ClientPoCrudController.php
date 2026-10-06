@@ -1868,11 +1868,8 @@ class ClientPoCrudController extends CrudController
             'wrapper'   => [
                 'class' => 'form-group col-md-6'
             ],
-            'withFiles' => [
-                'disk' => 'public',
-                'path' => 'document_client_po',
-                'deleteWhenEntryIsDeleted' => true,
-            ],
+            'disk' => 'public',
+            'custom_upload' => true,
         ]);
 
         CRUD::addField([  // Select2

@@ -142,10 +142,17 @@ class ClientPoService
             $attributes['job_value_include_ppn_base'] = round($attributes['job_value_include_ppn'] * $exchangeRate, 2);
 
             if ($data->document_path instanceof UploadedFile) {
-                if ($clientPo->document_path) {
+                if ($clientPo->document_path && Storage::disk('public')->exists($clientPo->document_path)) {
                     Storage::disk('public')->delete($clientPo->document_path);
                 }
                 $attributes['document_path'] = $this->handleFileUpload($data->document_path);
+            } elseif ($data->document_path === '') {
+                if ($clientPo->document_path && Storage::disk('public')->exists($clientPo->document_path)) {
+                    Storage::disk('public')->delete($clientPo->document_path);
+                }
+                $attributes['document_path'] = null;
+            } else {
+                unset($attributes['document_path']);
             }
 
             // Rollback old voucher links if po_type changes or purchase_order_id changes
