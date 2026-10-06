@@ -711,7 +711,7 @@
                             <tr>
                                 <th width="10%">No</th>
                                 <th width="45%">IMEI</th>
-                                <th width="45%">SN</th>
+                                <th width="45%">Vehicle UID</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -719,12 +719,12 @@
                                 @php
                                     $snap = is_array($dev->snapshot_data) ? $dev->snapshot_data : (json_decode($dev->snapshot_data, true) ?: []);
                                     $imei = $snap['imei'] ?? $dev->secondary_identifier ?? '-';
-                                    $sn = $snap['device_id'] ?? $dev->identifier ?? '-';
+                                    $vehicleUid = $snap['vehicle_uid'] ?? $dev->identifier ?? '-';
                                 @endphp
                                 <tr>
                                     <td class="text-center">{{ $idx + 1 }}</td>
                                     <td class="text-center">{{ $imei }}</td>
-                                    <td class="text-center">{{ $sn }}</td>
+                                    <td class="text-center">{{ $vehicleUid }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -743,8 +743,9 @@
                         <thead>
                             <tr>
                                 <th width="10%">No</th>
-                                <th width="45%">MSISDN</th>
-                                <th width="45%">ICCID</th>
+                                <th width="30%">MSISDN</th>
+                                <th width="30%">ICCID</th>
+                                <th width="30%">IMEI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -753,11 +754,13 @@
                                     $snap = is_array($sim->snapshot_data) ? $sim->snapshot_data : (json_decode($sim->snapshot_data, true) ?: []);
                                     $msisdn = $snap['msisdn'] ?? $sim->identifier ?? '-';
                                     $iccid = $snap['iccid'] ?? $sim->secondary_identifier ?? '-';
+                                    $simImei = $snap['device_profile_id'] ?? $snap['imei'] ?? '-';
                                 @endphp
                                 <tr>
                                     <td class="text-center">{{ $idx + 1 }}</td>
                                     <td class="text-center">{{ $msisdn }}</td>
                                     <td class="text-center">{{ $iccid }}</td>
+                                    <td class="text-center">{{ $simImei }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
