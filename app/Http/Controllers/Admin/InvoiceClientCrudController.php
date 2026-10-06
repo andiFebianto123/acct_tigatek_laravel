@@ -1347,7 +1347,7 @@ class InvoiceClientCrudController extends CrudController
             'type' => 'upload',
             'upload' => true,
             'disk' => 'public',
-            'prefix' => 'document_invoice/',
+            'custom_upload' => true,
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
             ],
@@ -1363,7 +1363,7 @@ class InvoiceClientCrudController extends CrudController
             'type' => 'upload',
             'upload' => true,
             'disk' => 'public',
-            'prefix' => 'document_imei_iccid/',
+            'custom_upload' => true,
             'wrapper'   => [
                 'class' => 'form-group col-md-12',
             ],

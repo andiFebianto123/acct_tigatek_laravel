@@ -270,22 +270,32 @@ class InvoiceClientService
                 $invoice->client_id = $po->client_id;
             }
 
-            if ($dto->invoice_document) {
+            if ($dto->invoice_document instanceof \Illuminate\Http\UploadedFile) {
                 if ($invoice->invoice_document && Storage::disk('public')->exists($invoice->invoice_document)) {
                     Storage::disk('public')->delete($invoice->invoice_document);
                 }
                 $filename = time() . '_' . $dto->invoice_document->getClientOriginalName();
                 $path = $dto->invoice_document->storeAs('document_invoice', $filename, 'public');
                 $invoice->invoice_document = $path;
+            } elseif ($dto->invoice_document === '') {
+                if ($invoice->invoice_document && Storage::disk('public')->exists($invoice->invoice_document)) {
+                    Storage::disk('public')->delete($invoice->invoice_document);
+                }
+                $invoice->invoice_document = null;
             }
 
-            if ($dto->document_imei_iccid) {
+            if ($dto->document_imei_iccid instanceof \Illuminate\Http\UploadedFile) {
                 if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
                     Storage::disk('public')->delete($invoice->document_imei_iccid);
                 }
                 $filename = time() . '_' . $dto->document_imei_iccid->getClientOriginalName();
                 $path = $dto->document_imei_iccid->storeAs('document_imei_iccid', $filename, 'public');
                 $invoice->document_imei_iccid = $path;
+            } elseif ($dto->document_imei_iccid === '') {
+                if ($invoice->document_imei_iccid && Storage::disk('public')->exists($invoice->document_imei_iccid)) {
+                    Storage::disk('public')->delete($invoice->document_imei_iccid);
+                }
+                $invoice->document_imei_iccid = null;
             }
 
             $invoice->save();
