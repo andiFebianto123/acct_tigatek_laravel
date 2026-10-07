@@ -702,7 +702,7 @@
                         $deviceCount = $deviceItems->count();
                         $firstModel = $deviceItems->first()->item_name ?? 'DEVICE';
                         // Format title: "1 UNIT FMC 125 for PT Naufalindo Multi Mandiri"
-                        $groupTitle = "{$deviceCount} UNIT " . strtoupper($firstModel) . " for {$clientName}";
+                        $groupTitle = "{$deviceCount} UNIT for {$clientName}";
                     @endphp
 
                     <div class="imei-group-title">{{ $groupTitle }}</div>
@@ -735,7 +735,7 @@
                     @php
                         $simCount = $simcardItems->count();
                         $firstProduct = $simcardItems->first()->item_name ?? 'SIMCARD';
-                        $simGroupTitle = "{$simCount} SIMCARD " . strtoupper($firstProduct) . " for {$clientName}";
+                        $simGroupTitle = "{$simCount} SIMCARD for {$clientName}";
                     @endphp
 
                     <div class="imei-group-title">{{ $simGroupTitle }}</div>
