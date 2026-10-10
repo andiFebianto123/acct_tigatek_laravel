@@ -736,6 +736,16 @@
                         $simCount = $simcardItems->count();
                         $firstProduct = $simcardItems->first()->item_name ?? 'SIMCARD';
                         $simGroupTitle = "{$simCount} SIMCARD for {$clientName}";
+
+                        // Ambil semua device_profile_id untuk prefetch vehicle_uid dari billing_devices
+                        $simProfileIds = $simcardItems->map(function($sim) {
+                            $snap = is_array($sim->snapshot_data) ? $sim->snapshot_data : (json_decode($sim->snapshot_data, true) ?: []);
+                            return $snap['device_profile_id'] ?? $snap['imei'] ?? null;
+                        })->filter()->unique()->values()->all();
+
+                        $vehicleMap = !empty($simProfileIds)
+                            ? \App\Models\BillingDevice::whereIn('imei', $simProfileIds)->pluck('vehicle_uid', 'imei')->toArray()
+                            : [];
                     @endphp
 
                     <div class="imei-group-title">{{ $simGroupTitle }}</div>
@@ -743,7 +753,7 @@
                         <thead>
                             <tr>
                                 <th width="10%">No</th>
-                                <th width="30%">MSISDN</th>
+                                <th width="30%">Plat Nomer</th>
                                 <th width="30%">ICCID</th>
                                 <th width="30%">IMEI</th>
                             </tr>
@@ -752,13 +762,15 @@
                             @foreach($simcardItems->values() as $idx => $sim)
                                 @php
                                     $snap = is_array($sim->snapshot_data) ? $sim->snapshot_data : (json_decode($sim->snapshot_data, true) ?: []);
-                                    $msisdn = $snap['msisdn'] ?? $sim->identifier ?? '-';
-                                    $iccid = $snap['iccid'] ?? $sim->secondary_identifier ?? '-';
                                     $simImei = $snap['device_profile_id'] ?? $snap['imei'] ?? '-';
+                                    $platNomer = ($simImei !== '-' && isset($vehicleMap[$simImei])) 
+                                        ? ($vehicleMap[$simImei] ?: '-') 
+                                        : ($snap['vehicle_uid'] ?? '-');
+                                    $iccid = $snap['iccid'] ?? $sim->secondary_identifier ?? '-';
                                 @endphp
                                 <tr>
                                     <td class="text-center">{{ $idx + 1 }}</td>
-                                    <td class="text-center">{{ $msisdn }}</td>
+                                    <td class="text-center">{{ $platNomer }}</td>
                                     <td class="text-center">{{ $iccid }}</td>
                                     <td class="text-center">{{ $simImei }}</td>
                                 </tr>
