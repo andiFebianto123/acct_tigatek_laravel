@@ -370,8 +370,8 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <span style="border-bottom: 1px solid black;">Ida Noorma Z</span> <br>
-                                    <span style="font-size: 11px;">Verifikator</span>
+                                    <span style="border-bottom: 1px solid black;">Defina Maharani</span> <br>
+                                    <span style="font-size: 11px;">Finance Executive</span>
                                 </div>
                             </td>
                             <td align="center">
@@ -400,8 +400,8 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <span style="border-bottom: 1px solid black;">Ibnu Hajar</span> <br>
-                                    <span style="font-size: 11px;">Mgr. Keuangan</span>
+                                    <span style="border-bottom: 1px solid black;">Inge Delina</span> <br>
+                                    <span style="font-size: 11px;">Direktur Utama</span>
                                 </div>
                             </td>
                         </tr>
