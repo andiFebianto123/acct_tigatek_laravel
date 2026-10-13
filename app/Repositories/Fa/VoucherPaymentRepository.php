@@ -328,8 +328,8 @@ class VoucherPaymentRepository
                     ->where('vouchers.reference_type', '=', DB::raw('"App\\\\Models\\\\PurchaseOrder"'));
             })
             ->where(function ($query) {
-                $query->where('approvals.status', Approval::APPROVED)
-                    ->orWhereNull('approvals.status');
+                $query->where('approvals.status', Approval::APPROVED);
+                    // ->orWhereNull('approvals.status');
             })
             ->where('vouchers.payment_status', 'BELUM BAYAR')
             ->select(DB::raw("
