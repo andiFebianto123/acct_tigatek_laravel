@@ -3309,7 +3309,8 @@ class VoucherCrudController extends CrudController
 
         $mpdf->WriteHTML($html);
 
-        $fileName = "voucher-$voucher->no_voucher.pdf";
+        $sanitizedNoVoucher = str_replace(['/', '\\'], '-', $voucher->no_voucher);
+        $fileName = "voucher-{$sanitizedNoVoucher}.pdf";
 
         return response()->streamDownload(function () use ($mpdf) {
             echo $mpdf->Output('', 'S');

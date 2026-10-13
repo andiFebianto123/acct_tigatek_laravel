@@ -711,7 +711,7 @@
                             <tr>
                                 <th width="10%">No</th>
                                 <th width="45%">IMEI</th>
-                                <th width="45%">Vehicle UID</th>
+                                <th width="45%">Name Unit</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -753,9 +753,9 @@
                         <thead>
                             <tr>
                                 <th width="10%">No</th>
-                                <th width="30%">Plat Nomer</th>
-                                <th width="30%">ICCID</th>
+                                <th width="30%">Name Unit</th>
                                 <th width="30%">IMEI</th>
+                                <th width="30%">ICCID</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -771,8 +771,8 @@
                                 <tr>
                                     <td class="text-center">{{ $idx + 1 }}</td>
                                     <td class="text-center">{{ $platNomer }}</td>
-                                    <td class="text-center">{{ $iccid }}</td>
                                     <td class="text-center">{{ $simImei }}</td>
+                                    <td class="text-center">{{ $iccid }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
