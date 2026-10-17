@@ -172,11 +172,11 @@
     @if($permissions->contains('name', 'MENU INDEX CLIENT RIWAYAT TRANSAKSI'))
         <x-menu-group-item-custom title="{{trans('backpack::crud.menu.transaction_history')}}" icon="la la-circle-notch" :link="backpack_url('billing/transaction-history')" />
     @endif
-    @if($permissions->contains('name', 'MENU INDEX CLIENT NOTIFIKASI TAGIHAN'))
-        <x-menu-group-item-custom id="menu-item-billing-notification" title="{{trans('backpack::crud.menu.billing_notification')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-notification')" />
-    @endif
     @if($permissions->contains('name', 'MENU INDEX CLIENT BILLING REMINDER'))
         <x-menu-group-item-custom id="menu-item-billing-reminder" title="{{trans('backpack::crud.menu.billing_reminder')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-reminder')" />
+    @endif
+    @if($permissions->contains('name', 'MENU INDEX CLIENT NOTIFIKASI TAGIHAN'))
+        <x-menu-group-item-custom id="menu-item-billing-notification" title="{{trans('backpack::crud.menu.billing_notification')}}" icon="la la-circle-notch" :link="backpack_url('billing/billing-notification')" />
     @endif
 </x-menu-group-custom>
 @endif

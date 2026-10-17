@@ -495,20 +495,27 @@ class DashboardController extends CrudController
         $categoriesFromDb = DeviceStockCategory::orderBy('id', 'asc')->get();
         $categoriesSummary = [];
 
-        // Predefined UI metadata (icons & unit labels)
+        // Predefined UI metadata (icons)
         $categoryMeta = [
-            'device' => ['icon' => 'la-microchip', 'unit' => 'Unit'],
-            'jasa' => ['icon' => 'la-hand-holding-usd', 'unit' => 'Proyek'],
-            'solutions' => ['icon' => 'la-cogs', 'unit' => 'Implementasi'],
-            'solution' => ['icon' => 'la-cogs', 'unit' => 'Implementasi'],
-            'connectivity' => ['icon' => 'la-broadcast-tower', 'unit' => 'Koneksi'],
+            'device' => ['icon' => 'la-microchip'],
+            'jasa' => ['icon' => 'la-hand-holding-usd'],
+            'solutions' => ['icon' => 'la-cogs'],
+            'solution' => ['icon' => 'la-cogs'],
+            'connectivity' => ['icon' => 'la-broadcast-tower'],
+            'aksesoris' => ['icon' => 'la-headphones'],
         ];
 
         // Process existing categories in DB
         foreach ($categoriesFromDb as $cat) {
-            $catStocks = $stocks->where('category_id', $cat->id);
             $catKey = strtolower(trim($cat->name));
-            $meta = $categoryMeta[$catKey] ?? ['icon' => 'la-cube', 'unit' => 'Unit'];
+
+            // Skip kategori BIAYA KIRIM
+            if ($catKey === 'biaya kirim' || str_contains($catKey, 'biaya kirim')) {
+                continue;
+            }
+
+            $catStocks = $stocks->where('category_id', $cat->id);
+            $meta = $categoryMeta[$catKey] ?? ['icon' => 'la-cube'];
 
             $qtySum = $catStocks->sum('qty');
             $nominalSum = $catStocks->sum('total_hpp_base');
@@ -517,7 +524,7 @@ class DashboardController extends CrudController
                 'id' => $cat->id,
                 'name' => strtoupper($cat->name),
                 'icon' => $meta['icon'],
-                'unit' => $meta['unit'],
+                'unit' => 'Unit',
                 'total_stock' => number_format($qtySum, 0, ',', '.'),
                 'total_stock_raw' => $qtySum,
                 'total_nominal' => CustomHelper::formatRupiah($nominalSum),

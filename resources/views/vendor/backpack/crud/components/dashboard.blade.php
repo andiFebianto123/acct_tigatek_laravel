@@ -213,7 +213,7 @@
                                         </div>
                                         <div class="mt-1">
                                             <div class="text-secondary small fw-semibold">
-                                                Total Stock: <span class="text-dark fw-bold">{{ $cat['total_stock'] }} {{ $cat['unit'] }}</span>
+                                                Total Stock: <span class="text-dark fw-bold">{{ $cat['total_stock'] }} Unit</span>
                                             </div>
                                             <div class="text-secondary small fw-semibold">
                                                 Total Nilai: <span class="text-success fw-bold">Rp {{ $cat['total_nominal'] }}</span>
@@ -401,6 +401,25 @@
         vertical-align: middle;
     }
 
+    #modalCategoryStockDetail .modal-dialog,
+    #modalDeviceStock .modal-dialog {
+        max-height: calc(100vh - 40px);
+        margin: 20px auto;
+    }
+
+    #modalCategoryStockDetail .modal-content,
+    #modalDeviceStock .modal-content {
+        max-height: calc(100vh - 40px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    #modalCategoryStockDetail .modal-body,
+    #modalDeviceStock .modal-body {
+        overflow-y: auto;
+        flex: 1 1 auto;
+    }
+
 </style>
 @endpush
 
@@ -490,7 +509,7 @@
                                                 </div>
                                                 <div class="mt-1">
                                                     <div class="text-secondary small fw-semibold">
-                                                        Total Stock: <span class="text-dark fw-bold">${cat.total_stock} ${cat.unit}</span>
+                                                        Total Stock: <span class="text-dark fw-bold">${cat.total_stock} Unit</span>
                                                     </div>
                                                     <div class="text-secondary small fw-semibold">
                                                         Total Nilai: <span class="text-success fw-bold">Rp ${cat.total_nominal}</span>
@@ -613,7 +632,7 @@
 @push('after_scripts')
 <!-- Modal Detail Barang per Kategori (Sesuai Foto 2) -->
 <div class="modal fade" id="modalCategoryStockDetail" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalCategoryStockDetailLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content shadow border-0">
             <div class="modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
                 <div class="d-flex align-items-center">
@@ -625,7 +644,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3">
-                <div class="table-responsive rounded border" style="max-height: 480px; overflow-y: auto;">
+                <div class="table-responsive rounded border" style="overflow-y: auto;">
                     <table class="table table-bordered table-hover mb-0 w-100" style="font-size: 13px; table-layout: fixed;">
                         <thead class="bg-light sticky-top" style="z-index: 1;">
                             <tr class="align-middle text-secondary fw-bold">
@@ -829,7 +848,7 @@
     </div>
 </div>
 <div class="modal fade" id="modalDeviceStock" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalDeviceStockLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content shadow border-0">
             <div class="modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
                 <div class="d-flex align-items-center">
