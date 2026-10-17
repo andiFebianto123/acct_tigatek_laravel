@@ -40,11 +40,6 @@ class BillingSimcardService
         return DB::transaction(function () use ($id) {
             $simcard = BillingSimcard::findOrFail($id);
 
-            // Clean up associated billing notifications
-            BillingNotification::where('billable_type', BillingSimcard::class)
-                ->where('billable_id', $id)
-                ->delete();
-
             return (bool) $simcard->delete();
         });
     }

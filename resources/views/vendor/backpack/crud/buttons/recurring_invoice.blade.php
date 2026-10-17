@@ -1,12 +1,6 @@
 @php
     $codeBilling = !empty($entry->code_billing) ? trim($entry->code_billing) : null;
-    $isExpired = false;
-    if (isset($entry->is_expired)) {
-        $isExpired = (bool) $entry->is_expired;
-    } elseif ($entry->billable && $entry->billable->expired_date) {
-        $isExpired = \Carbon\Carbon::parse($entry->billable->expired_date)->startOfDay()->lt(\Carbon\Carbon::today());
-    }
-
+    $isExpired = !empty($entry->is_expired);
     $hasInvoice = !empty($entry->has_invoice_this_month);
 @endphp
 

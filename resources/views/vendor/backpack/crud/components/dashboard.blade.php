@@ -187,31 +187,46 @@
         <div class="col-md-12 mb-4">
             <div class="card2">
                 <div class="card2-parent-header d-flex justify-content-between align-items-center pe-3 pb-2">
-                    <div class="card2-header fs-6 mb-0">{{ __('backpack::crud.device_stock.info_header') }}</div>
-                    <button class="btn btn-primary btn-sm" id="btn-device-stock">
-                        <i class="la la-list me-1"></i> Detail
+                    <div class="card2-header fs-6 mb-0">Informasi Stok Lintas Kategori</div>
+                    <button class="btn btn-outline-primary btn-sm fw-bold px-3" id="btn-device-stock">
+                        <i class="la la-list me-1"></i> Detail All Item
                     </button>
                 </div>
                 <div class="card2-body">
-                    <div class="row text-center">
-                        <div class="col-md-4 mb-2 mb-md-0">
-                            <div class="p-3 bg-light rounded">
-                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_stok') }}</div>
-                                <div class="fs-4 fw-bold text-primary" id="ds_total_stok">{{ $data_device_stock['total_stok'] }}</div>
+                    <div class="row g-3" id="category_cards_container">
+                        @if (!empty($data_device_stock['categories_summary']))
+                            @foreach ($data_device_stock['categories_summary'] as $cat)
+                                <div class="col-md-3 col-sm-6">
+                                    <div class="category-stock-card p-3 rounded-3 h-100 d-flex flex-column justify-content-between">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="la {{ $cat['icon'] }} fs-4 me-2 text-primary"></i>
+                                                <span class="fw-bold fs-6 text-dark tracking-wide">{{ $cat['name'] }}</span>
+                                            </div>
+                                            <button class="btn-category-expand btn btn-sm btn-light border-0 shadow-sm rounded-3 p-1 d-flex align-items-center justify-content-center" 
+                                                    style="width: 32px; height: 32px;" 
+                                                    data-category-id="{{ $cat['id'] }}" 
+                                                    data-category-name="{{ $cat['name'] }}"
+                                                    title="Lihat Detail {{ $cat['name'] }}">
+                                                <i class="la la-expand-arrows-alt text-primary fs-5"></i>
+                                            </button>
+                                        </div>
+                                        <div class="mt-1">
+                                            <div class="text-secondary small fw-semibold">
+                                                Total Stock: <span class="text-dark fw-bold">{{ $cat['total_stock'] }} {{ $cat['unit'] }}</span>
+                                            </div>
+                                            <div class="text-secondary small fw-semibold">
+                                                Total Nilai: <span class="text-success fw-bold">Rp {{ $cat['total_nominal'] }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="col-12 text-center text-muted py-3">
+                                Tidak ada data kategori stok barang.
                             </div>
-                        </div>
-                        <div class="col-md-4 mb-2 mb-md-0">
-                            <div class="p-3 bg-light rounded">
-                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_barang') }}</div>
-                                <div class="fs-4 fw-bold text-info" id="ds_total_barang">{{ $data_device_stock['total_barang'] }}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded">
-                                <div class="text-muted small fw-bold mb-1">{{ __('backpack::crud.device_stock.dashboard.total_nominal') }}</div>
-                                <div class="fs-4 fw-bold text-success" id="ds_total_nominal">Rp{{ $data_device_stock['total_nominal'] }}</div>
-                            </div>
-                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -355,6 +370,37 @@
     .blue { background-color: #195381; }
     .green { background-color: #28a745; }
 
+    .category-stock-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease-in-out;
+    }
+    .category-stock-card:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+    }
+    .btn-category-expand {
+        background-color: #f1f5f9;
+        transition: all 0.15s ease-in-out;
+    }
+    .btn-category-expand:hover {
+        background-color: #005792 !important;
+        color: #ffffff !important;
+    }
+    .btn-category-expand:hover i {
+        color: #ffffff !important;
+    }
+
+    #modalCategoryStockDetail .table th,
+    #modalCategoryStockDetail .table td,
+    #modalDeviceStock .table th,
+    #modalDeviceStock .table td {
+        padding: 10px 14px;
+        vertical-align: middle;
+    }
+
 </style>
 @endpush
 
@@ -422,9 +468,39 @@
 
                             // Update Device Stock Summary
                             if(result.data_device_stock) {
-                                $('#ds_total_stok').html(result.data_device_stock.total_stok);
-                                $('#ds_total_barang').html(result.data_device_stock.total_barang);
-                                $('#ds_total_nominal').html('Rp' + result.data_device_stock.total_nominal);
+                                window.latestDeviceStockData = result.data_device_stock;
+                                if(result.data_device_stock.categories_summary && result.data_device_stock.categories_summary.length > 0) {
+                                    let html = '';
+                                    result.data_device_stock.categories_summary.forEach(function(cat) {
+                                        html += `
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="category-stock-card p-3 rounded-3 h-100 d-flex flex-column justify-content-between">
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="la ${cat.icon} fs-4 me-2 text-primary"></i>
+                                                        <span class="fw-bold fs-6 text-dark tracking-wide">${cat.name}</span>
+                                                    </div>
+                                                    <button class="btn-category-expand btn btn-sm btn-light border-0 shadow-sm rounded-3 p-1 d-flex align-items-center justify-content-center" 
+                                                            style="width: 32px; height: 32px;" 
+                                                            data-category-id="${cat.id}" 
+                                                            data-category-name="${cat.name}"
+                                                            title="Lihat Detail ${cat.name}">
+                                                        <i class="la la-expand-arrows-alt text-primary fs-5"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="mt-1">
+                                                    <div class="text-secondary small fw-semibold">
+                                                        Total Stock: <span class="text-dark fw-bold">${cat.total_stock} ${cat.unit}</span>
+                                                    </div>
+                                                    <div class="text-secondary small fw-semibold">
+                                                        Total Nilai: <span class="text-success fw-bold">Rp ${cat.total_nominal}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>`;
+                                    });
+                                    $('#category_cards_container').html(html);
+                                }
                             }
                         },
                         error: function (xhr, status, error) {
@@ -435,6 +511,9 @@
                 }
             }
         });
+
+        // Store initial stock data from server
+        window.latestDeviceStockData = @json($data_device_stock);
 
         SIAOPS.getAttribute('dashboard').load();
 
@@ -453,14 +532,75 @@
         $('#btn-device-stock').click(function(){
             $('#modalDeviceStock').modal('show');
         });
-        $('.modal .btn-close').click(function(){
+
+        // Open Category Stock Detail Modal (Foto 2)
+        $(document).on('click', '.btn-category-expand', function(){
+            const catId = $(this).data('category-id');
+            const catName = $(this).data('category-name');
+            $('#categoryModalTitle').text(catName);
+            $('#btnExportCategoryPdf').attr('data-category-id', catId);
+
+            let allStocks = (window.latestDeviceStockData && window.latestDeviceStockData.list_stocks) ? window.latestDeviceStockData.list_stocks : [];
+            let filtered = [];
+            if (catId === 'uncategorized') {
+                filtered = allStocks.filter(item => !item.category_id);
+            } else {
+                filtered = allStocks.filter(item => String(item.category_id) === String(catId));
+            }
+
+            let tbodyHtml = '';
+            let totalQty = 0;
+            let totalHpp = 0;
+
+            if (filtered.length > 0) {
+                filtered.forEach(function(item, idx) {
+                    const qty = parseFloat(item.qty) || 0;
+                    totalQty += qty;
+                    const hpp = parseFloat(item.total_hpp_base) || (qty * (parseFloat(item.buy_price_base) || parseFloat(item.buy_price) || 0));
+                    totalHpp += hpp;
+
+                    const buyPriceFormatted = window.formatMoney ? window.formatMoney(item.buy_price, item.currency_code) : (item.currency_code === 'USD' ? '$ ' + Number(item.buy_price).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Rp ' + Number(item.buy_price).toLocaleString('id-ID'));
+                    const sellPriceFormatted = window.formatMoney ? window.formatMoney(item.latest_sell_price, item.latest_currency_code) : (item.latest_currency_code === 'USD' ? '$ ' + Number(item.latest_sell_price).toLocaleString('en-US', {minimumFractionDigits: 2}) : 'Rp ' + Number(item.latest_sell_price).toLocaleString('id-ID'));
+                    const hppFormatted = 'Rp ' + Number(hpp).toLocaleString('id-ID');
+
+                    tbodyHtml += `
+                        <tr>
+                            <td class="text-center align-middle">${idx + 1}</td>
+                            <td class="align-middle text-break"><span class="badge bg-light text-dark border px-2 py-1 font-monospace text-wrap" style="font-size: 11px; word-break: break-word; white-space: normal; display: inline-block; max-width: 100%;">${item.code || '-'}</span></td>
+                            <td class="align-middle fw-semibold text-break" style="word-break: break-word;">${item.name || '-'}</td>
+                            <td class="text-center align-middle fw-bold">${Number(qty).toLocaleString('id-ID')}</td>
+                            <td class="text-center align-middle">${buyPriceFormatted}</td>
+                            <td class="text-center align-middle">${sellPriceFormatted}</td>
+                            <td class="text-end align-middle fw-bold ${hpp > 0 ? 'text-success' : 'text-muted'}">${hppFormatted}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbodyHtml = `<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data barang dalam kategori ini.</td></tr>`;
+            }
+
+            $('#categoryStockTableBody').html(tbodyHtml);
+            $('#categoryTotalQty').text(Number(totalQty).toLocaleString('id-ID'));
+            $('#categoryTotalHpp').text('Rp ' + Number(totalHpp).toLocaleString('id-ID'));
+
+            $('#modalCategoryStockDetail').modal('show');
+        });
+
+        // Export PDF per Category
+        $('#btnExportCategoryPdf').click(function(){
+            const catId = $(this).attr('data-category-id') || 'all';
+            const url = "{{ url(config('backpack.base.route_prefix') . '/dashboard/export-device-stock-pdf') }}?category_id=" + catId;
+            window.open(url, '_blank');
+        });
+
+        $('.modal .btn-close, .btn-modal-close').click(function(){
             $('#modalInfoLabaRutin').modal('hide');
             $('#modalInfoLabaNonRutin').modal('hide');
             $('#modalInfoLabaRutinPenjualan').modal('hide');
             $('#modalInfoLabaNonRutinPenjualan').modal('hide');
             $('#modalDeviceStock').modal('hide');
+            $('#modalCategoryStockDetail').modal('hide');
         });
-
 
         $('#filter_year').change(function(){
             var year = $(this).val();
@@ -471,6 +611,57 @@
 @endpush
 
 @push('after_scripts')
+<!-- Modal Detail Barang per Kategori (Sesuai Foto 2) -->
+<div class="modal fade" id="modalCategoryStockDetail" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalCategoryStockDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <i class="la la-list-ul text-primary fs-4 me-2"></i>
+                    <h5 class="modal-title fw-bold text-dark mb-0">
+                        Detail Barang - Kategori: <span id="categoryModalTitle" class="text-primary text-uppercase">DEVICE</span>
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="table-responsive rounded border" style="max-height: 480px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover mb-0 w-100" style="font-size: 13px; table-layout: fixed;">
+                        <thead class="bg-light sticky-top" style="z-index: 1;">
+                            <tr class="align-middle text-secondary fw-bold">
+                                <th style="width: 50px;" class="text-center">No.</th>
+                                <th style="width: 140px;">Kode Barang</th>
+                                <th style="width: 250px;">Nama Barang</th>
+                                <th style="width: 70px;" class="text-center">Qty</th>
+                                <th style="width: 120px;" class="text-center">Harga Beli</th>
+                                <th style="width: 120px;" class="text-center">Harga Jual</th>
+                                <th style="width: 140px;" class="text-end">Total HPP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoryStockTableBody">
+                            <!-- Populated via Javascript -->
+                        </tbody>
+                        <tfoot class="bg-light sticky-bottom" style="z-index: 1;">
+                            <tr class="align-middle fw-bold border-top">
+                                <td colspan="3" class="text-end text-dark pe-3">TOTAL:</td>
+                                <td class="text-center text-dark" id="categoryTotalQty">0</td>
+                                <td colspan="2" class="text-end text-dark pe-3">TOTAL:</td>
+                                <td class="text-end text-success fs-6" id="categoryTotalHpp">Rp 0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer px-4 py-2 border-top bg-light d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnExportCategoryPdf">
+                    <i class="la la-file-pdf me-1"></i> Ekspor PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalInfoLabaRutin" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -638,54 +829,60 @@
     </div>
 </div>
 <div class="modal fade" id="modalDeviceStock" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalDeviceStockLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header justify-content-center">
-                <h5 class="modal-title text-center w-100" id="modalDeviceStockLabel">{{ __('backpack::crud.device_stock.modal_title') }}</h5>
-                <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header d-flex justify-content-between align-items-center px-4 py-3 border-bottom">
+                <div class="d-flex align-items-center">
+                    <i class="la la-cubes text-primary fs-4 me-2"></i>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="modalDeviceStockLabel">{{ __('backpack::crud.device_stock.modal_title') }}</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="bg-light-actual">
-                            <tr>
-                                <th>No.</th>
-                                <th>{{ __('backpack::crud.device_stock.column.code') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.name') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.category') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.qty') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.buy_price') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.latest_sell_price') }}</th>
-                                <th>{{ __('backpack::crud.device_stock.column.total_sell_nominal') }}</th>
+            <div class="modal-body p-3">
+                <div class="table-responsive rounded border" style="max-height: 520px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover mb-0 w-100" style="font-size: 13px; table-layout: fixed;">
+                        <thead class="bg-light sticky-top" style="z-index: 1;">
+                            <tr class="align-middle text-secondary fw-bold">
+                                <th style="width: 45px;" class="text-center">No.</th>
+                                <th style="width: 130px;">{{ __('backpack::crud.device_stock.column.code') }}</th>
+                                <th style="width: 220px;">{{ __('backpack::crud.device_stock.column.name') }}</th>
+                                <th style="width: 140px;">{{ __('backpack::crud.device_stock.column.category') }}</th>
+                                <th style="width: 65px;" class="text-center">{{ __('backpack::crud.device_stock.column.qty') }}</th>
+                                <th style="width: 110px;" class="text-center">{{ __('backpack::crud.device_stock.column.buy_price') }}</th>
+                                <th style="width: 125px;" class="text-center">{{ __('backpack::crud.device_stock.column.latest_sell_price') }}</th>
+                                <th style="width: 130px;" class="text-end">{{ __('backpack::crud.device_stock.column.total_sell_nominal') }}</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="allDeviceStockTableBody">
                             @forelse ($data_device_stock['list_stocks'] as $key => $stock)
                                 <tr>
-                                    <td>{{ $key + 1 }}</td>
-                                    <td><span class="badge bg-secondary">{{ $stock->code }}</span></td>
-                                    <td class="fw-bold">{{ $stock->name }}</td>
-                                    <td>{{ $stock->category_name ?? '-' }}</td>
-                                    <td class="text-center">{{ number_format($stock->qty, 0, ',', '.') }}</td>
-                                    <td>{{ \App\Http\Helpers\CustomHelper::formatCurrency($stock->buy_price, $stock->currency_code ?? 'IDR') }}</td>
-                                    <td>
+                                    <td class="text-center align-middle">{{ $key + 1 }}</td>
+                                    <td class="align-middle text-break"><span class="badge bg-light text-dark border px-2 py-1 font-monospace text-wrap" style="font-size: 11px; word-break: break-word; white-space: normal; display: inline-block; max-width: 100%;">{{ $stock->code }}</span></td>
+                                    <td class="align-middle fw-semibold text-break" style="word-break: break-word;">{{ $stock->name }}</td>
+                                    <td class="align-middle text-break" style="word-break: break-word;">{{ $stock->category_name ?? '-' }}</td>
+                                    <td class="text-center align-middle fw-bold">{{ number_format($stock->qty, 0, ',', '.') }}</td>
+                                    <td class="text-center align-middle">{{ \App\Http\Helpers\CustomHelper::formatCurrency($stock->buy_price, $stock->currency_code ?? 'IDR') }}</td>
+                                    <td class="text-center align-middle">
                                         {{ \App\Http\Helpers\CustomHelper::formatCurrency($stock->latest_sell_price, $stock->latest_currency_code) }}
                                         @if ($stock->is_from_invoice)
                                             <span class="badge bg-info ms-1" style="font-size: 10px;" title="{{ __('backpack::crud.device_stock.source_invoice_title') }}">{{ __('backpack::crud.device_stock.source_invoice') }}</span>
                                         @else
-                                            <span class="badge bg-light text-dark ms-1" style="font-size: 10px;" title="{{ __('backpack::crud.device_stock.source_master_title') }}">{{ __('backpack::crud.device_stock.source_master') }}</span>
+                                            <span class="badge bg-light text-dark border ms-1" style="font-size: 10px;" title="{{ __('backpack::crud.device_stock.source_master_title') }}">{{ __('backpack::crud.device_stock.source_master') }}</span>
                                         @endif
                                     </td>
-                                    <td class="fw-bold text-success">Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($stock->total_jual_base) }}</td>
+                                    <td class="text-end align-middle fw-bold {{ ($stock->total_jual_base > 0) ? 'text-success' : 'text-muted' }}">Rp{{ \App\Http\Helpers\CustomHelper::formatRupiah($stock->total_jual_base) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted">{{ __('backpack::crud.device_stock.no_data') }}</td>
+                                    <td colspan="8" class="text-center text-muted py-4">{{ __('backpack::crud.device_stock.no_data') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <div class="modal-footer px-4 py-2 border-top bg-light d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>

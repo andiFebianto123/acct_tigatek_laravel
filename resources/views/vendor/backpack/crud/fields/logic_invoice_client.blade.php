@@ -1159,7 +1159,7 @@
             var logicAttr = SIAOPS.getAttribute('logic_invoice_client');
             var entryData = {!! json_encode($set_value) !!};
             var hasNotification = {!! request()->has('notification_id') ? 'true' : 'false' !!};
-            var isRecurring = hasNotification || (entryData && entryData.is_recurring !== null && entryData.is_recurring !== undefined);
+            var isRecurring = hasNotification || (entryData && Number(entryData.is_recurring) === 1) || ($('input[name="is_recurring"]').val() == '1');
 
             if (typeof window.InvoiceDeviceStockManager !== 'undefined') {
                 var deviceStockMgr = new window.InvoiceDeviceStockManager(form, isRecurring);
@@ -1170,6 +1170,114 @@
                 var dnMgr = new window.InvoiceDeliveryNoteManager(form, logicAttr);
                 dnMgr.init();
             }
+        })();
+
+        /* =========================================================================
+         * MODUL 7: INTEGRASI TINYMCE 8 DALAM REPEATABLE ITEM (Khusus Invoice Recurring)
+         * ========================================================================= */
+        (function() {
+            var entryData = {!! json_encode($set_value) !!};
+            var hasNotification = {!! request()->has('notification_id') ? 'true' : 'false' !!};
+            var isRecurring = hasNotification || (entryData && Number(entryData.is_recurring) === 1) || ($('input[name="is_recurring"]').val() == '1');
+
+            // Pastikan logika ini HANYA aktif pada kondisi transaksi RECURRING
+            if (!isRecurring) {
+                return;
+            }
+
+            // 1. Bungkus / override bpFieldInitTinyMCE8Element agar kompatibel dengan baris repeatable dan clone element
+            var originalInit = window.bpFieldInitTinyMCE8Element;
+            window.bpFieldInitTinyMCE8Element = function(element) {
+                if (typeof tinymce === 'undefined') {
+                    setTimeout(function() {
+                        window.bpFieldInitTinyMCE8Element(element);
+                    }, 50);
+                    return;
+                }
+
+                var $el = $(element);
+                var id = $el.attr('id');
+                // Jika elemen tidak punya id atau instance tinymce dengan id ini sudah ada (hasil clone row repeatable)
+                if (!id || tinymce.get(id)) {
+                    id = 'tinymce_' + Math.random().toString(36).substring(2, 9);
+                    $el.attr('id', id);
+                }
+
+                // Bersihkan kontainer .tox-tinymce yang ikut ter-clone oleh repeatable
+                $el.siblings('.tox-tinymce').remove();
+
+                if (typeof originalInit === 'function') {
+                    originalInit($el);
+                } else {
+                    var tinymceOptions = $el.data('options') || {};
+                    var options = $.extend({}, {
+                        target: $el[0],
+                        license_key: 'gpl',
+                        setup: function(editor) {
+                            editor.on('change keyup input', function() {
+                                editor.save();
+                                $el.trigger('change');
+                            });
+                        }
+                    }, tinymceOptions);
+                    tinymce.init(options);
+                }
+
+                // Cleanup instance saat baris repeatable dihapus
+                $el.on('backpack_field.deleted', function() {
+                    var ed = tinymce.get(id);
+                    if (ed) {
+                        ed.remove();
+                    }
+                });
+            };
+
+            // 2. Scan & inisialisasi textarea.tinymce-8 yang mungkin belum ter-init
+            function initPendingTinyMCE() {
+                if (typeof tinymce === 'undefined' || typeof window.bpFieldInitTinyMCE8Element !== 'function') {
+                    setTimeout(initPendingTinyMCE, 100);
+                    return;
+                }
+                $('textarea.tinymce-8').each(function() {
+                    var $area = $(this);
+                    var id = $area.attr('id');
+                    if (!id || !tinymce.get(id)) {
+                        window.bpFieldInitTinyMCE8Element($area);
+                    }
+                });
+            }
+            initPendingTinyMCE();
+
+            // 3. Pastikan saat tombol tambah repeatable diklik, editor di row baru ter-inisialisasi
+            $(document).on('click', '.add-repeatable-element-button', function() {
+                setTimeout(initPendingTinyMCE, 150);
+            });
+
+            // 4. Sinkronisasi data TinyMCE dan serialisasi Repeatable sebelum submit form / klik simpan modal
+            function syncTinyMCEAndRepeatable() {
+                if (typeof tinymce !== 'undefined') {
+                    tinymce.triggerSave();
+                }
+                if (typeof repeatableInputToObj === 'function') {
+                    $('[data-repeatable-holder]').each(function() {
+                        var field_name = $(this).data('repeatable-holder');
+                        var serialized = JSON.stringify(repeatableInputToObj(field_name));
+                        $('input[name="' + field_name + '"]').val(serialized);
+                    });
+                }
+            }
+
+            // Hook mousedown, pointerdown, click pada tombol submit dan save-block
+            $(document).off('mousedown.syncTiny pointerdown.syncTiny click.syncTiny', '#btn-submit-create, #btn-submit-edit, .save-block')
+                       .on('mousedown.syncTiny pointerdown.syncTiny click.syncTiny', '#btn-submit-create, #btn-submit-edit, .save-block', function() {
+                syncTinyMCEAndRepeatable();
+            });
+
+            // Hook pada event submit form
+            $(document).off('submit.syncTiny', '#form-create, #form-edit')
+                       .on('submit.syncTiny', '#form-create, #form-edit', function() {
+                syncTinyMCEAndRepeatable();
+            });
         })();
     </script>
 @endpush

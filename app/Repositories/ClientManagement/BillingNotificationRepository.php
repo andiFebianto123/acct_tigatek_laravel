@@ -4,6 +4,7 @@ namespace App\Repositories\ClientManagement;
 
 use App\Models\BillingNotification;
 use App\DTOs\ClientManagement\BillingNotificationFilterData;
+use Illuminate\Support\Facades\DB;
 
 class BillingNotificationRepository
 {
@@ -14,42 +15,84 @@ class BillingNotificationRepository
     {
         $query = BillingNotification::query()
             ->selectRaw("
-                MIN(billing_notifications.id) as id,
+                billing_notifications.id,
+                CONCAT('NOTIF-', LPAD(billing_notifications.id, 5, '0')) as notification_code,
                 billing_notifications.company_id,
-                COALESCE(bd.code_billing, bs.code_billing) as code_billing_calc,
-                COUNT(billing_notifications.id) as total_items,
-                SUM(CASE WHEN billing_notifications.billable_type LIKE '%BillingDevice%' THEN 1 ELSE 0 END) as total_devices,
-                SUM(CASE WHEN billing_notifications.billable_type LIKE '%BillingSimcard%' THEN 1 ELSE 0 END) as total_simcards,
-                MAX(billing_notifications.notification_date) as notification_date,
-                GROUP_CONCAT(DISTINCT billing_notifications.message SEPARATOR '<br>') as message,
-                MAX(CASE 
-                    WHEN bd.id IS NOT NULL AND bd.expired_date < CURDATE() THEN 1 
-                    WHEN bs.id IS NOT NULL AND bs.expired_date < CURDATE() THEN 1 
-                    ELSE 0 
-                END) as is_expired,
-                MAX(CASE
-                    WHEN EXISTS (
-                        SELECT 1 FROM invoice_clients ic
-                        INNER JOIN invoice_client_details icd ON ic.id = icd.invoice_client_id
-                        WHERE YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)
-                          AND MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)
-                          AND icd.code_billing = COALESCE(bd.code_billing, bs.code_billing)
-                    ) THEN 1
-                    ELSE 0
-                END) as has_invoice_this_month
+                billing_notifications.code_billing,
+                billing_notifications.notification_date,
+                billing_notifications.message,
+                (
+                    (SELECT COUNT(*) FROM billing_devices bd WHERE bd.code_billing = billing_notifications.code_billing AND bd.company_id = billing_notifications.company_id AND bd.deleted_at IS NULL)
+                    +
+                    (SELECT COUNT(*) FROM billing_simcards bs WHERE bs.code_billing = billing_notifications.code_billing AND bs.company_id = billing_notifications.company_id AND bs.deleted_at IS NULL)
+                ) as total_items,
+                (SELECT COUNT(*) FROM billing_devices bd WHERE bd.code_billing = billing_notifications.code_billing AND bd.company_id = billing_notifications.company_id AND bd.deleted_at IS NULL) as total_devices,
+                (SELECT COUNT(*) FROM billing_simcards bs WHERE bs.code_billing = billing_notifications.code_billing AND bs.company_id = billing_notifications.company_id AND bs.deleted_at IS NULL) as total_simcards,
+                (
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 FROM billing_reminders br 
+                            WHERE br.code_billing = billing_notifications.code_billing 
+                              AND br.company_id = billing_notifications.company_id 
+                              AND br.end_date < CURDATE()
+                        ) THEN 1
+                        ELSE 0
+                    END
+                ) as is_expired,
+                (
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1 FROM invoice_clients ic
+                            WHERE ic.billing_notification_id = billing_notifications.id
+                        ) THEN 1
+                        WHEN EXISTS (
+                            SELECT 1 FROM invoice_clients ic
+                            INNER JOIN invoice_client_details icd ON ic.id = icd.invoice_client_id
+                            WHERE YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)
+                              AND MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)
+                              AND icd.code_billing = billing_notifications.code_billing
+                        ) THEN 1
+                        ELSE 0
+                    END
+                ) as has_invoice_this_month,
+                (
+                    SELECT ic.status FROM invoice_clients ic
+                    LEFT JOIN invoice_client_details icd ON ic.id = icd.invoice_client_id
+                    WHERE (ic.billing_notification_id = billing_notifications.id)
+                       OR (YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)
+                           AND MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)
+                           AND icd.code_billing = billing_notifications.code_billing)
+                    ORDER BY ic.id DESC LIMIT 1
+                ) as invoice_payment_status,
+                (
+                    SELECT ic.invoice_number FROM invoice_clients ic
+                    LEFT JOIN invoice_client_details icd ON ic.id = icd.invoice_client_id
+                    WHERE (ic.billing_notification_id = billing_notifications.id)
+                       OR (YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)
+                           AND MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)
+                           AND icd.code_billing = billing_notifications.code_billing)
+                    ORDER BY ic.id DESC LIMIT 1
+                ) as invoice_number
             ")
-            ->leftJoin('billing_devices as bd', function ($join) {
-                $join->on('billing_notifications.billable_id', '=', 'bd.id')
-                     ->where('billing_notifications.billable_type', 'like', '%BillingDevice%');
-            })
-            ->leftJoin('billing_simcards as bs', function ($join) {
-                $join->on('billing_notifications.billable_id', '=', 'bs.id')
-                     ->where('billing_notifications.billable_type', 'like', '%BillingSimcard%');
-            })
             ->whereNull('billing_notifications.deleted_at')
-            ->groupBy('billing_notifications.company_id', \Illuminate\Support\Facades\DB::raw('COALESCE(bd.code_billing, bs.code_billing)'))
+            // Sembunyikan notifikasi jika invoice recurring sudah dibuat dan statusnya sudah 'Paid' (lunas)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('invoice_clients as ic')
+                    ->leftJoin('invoice_client_details as icd', 'ic.id', '=', 'icd.invoice_client_id')
+                    ->where('ic.status', '=', 'Paid')
+                    ->where(function ($w) {
+                        $w->whereColumn('ic.billing_notification_id', 'billing_notifications.id')
+                          ->orWhere(function ($sub) {
+                              $sub->whereColumn('icd.code_billing', 'billing_notifications.code_billing')
+                                  ->whereRaw('YEAR(ic.invoice_date) = YEAR(billing_notifications.notification_date)')
+                                  ->whereRaw('MONTH(ic.invoice_date) = MONTH(billing_notifications.notification_date)');
+                          });
+                    });
+            })
             ->with(['company'])
-            ->orderByRaw('code_billing_calc IS NULL, code_billing_calc ASC');
+            ->orderBy('billing_notifications.notification_date', 'DESC')
+            ->orderBy('billing_notifications.id', 'DESC');
 
         $user = backpack_user();
         if ($user && !$user->canAccessAllCompanies()) {
@@ -73,14 +116,16 @@ class BillingNotificationRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        // Map indeks kolom ke field database (Index 1 is company)
-        // 0: row_number, 1: company, 2: code_billing, 3: total_items, 4: notification_date, 5: message, 6: action
+        // Map indeks kolom ke field database
+        // 0: row_number, 1: notification_code, 2: company, 3: code_billing, 4: total_items, 5: notification_date, 6: invoice_status, 7: message, 8: action
         $filterMap = [
-            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-            2 => ['field' => 'code_billing', 'type' => 'having_like'],
-            3 => ['field' => 'total_items', 'type' => 'having_exact'],
-            4 => ['field' => 'notification_date', 'type' => 'having_like'],
-            5 => ['field' => 'message', 'type' => 'having_like'],
+            1 => ['field' => 'id', 'type' => 'having_id'],
+            2 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            3 => ['field' => 'code_billing', 'type' => 'like'],
+            4 => ['field' => 'total_items', 'type' => 'having_exact'],
+            5 => ['field' => 'notification_date', 'type' => 'date'],
+            6 => ['field' => 'invoice_payment_status', 'type' => 'having_like'],
+            7 => ['field' => 'message', 'type' => 'like'],
         ];
 
         foreach ($filterMap as $index => $config) {
@@ -89,19 +134,20 @@ class BillingNotificationRepository
             if ($searchValue === null || $searchValue === '') continue;
 
             switch ($config['type']) {
+                case 'like':
+                    $query->where('billing_notifications.' . $config['field'], 'like', "%{$searchValue}%");
+                    break;
+                case 'date':
+                    $query->whereRaw("DATE_FORMAT(billing_notifications.notification_date, '%d/%m/%Y') LIKE ? OR billing_notifications.notification_date LIKE ?", ["%{$searchValue}%", "%{$searchValue}%"]);
+                    break;
+                case 'having_id':
+                    $query->whereRaw("CONCAT('NOTIF-', LPAD(billing_notifications.id, 5, '0')) LIKE ? OR billing_notifications.id LIKE ?", ["%{$searchValue}%", "%{$searchValue}%"]);
+                    break;
                 case 'having_like':
-                    if ($config['field'] === 'code_billing') {
-                        $query->havingRaw("COALESCE(bd.code_billing, bs.code_billing) LIKE ?", ["%{$searchValue}%"]);
-                    } elseif ($config['field'] === 'notification_date') {
-                        $query->havingRaw("DATE_FORMAT(MAX(billing_notifications.notification_date), '%d/%m/%Y') LIKE ? OR MAX(billing_notifications.notification_date) LIKE ?", ["%{$searchValue}%", "%{$searchValue}%"]);
-                    } elseif ($config['field'] === 'message') {
-                        $query->havingRaw("GROUP_CONCAT(DISTINCT billing_notifications.message SEPARATOR ' ') LIKE ?", ["%{$searchValue}%"]);
-                    }
+                    $query->havingRaw("{$config['field']} LIKE ?", ["%{$searchValue}%"]);
                     break;
                 case 'having_exact':
-                    if ($config['field'] === 'total_items') {
-                        $query->havingRaw("COUNT(billing_notifications.id) = ?", [(int) $searchValue]);
-                    }
+                    $query->havingRaw("{$config['field']} = ?", [(int) $searchValue]);
                     break;
                 case 'relation':
                     $relation = $config['relation'];
@@ -123,27 +169,15 @@ class BillingNotificationRepository
     {
         $query = \Illuminate\Support\Facades\DB::table('billing_notifications')
             ->join('invoice_clients', function ($join) {
-                $join->on('invoice_clients.type_device', '=', 'billing_notifications.billable_type')
-                    ->whereRaw('YEAR(invoice_clients.invoice_date) = YEAR(billing_notifications.notification_date)')
+                $join->whereRaw('YEAR(invoice_clients.invoice_date) = YEAR(billing_notifications.notification_date)')
                     ->whereRaw('MONTH(invoice_clients.invoice_date) = MONTH(billing_notifications.notification_date)');
             })
-            ->join('invoice_client_details', 'invoice_clients.id', '=', 'invoice_client_details.invoice_client_id')
-            ->join('account_transactions', function ($join) {
-                $join->on('account_transactions.reference_id', '=', 'invoice_clients.id')
-                    ->where('account_transactions.reference_type', '=', 'App\\Models\\InvoiceClient');
+            ->join('invoice_client_details', function ($join) {
+                $join->on('invoice_clients.id', '=', 'invoice_client_details.invoice_client_id')
+                    ->on('invoice_client_details.code_billing', '=', 'billing_notifications.code_billing');
             })
             ->where('invoice_clients.status', '=', 'Paid')
-            ->whereNull('billing_notifications.deleted_at')
-            ->whereColumn('invoice_client_details.name', \Illuminate\Support\Facades\DB::raw("
-                (CASE 
-                    WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingDevice' THEN (
-                        SELECT device_id FROM billing_devices WHERE billing_devices.id = billing_notifications.billable_id LIMIT 1
-                    )
-                    WHEN billing_notifications.billable_type = 'App\\\\Models\\\\BillingSimcard' THEN (
-                        SELECT device_profile_id FROM billing_simcards WHERE billing_simcards.id = billing_notifications.billable_id LIMIT 1
-                    )
-                END)
-            "));
+            ->whereNull('billing_notifications.deleted_at');
 
         if ($limit !== null) {
             $query->limit($limit);

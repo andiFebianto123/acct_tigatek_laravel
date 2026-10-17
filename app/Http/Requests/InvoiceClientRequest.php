@@ -133,10 +133,12 @@ class InvoiceClientRequest extends FormRequest
             'term' => 'nullable|string',
             'delivery_note_id' => 'nullable|exists:delivery_notes,id',
             'pic' => 'required|string|max:150',
+            'billing_notification_id' => 'nullable|exists:billing_notifications,id',
         ];
 
         if ($id) {
-            $items = json_decode(request()->invoice_client_details_edit, true);
+            $rawItems = request()->invoice_client_details_edit;
+            $items = is_string($rawItems) && $rawItems !== '' ? json_decode($rawItems, true) : (is_array($rawItems) ? $rawItems : null);
             $status_empty = true;
             $items_total_price = 0;
             if ($items != null) {
@@ -173,7 +175,8 @@ class InvoiceClientRequest extends FormRequest
                 $rule['invoice_client_details_edit.*.price'] = 'required';
             }
         } else {
-            $items = json_decode(request()->invoice_client_details, true);
+            $rawItems = request()->invoice_client_details;
+            $items = is_string($rawItems) && $rawItems !== '' ? json_decode($rawItems, true) : (is_array($rawItems) ? $rawItems : null);
             $status_empty = true;
             $items_total_price = 0;
             if ($items != null) {

@@ -262,6 +262,7 @@ return [
         'device_stock' => 'Stok Barang',
         'transaction_history' => 'Riwayat Transaksi',
         'billing_notification' => 'Notifikasi Tagihan',
+        'billing_reminder' => 'Reminder',
         'company' => 'Company',
     ],
     'setting' => [
@@ -902,6 +903,7 @@ return [
     'billing_notification' => [
         'title_header' => 'Notifikasi Tagihan',
         'column' => [
+            'notification_code' => 'Kode Notifikasi',
             'code_billing' => 'Kode Billing',
             'billable_type' => 'Jenis Tagihan',
             'billable_id' => 'ID Item',
@@ -909,8 +911,28 @@ return [
             'total_devices' => 'Jumlah Device',
             'total_simcards' => 'Jumlah SIMCARD',
             'notification_date' => 'Tanggal Notifikasi',
+            'invoice_status' => 'Status Pembayaran Invoice',
             'message' => 'Pesan',
             'company' => 'Milik Perusahaan',
+        ],
+    ],
+    'billing_reminder' => [
+        'title_header' => 'Reminder',
+        'title_modal_edit' => 'Form Reminder',
+        'column' => [
+            'company' => 'Milik Perusahaan',
+            'code_billing' => 'Kode Billing',
+            'total_items' => 'Jumlah Item',
+            'installation_date' => 'Instalasi Date',
+            'start_date' => 'Start Date',
+            'end_date' => 'End Date',
+            'period' => 'Periode',
+        ],
+        'period_options' => [
+            '1_month' => 'Sebulan',
+            '3_months' => '3 Bulan',
+            '6_months' => '6 Bulan',
+            '1_year' => 'Setahun',
         ],
     ],
     'transaction_history' => [

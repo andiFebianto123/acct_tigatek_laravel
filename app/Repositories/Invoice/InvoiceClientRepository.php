@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Invoice;
 
+// Komentar pengujian: Hermes Agent terhubung dan berhasil melakukan edit file
 use App\Models\InvoiceClient;
 use App\DTOs\Invoice\InvoiceClientFilterData;
 use Illuminate\Support\Facades\DB;
@@ -219,6 +220,20 @@ class InvoiceClientRepository
             ->where('type_device', $typeDevice)
             ->whereHas('invoice_client_details', function ($query) use ($identifier) {
                 $query->where('name', $identifier);
+            })
+            ->exists();
+    }
+
+    /**
+     * Check if an invoice already exists for a specific code_billing in the given month/year or date.
+     */
+    public function hasInvoiceForCodeBilling(string $codeBilling, string $date): bool
+    {
+        $d = \Carbon\Carbon::parse($date);
+        return InvoiceClient::whereYear('invoice_date', $d->year)
+            ->whereMonth('invoice_date', $d->month)
+            ->whereHas('invoice_client_details', function ($query) use ($codeBilling) {
+                $query->where('code_billing', $codeBilling);
             })
             ->exists();
     }

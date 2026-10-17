@@ -899,14 +899,12 @@ class InvoiceClientCrudController extends CrudController
                 $simcards = collect();
 
                 if (!empty($codeBilling)) {
-                    $devices = \App\Models\BillingDevice::where('code_billing', $codeBilling)->get();
-                    $simcards = \App\Models\BillingSimcard::where('code_billing', $codeBilling)->get();
-                } else {
-                    if ($notification->billable_type === \App\Models\BillingDevice::class && $notification->billable) {
-                        $devices = collect([$notification->billable]);
-                    } elseif ($notification->billable_type === \App\Models\BillingSimcard::class && $notification->billable) {
-                        $simcards = collect([$notification->billable]);
-                    }
+                    $devices = \App\Models\BillingDevice::where('code_billing', $codeBilling)
+                        ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+                        ->get();
+                    $simcards = \App\Models\BillingSimcard::where('code_billing', $codeBilling)
+                        ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+                        ->get();
                 }
 
                 // Cari client_id dari device atau simcard
@@ -931,6 +929,7 @@ class InvoiceClientCrudController extends CrudController
                 $invoice->client_id = $clientId;
                 $invoice->status = 'Unpaid';
                 $invoice->is_recurring = 1;
+                $invoice->billing_notification_id = $notificationId;
                 $invoice->type_device = 'App\\Models\\DeviceStock';
 
                 // Cari Client PO terakhir dari klien tersebut jika ada
@@ -968,6 +967,7 @@ class InvoiceClientCrudController extends CrudController
                         'item_type'       => 'DEVICE',
                         'qty'             => $deviceCount,
                         'price'           => 0,
+                        'reason'          => '',
                     ];
                 }
 
@@ -983,6 +983,7 @@ class InvoiceClientCrudController extends CrudController
                         'item_type'       => 'SIMCARD',
                         'qty'             => $simcardCount,
                         'price'           => 0,
+                        'reason'          => '',
                     ];
                 }
 
@@ -1408,7 +1409,7 @@ class InvoiceClientCrudController extends CrudController
         if (!$currentEntry && $id && $id !== 'create') {
             $currentEntry = \App\Models\InvoiceClient::find($id);
         }
-        $isRecurring = $hasNotification || ($currentEntry && $currentEntry->is_recurring !== null);
+        $isRecurring = $hasNotification || ($currentEntry && !empty($currentEntry->is_recurring)) || ($this->crud->entry && !empty($this->crud->entry->is_recurring));
 
         // Pertahankan status is_recurring agar tidak berubah saat form dibuat atau diedit
         $isRecurringValue = null;
@@ -1425,6 +1426,15 @@ class InvoiceClientCrudController extends CrudController
                 'name'  => 'is_recurring',
                 'type'  => 'hidden',
                 'value' => $isRecurringValue,
+            ]);
+        }
+
+        $notificationIdValue = request('notification_id') ?? ($currentEntry?->billing_notification_id ?? $this->crud->entry?->billing_notification_id);
+        if (!empty($notificationIdValue)) {
+            CRUD::addField([
+                'name'  => 'billing_notification_id',
+                'type'  => 'hidden',
+                'value' => $notificationIdValue,
             ]);
         }
 
@@ -1491,6 +1501,14 @@ class InvoiceClientCrudController extends CrudController
                         'default_currency' => 'IDR',
                         'wrapper'          => [
                             'class' => 'form-group col-md-8',
+                        ],
+                    ],
+                    [
+                        'name'    => 'reason',
+                        'type'    => 'tinymce_8',
+                        'label'   => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
                         ],
                     ],
                 ];
@@ -1623,6 +1641,14 @@ class InvoiceClientCrudController extends CrudController
                         'default_currency' => 'IDR',
                         'wrapper'          => [
                             'class' => 'form-group col-md-8',
+                        ],
+                    ],
+                    [
+                        'name'    => 'reason',
+                        'type'    => 'tinymce_8',
+                        'label'   => 'Keterangan',
+                        'wrapper' => [
+                            'class' => 'form-group col-md-12',
                         ],
                     ],
                 ];

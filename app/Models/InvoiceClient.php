@@ -77,6 +77,11 @@ class InvoiceClient extends Model
         return $this->hasMany(InvoiceClientRecurringItem::class, 'invoice_client_id');
     }
 
+    function billing_notification()
+    {
+        return $this->belongsTo(BillingNotification::class, 'billing_notification_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

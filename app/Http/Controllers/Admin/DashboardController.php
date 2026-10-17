@@ -10,8 +10,10 @@ use App\Models\Quotation;
 use App\Models\InvoiceClient;
 use App\Models\ProjectProfitLost;
 use App\Models\DeviceStock;
+use App\Models\DeviceStockCategory;
 use App\Models\InvoiceClientDetail;
 use App\Http\Helpers\CustomHelper;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
 use App\Http\Controllers\CrudController;
@@ -489,12 +491,102 @@ class DashboardController extends CrudController
         $total_barang = $stocks->count();
         $total_nominal = $stocks->sum('total_hpp_base');
 
+        // Group by category for Category Cards
+        $categoriesFromDb = DeviceStockCategory::orderBy('id', 'asc')->get();
+        $categoriesSummary = [];
+
+        // Predefined UI metadata (icons & unit labels)
+        $categoryMeta = [
+            'device' => ['icon' => 'la-microchip', 'unit' => 'Unit'],
+            'jasa' => ['icon' => 'la-hand-holding-usd', 'unit' => 'Proyek'],
+            'solutions' => ['icon' => 'la-cogs', 'unit' => 'Implementasi'],
+            'solution' => ['icon' => 'la-cogs', 'unit' => 'Implementasi'],
+            'connectivity' => ['icon' => 'la-broadcast-tower', 'unit' => 'Koneksi'],
+        ];
+
+        // Process existing categories in DB
+        foreach ($categoriesFromDb as $cat) {
+            $catStocks = $stocks->where('category_id', $cat->id);
+            $catKey = strtolower(trim($cat->name));
+            $meta = $categoryMeta[$catKey] ?? ['icon' => 'la-cube', 'unit' => 'Unit'];
+
+            $qtySum = $catStocks->sum('qty');
+            $nominalSum = $catStocks->sum('total_hpp_base');
+
+            $categoriesSummary[$cat->id] = [
+                'id' => $cat->id,
+                'name' => strtoupper($cat->name),
+                'icon' => $meta['icon'],
+                'unit' => $meta['unit'],
+                'total_stock' => number_format($qtySum, 0, ',', '.'),
+                'total_stock_raw' => $qtySum,
+                'total_nominal' => CustomHelper::formatRupiah($nominalSum),
+                'total_nominal_raw' => $nominalSum,
+                'items' => $catStocks->values(),
+            ];
+        }
+
+        // Catch uncategorized items if any
+        $uncategorized = $stocks->whereNull('category_id');
+        if ($uncategorized->count() > 0) {
+            $qtySum = $uncategorized->sum('qty');
+            $nominalSum = $uncategorized->sum('total_hpp_base');
+            $categoriesSummary['uncategorized'] = [
+                'id' => 'uncategorized',
+                'name' => 'LAINNYA',
+                'icon' => 'la-cube',
+                'unit' => 'Unit',
+                'total_stock' => number_format($qtySum, 0, ',', '.'),
+                'total_stock_raw' => $qtySum,
+                'total_nominal' => CustomHelper::formatRupiah($nominalSum),
+                'total_nominal_raw' => $nominalSum,
+                'items' => $uncategorized->values(),
+            ];
+        }
+
         return [
             'total_stok' => number_format($total_stok, 0, ',', '.'),
             'total_barang' => number_format($total_barang, 0, ',', '.'),
             'total_nominal' => CustomHelper::formatRupiah($total_nominal),
             'list_stocks' => $stocks,
+            'categories_summary' => array_values($categoriesSummary),
         ];
+    }
+
+    public function exportDeviceStockPdf(Request $request)
+    {
+        $categoryId = $request->input('category_id');
+        $summary = $this->dataDeviceStockSummary();
+        $allStocks = $summary['list_stocks'];
+
+        if ($categoryId && $categoryId !== 'all') {
+            if ($categoryId === 'uncategorized') {
+                $filteredStocks = $allStocks->whereNull('category_id')->values();
+                $categoryName = 'LAINNYA';
+            } else {
+                $category = DeviceStockCategory::find($categoryId);
+                $categoryName = $category ? strtoupper($category->name) : 'KATEGORI';
+                $filteredStocks = $allStocks->where('category_id', $categoryId)->values();
+            }
+            $title = "Detail Barang - Kategori: " . $categoryName;
+            $fileName = 'detail_barang_' . strtolower(str_replace(' ', '_', $categoryName)) . '_' . date('Ymd_His') . '.pdf';
+        } else {
+            $filteredStocks = $allStocks->values();
+            $title = "Detail Semua Stok Barang";
+            $fileName = 'detail_semua_stok_barang_' . date('Ymd_His') . '.pdf';
+        }
+
+        $pdf = Pdf::loadView('exports.device-stock-category-pdf', [
+            'title' => $title,
+            'stocks' => $filteredStocks,
+        ])->setPaper('A4', 'landscape');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $fileName, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
     }
 
     public function totalAlldashboard(Request $request)

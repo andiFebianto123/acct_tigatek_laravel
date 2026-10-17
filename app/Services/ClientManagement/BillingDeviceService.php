@@ -41,11 +41,6 @@ class BillingDeviceService
         return DB::transaction(function () use ($id) {
             $device = BillingDevice::findOrFail($id);
 
-            // Clean up associated billing notifications
-            BillingNotification::where('billable_type', BillingDevice::class)
-                ->where('billable_id', $id)
-                ->delete();
-
             return (bool) $device->delete();
         });
     }

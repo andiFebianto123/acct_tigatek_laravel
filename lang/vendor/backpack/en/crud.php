@@ -216,6 +216,7 @@ return [
         'billing_simcard' => 'Billing SIMCARD',
         'transaction_history' => 'Transaction History',
         'billing_notification' => 'Billing Notification',
+        'billing_reminder' => 'Reminder',
         'inventory' => 'Inventory',
         'device_stock' => 'Stok Barang',
         'company' => 'Company',
@@ -700,6 +701,7 @@ return [
     'billing_notification' => [
         'title_header' => 'Billing Notification',
         'column' => [
+            'notification_code' => 'Notification Code',
             'code_billing' => 'Billing Code',
             'billable_type' => 'Billing Type',
             'billable_id' => 'Item ID',
@@ -707,8 +709,28 @@ return [
             'total_devices' => 'Total Devices',
             'total_simcards' => 'Total SIMCARDs',
             'notification_date' => 'Notification Date',
+            'invoice_status' => 'Invoice Payment Status',
             'message' => 'Message',
             'company' => 'Milik Perusahaan',
+        ],
+    ],
+    'billing_reminder' => [
+        'title_header' => 'Reminder',
+        'title_modal_edit' => 'Form Reminder',
+        'column' => [
+            'company' => 'Company',
+            'code_billing' => 'Billing Code',
+            'total_items' => 'Total Items',
+            'installation_date' => 'Installation Date',
+            'start_date' => 'Start Date',
+            'end_date' => 'End Date',
+            'period' => 'Period',
+        ],
+        'period_options' => [
+            '1_month' => 'Monthly',
+            '3_months' => '3 Months',
+            '6_months' => '6 Months',
+            '1_year' => 'Yearly',
         ],
     ],
     'transaction_history' => [

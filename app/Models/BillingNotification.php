@@ -15,20 +15,13 @@ class BillingNotification extends Model
 
     protected $fillable = [
         'company_id',
-        'billable_type',
-        'billable_id',
+        'code_billing',
         'notification_date',
         'message',
     ];
 
     protected $casts = [
         'notification_date' => 'date',
-    ];
-
-    protected $appends = [
-        'code_billing',
-        'billable_type_label',
-        'billable_target',
     ];
 
     /**
@@ -40,48 +33,18 @@ class BillingNotification extends Model
     }
 
     /**
-     * Polymorphic relationship.
+     * Relationship to BillingReminder.
      */
-    public function billable()
+    public function reminder()
     {
-        return $this->morphTo();
+        return $this->hasOne(BillingReminder::class, 'code_billing', 'code_billing');
     }
 
     /**
-     * Accessor for code billing.
+     * Relationship to InvoiceClient.
      */
-    public function getCodeBillingAttribute(): ?string
+    public function invoice_clients()
     {
-        return $this->attributes['code_billing'] ?? $this->attributes['code_billing_calc'] ?? $this->billable?->code_billing;
-    }
-
-    /**
-     * Accessor for human-readable billable type.
-     */
-    public function getBillableTypeLabelAttribute(): string
-    {
-        if ($this->billable_type === \App\Models\BillingDevice::class) {
-            return 'Device';
-        }
-        if ($this->billable_type === \App\Models\BillingSimcard::class) {
-            return 'SIMCARD';
-        }
-        return 'Lainnya';
-    }
-
-    /**
-     * Accessor for target billable item description/identifier.
-     */
-    public function getBillableTargetAttribute(): string
-    {
-        if ($this->billable) {
-            if ($this->billable_type === \App\Models\BillingDevice::class) {
-                return "Device ID: " . ($this->billable->device_id ?? '-');
-            }
-            if ($this->billable_type === \App\Models\BillingSimcard::class) {
-                return "MSISDN: " . ($this->billable->msisdn ?? '-');
-            }
-        }
-        return 'ID: ' . $this->billable_id;
+        return $this->hasMany(InvoiceClient::class, 'billing_notification_id');
     }
 }

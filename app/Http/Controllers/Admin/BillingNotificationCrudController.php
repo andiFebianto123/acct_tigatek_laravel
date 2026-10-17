@@ -8,10 +8,8 @@ use App\Models\BillingNotification;
 use App\DTOs\ClientManagement\BillingNotificationFilterData;
 use App\Repositories\ClientManagement\BillingNotificationRepository;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\App;
-use Prologue\Alerts\Facades\Alert;
 
 class BillingNotificationCrudController extends CrudController
 {
@@ -76,6 +74,16 @@ class BillingNotificationCrudController extends CrudController
         ];
 
         $columns[] = [
+            'label' => trans('backpack::crud.billing_notification.column.notification_code') ?? 'Kode Notifikasi',
+            'type'  => 'closure',
+            'name'  => 'notification_code',
+            'function' => function ($entry) {
+                $code = $entry->notification_code ?? ('NOTIF-' . str_pad($entry->id, 5, '0', STR_PAD_LEFT));
+                return '<span class="badge bg-secondary font-monospace">' . e($code) . '</span>';
+            }
+        ];
+
+        $columns[] = [
             'label' => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
             'type'  => 'text',
             'name'  => 'company.name',
@@ -109,6 +117,28 @@ class BillingNotificationCrudController extends CrudController
                 'type'   => 'date',
                 'label'  => trans('backpack::crud.billing_notification.column.notification_date') ?? 'Tanggal Notifikasi',
                 'format' => 'DD/MM/YYYY',
+            ],
+            [
+                'name'     => 'invoice_status',
+                'type'     => 'closure',
+                'label'    => trans('backpack::crud.billing_notification.column.invoice_status') ?? 'Status Pembayaran Invoice',
+                'function' => function ($entry) {
+                    $status = $entry->invoice_payment_status ?? null;
+                    $invNum = $entry->invoice_number ?? null;
+
+                    if (empty($status) && empty($entry->has_invoice_this_month)) {
+                        return '<span class="badge bg-light text-muted border">Belum Ada Invoice</span>';
+                    }
+
+                    $sub = $invNum ? '<br><small class="text-muted font-monospace">' . e($invNum) . '</small>' : '';
+                    if ($status === 'Paid') {
+                        return '<span class="badge bg-success"><i class="la la-check"></i> Lunas</span>' . $sub;
+                    } elseif ($status === 'Unpaid') {
+                        return '<span class="badge bg-warning text-dark"><i class="la la-clock"></i> Belum Lunas</span>' . $sub;
+                    } else {
+                        return '<span class="badge bg-info text-white">' . e($status ?? 'Invoice Ada') . '</span>' . $sub;
+                    }
+                }
             ],
             [
                 'name'  => 'message',
@@ -181,6 +211,17 @@ class BillingNotificationCrudController extends CrudController
         }
 
         CRUD::column([
+            'label' => trans('backpack::crud.billing_notification.column.notification_code') ?? 'Kode Notifikasi',
+            'type'  => 'closure',
+            'name'  => 'notification_code',
+            'function' => function ($entry) {
+                $code = $entry->notification_code ?? ('NOTIF-' . str_pad($entry->id, 5, '0', STR_PAD_LEFT));
+                return '<span class="badge bg-secondary font-monospace">' . e($code) . '</span>';
+            },
+            'escaped' => false,
+        ]);
+
+        CRUD::column([
             'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
             'type'      => 'select',
             'name'      => 'company_id',
@@ -219,6 +260,30 @@ class BillingNotificationCrudController extends CrudController
             'name'   => 'notification_date',
             'type'   => 'date',
             'format' => 'DD/MM/YYYY',
+        ]);
+
+        CRUD::column([
+            'label'    => trans('backpack::crud.billing_notification.column.invoice_status') ?? 'Status Pembayaran Invoice',
+            'name'     => 'invoice_status',
+            'type'     => 'closure',
+            'function' => function ($entry) {
+                $status = $entry->invoice_payment_status ?? null;
+                $invNum = $entry->invoice_number ?? null;
+
+                if (empty($status) && empty($entry->has_invoice_this_month)) {
+                    return '<span class="badge bg-light text-muted border">Belum Ada Invoice</span>';
+                }
+
+                $sub = $invNum ? '<br><small class="text-muted font-monospace">' . e($invNum) . '</small>' : '';
+                if ($status === 'Paid') {
+                    return '<span class="badge bg-success"><i class="la la-check"></i> Lunas</span>' . $sub;
+                } elseif ($status === 'Unpaid') {
+                    return '<span class="badge bg-warning text-dark"><i class="la la-clock"></i> Belum Lunas</span>' . $sub;
+                } else {
+                    return '<span class="badge bg-info text-white">' . e($status ?? 'Invoice Ada') . '</span>' . $sub;
+                }
+            },
+            'escaped'  => false,
         ]);
 
         CRUD::column([
@@ -367,14 +432,24 @@ class BillingNotificationCrudController extends CrudController
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
-            'name'  => 'billable_type_label',
-            'type'  => 'text'
+            'label' => trans('backpack::crud.billing_notification.column.notification_code') ?? 'Kode Notifikasi',
+            'name'  => 'notification_code',
+            'type'  => 'closure',
+            'function' => fn($entry) => 'NOTIF-' . str_pad($entry->id, 5, '0', STR_PAD_LEFT),
         ]);
 
         CRUD::column([
-            'label' => trans('backpack::crud.billing_notification.column.billable_id') ?? 'Item Tagihan',
-            'name'  => 'billable_target',
+            'label'     => trans('backpack::crud.billing_notification.column.company') ?? 'Milik Perusahaan',
+            'type'      => 'select',
+            'name'      => 'company_id',
+            'entity'    => 'company',
+            'attribute' => 'name',
+            'model'     => "App\Models\Company",
+        ]);
+
+        CRUD::column([
+            'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
+            'name'  => 'code_billing',
             'type'  => 'text'
         ]);
 
@@ -415,24 +490,6 @@ class BillingNotificationCrudController extends CrudController
             'name'  => 'code_billing',
             'type'  => 'text',
             'label' => trans('backpack::crud.billing_notification.column.code_billing') ?? 'Kode Billing',
-            'wrapper' => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'billable_type_label',
-            'type'  => 'text',
-            'label' => trans('backpack::crud.billing_notification.column.billable_type') ?? 'Jenis Tagihan',
-            'wrapper' => [
-                'class' => 'form-group col-md-6',
-            ],
-        ]);
-
-        CRUD::addField([
-            'name'  => 'billable_target',
-            'type'  => 'text',
-            'label' => trans('backpack::crud.billing_notification.column.billable_id') ?? 'Item Tagihan',
             'wrapper' => [
                 'class' => 'form-group col-md-6',
             ],

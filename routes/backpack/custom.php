@@ -67,6 +67,7 @@ Route::group([
     Route::crud('tag', 'TagCrudController');
     Route::crud('dashboard', 'DashboardController');
     Route::get('dashboard/get-chart', [DashboardController::class, 'totalAlldashboard']);
+    Route::get('dashboard/export-device-stock-pdf', [DashboardController::class, 'exportDeviceStockPdf']);
     Route::prefix('setting')->group(function () {
         Route::crud('permission', 'PermissionCrudController');
         Route::crud('role', 'RoleCrudController');
@@ -196,6 +197,9 @@ Route::group([
 
         Route::get('billing-notification/count', 'BillingNotificationCrudController@getNotificationCount');
         Route::crud('billing-notification', 'BillingNotificationCrudController');
+
+        Route::match(['put', 'post'], 'billing-reminder/save', 'BillingReminderCrudController@save');
+        Route::crud('billing-reminder', 'BillingReminderCrudController');
     });
     Route::post('invoice-client/export-pdf', [InvoiceClientCrudController::class, 'exportPdf']);
     Route::post('invoice-client/export-excel', [InvoiceClientCrudController::class, 'exportExcel']);

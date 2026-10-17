@@ -34,81 +34,42 @@ class BillingNotificationService
             $targetH7 = Carbon::today()->addDays(7);
             $count = 0;
 
-            // 1. Process Billing Devices
-            $devices = BillingDevice::all();
-            foreach ($devices as $device) {
-                $shouldNotify = false;
-                $checkDate = null;
+            // Process active reminders by code_billing
+            $reminders = \App\Models\BillingReminder::whereNotNull('next_notification_date')->get();
 
-                if (empty($device->reminder_date)) {
-                    // Default check: H+7 from today
-                    $shouldNotify = true;
-                    $checkDate = $targetH7->toDateString();
-                } else {
-                    // Reminder check: reminder_date falls on today
-                    if (Carbon::parse($device->reminder_date)->startOfDay()->equalTo($today)) {
-                        $shouldNotify = true;
-                        $checkDate = Carbon::parse($device->reminder_date)->toDateString();
-                    }
+            foreach ($reminders as $reminder) {
+                if (empty($reminder->code_billing)) {
+                    continue;
                 }
 
-                if ($shouldNotify && $checkDate) {
-                    if ($device->device_id && $this->invoiceClientRepository->hasInvoiceForDevice(BillingDevice::class, $device->device_id, $checkDate)) {
+                $nextDate = Carbon::parse($reminder->next_notification_date)->startOfDay();
+                $endDate = !empty($reminder->end_date) ? Carbon::parse($reminder->end_date)->startOfDay() : null;
+
+                // Check if current date reached next_notification_date or within target window (H-7)
+                $shouldNotify = false;
+                if (($today->gte($nextDate) || $targetH7->gte($nextDate)) && (!$endDate || $today->lte($endDate))) {
+                    $shouldNotify = true;
+                }
+
+                if ($shouldNotify) {
+                    $checkDate = $reminder->next_notification_date->toDateString();
+
+                    // Prevent duplicate if invoice already exists for this code_billing
+                    if ($this->invoiceClientRepository->hasInvoiceForCodeBilling($reminder->code_billing, $checkDate)) {
                         $shouldNotify = false;
                     }
                 }
 
                 if ($shouldNotify) {
-                    $expiredStr = $device->expired_date ? Carbon::parse($device->expired_date)->format('d/m/Y') : '-';
-                    $message = "Tagihan Device ID {$device->device_id} (" . ($device->vehicle_name ?? 'Tanpa Nama') . ") jatuh tempo pada {$expiredStr}.";
+                    $dueDateFormatted = Carbon::parse($reminder->next_notification_date)->format('d/m/Y');
+                    $message = "Tagihan Kode Billing {$reminder->code_billing} jatuh tempo pada {$dueDateFormatted}.";
 
                     BillingNotification::updateOrCreate([
-                        'billable_type' => BillingDevice::class,
-                        'billable_id' => $device->id,
+                        'company_id'        => $reminder->company_id,
+                        'code_billing'      => $reminder->code_billing,
                         'notification_date' => $today,
                     ], [
-                        'company_id' => $device->company_id,
-                        'message' => $message,
-                    ]);
-                    $count++;
-                }
-            }
-
-            // 2. Process Billing SIM Cards
-            $simcards = BillingSimcard::all();
-            foreach ($simcards as $simcard) {
-                $shouldNotify = false;
-                $checkDate = null;
-
-                if (empty($simcard->reminder_date)) {
-                    // Default check: H+7 from today
-                    $shouldNotify = true;
-                    $checkDate = $targetH7->toDateString();
-                } else {
-                    // Reminder check: reminder_date falls on today
-                    if (Carbon::parse($simcard->reminder_date)->startOfDay()->equalTo($today)) {
-                        $shouldNotify = true;
-                        $checkDate = Carbon::parse($simcard->reminder_date)->toDateString();
-                    }
-                }
-
-                if ($shouldNotify && $checkDate) {
-                    if ($simcard->device_profile_id && $this->invoiceClientRepository->hasInvoiceForDevice(BillingSimcard::class, $simcard->device_profile_id, $checkDate)) {
-                        $shouldNotify = false;
-                    }
-                }
-
-                if ($shouldNotify) {
-                    $expiredStr = $simcard->expired_date ? Carbon::parse($simcard->expired_date)->format('d/m/Y') : '-';
-                    $message = "Tagihan SIMCARD MSISDN {$simcard->msisdn} (ICCID: " . ($simcard->iccid ?? '-') . ") jatuh tempo pada {$expiredStr}.";
-
-                    BillingNotification::updateOrCreate([
-                        'billable_type' => BillingSimcard::class,
-                        'billable_id' => $simcard->id,
-                        'notification_date' => $today,
-                    ], [
-                        'company_id' => $simcard->company_id,
-                        'message' => $message,
+                        'message'           => $message,
                     ]);
                     $count++;
                 }

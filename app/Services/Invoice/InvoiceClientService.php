@@ -112,6 +112,7 @@ class InvoiceClientService
                     pic: $dto->pic,
                     category: $dto->category,
                     is_recurring: $dto->is_recurring,
+                    billing_notification_id: $dto->billing_notification_id,
                 );
             }
 
@@ -250,6 +251,7 @@ class InvoiceClientService
                     pic: $dto->pic,
                     category: $dto->category,
                     is_recurring: $dto->is_recurring,
+                    billing_notification_id: $dto->billing_notification_id,
                 );
             }
 
@@ -420,6 +422,9 @@ class InvoiceClientService
         }
         if ($dto->is_recurring !== null) {
             $invoice->is_recurring = $dto->is_recurring;
+        }
+        if ($dto->billing_notification_id !== null) {
+            $invoice->billing_notification_id = $dto->billing_notification_id;
         }
         // Jika invoice sudah memiliki nilai is_recurring sebelumnya dan $dto->is_recurring bernilai null, nilai lama tetap dipertahankan otomatis karena tidak dioverwrite.
     }

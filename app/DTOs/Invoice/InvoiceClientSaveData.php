@@ -34,6 +34,7 @@ class InvoiceClientSaveData
         public readonly ?string $pic = null,
         public readonly ?string $category = 'rutin',
         public readonly ?bool $is_recurring = null,
+        public readonly ?int $billing_notification_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -124,6 +125,7 @@ class InvoiceClientSaveData
             pic: $request->pic,
             category: $request->input('category', 'rutin'),
             is_recurring: $isRecurring,
+            billing_notification_id: $request->filled('billing_notification_id') ? (int) $request->billing_notification_id : null,
         );
     }
 }
