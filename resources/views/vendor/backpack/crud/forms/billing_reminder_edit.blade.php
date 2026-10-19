@@ -47,7 +47,7 @@
         {{-- Pilihan Cepat Durasi --}}
         <div class="col-12">
             <div class="card border p-3" style="background: #ffffff; border-radius: 8px;">
-                <label class="form-label fw-bold mb-2">Pilihan Cepat Durasi</label>
+                <label class="form-label fw-bold mb-2">Pilih Periode Durasi</label>
                 <div class="d-flex flex-wrap gap-4 align-items-center">
                     <div class="form-check">
                         <input class="form-check-input period-checkbox" 
