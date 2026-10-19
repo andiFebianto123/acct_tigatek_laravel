@@ -174,10 +174,50 @@
                             timer: 3000,
                             buttons: false,
                         });
+
+                        // Sembunyikan modal menggunakan helper dan bootstrap API
                         $('#modalEdit').modal('hide');
+                        if (typeof hideModal === 'function') {
+                            hideModal('modalEdit');
+                        }
+                        try {
+                            var editModalEl = document.getElementById('modalEdit');
+                            if (editModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                var modalInstance = bootstrap.Modal.getInstance(editModalEl);
+                                if (modalInstance) {
+                                    modalInstance.hide();
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Error closing modal:', err);
+                        }
+
+                        // Emit event sesuai pola Backpack CRUD (PurchaseOrder & SIAOPS)
+                        if (data.events) {
+                            if (typeof forEachFlexible === 'function') {
+                                forEachFlexible(data.events, function(eventname, payload) {
+                                    if (typeof eventEmitter !== 'undefined') {
+                                        eventEmitter.emit(eventname, payload);
+                                    }
+                                });
+                            } else if (typeof eventEmitter !== 'undefined') {
+                                Object.keys(data.events).forEach(function(eventname) {
+                                    eventEmitter.emit(eventname, data.events[eventname]);
+                                });
+                            }
+                        } else if (typeof eventEmitter !== 'undefined') {
+                            eventEmitter.emit('crudTable-billing_reminder_updated_success', data.data);
+                        }
+
+                        // Reload datatable
                         if (window.crud && window.crud.table) {
                             window.crud.table.ajax.reload();
-                        } else if ($.fn.DataTable.isDataTable('.table')) {
+                        } else if (typeof SIAOPS !== 'undefined' && SIAOPS.getAttribute('crudTable-billing_reminder')) {
+                            var tabInst = SIAOPS.getAttribute('crudTable-billing_reminder');
+                            if (tabInst && tabInst.table) {
+                                tabInst.table.ajax.reload();
+                            }
+                        } else if ($.fn.DataTable && $.fn.DataTable.isDataTable('.table')) {
                             $('.table').DataTable().ajax.reload();
                         }
                     } else {
@@ -195,6 +235,8 @@
                     var msg = "An error occurred while saving the reminder.";
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         msg = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
                     }
                     swal({
                         title: "Error",

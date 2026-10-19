@@ -417,6 +417,9 @@ class BillingReminderCrudController extends CrudController
                 'success' => true,
                 'message' => trans('backpack::crud.update_success') ?? 'Pengaturan reminder berhasil disimpan.',
                 'data'    => $reminder,
+                'events'  => [
+                    'crudTable-billing_reminder_updated_success' => $reminder,
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('BillingReminderCrudController::save error: ' . $e->getMessage(), [

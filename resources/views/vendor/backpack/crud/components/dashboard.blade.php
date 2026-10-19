@@ -403,21 +403,50 @@
 
     #modalCategoryStockDetail .modal-dialog,
     #modalDeviceStock .modal-dialog {
-        max-height: calc(100vh - 40px);
-        margin: 20px auto;
+        height: calc(100vh - 60px);
+        max-height: calc(100vh - 60px);
+        margin: 30px auto;
     }
 
     #modalCategoryStockDetail .modal-content,
     #modalDeviceStock .modal-content {
-        max-height: calc(100vh - 40px);
+        height: 100%;
+        max-height: 100%;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
     #modalCategoryStockDetail .modal-body,
     #modalDeviceStock .modal-body {
-        overflow-y: auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
         flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    #modalCategoryStockDetail .table-responsive,
+    #modalDeviceStock .table-responsive {
+        flex: 1 1 auto;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        min-height: 0;
+        max-height: 100%;
+    }
+
+    #modalCategoryStockDetail tfoot,
+    #modalDeviceStock tfoot {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+    }
+
+    #modalCategoryStockDetail tfoot td,
+    #modalDeviceStock tfoot td {
+        background-color: #f8fafc !important;
+        border-top: 2px solid #cbd5e1 !important;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
     }
 
 </style>
@@ -612,13 +641,31 @@
             window.open(url, '_blank');
         });
 
-        $('.modal .btn-close, .btn-modal-close').click(function(){
-            $('#modalInfoLabaRutin').modal('hide');
-            $('#modalInfoLabaNonRutin').modal('hide');
-            $('#modalInfoLabaRutinPenjualan').modal('hide');
-            $('#modalInfoLabaNonRutinPenjualan').modal('hide');
-            $('#modalDeviceStock').modal('hide');
-            $('#modalCategoryStockDetail').modal('hide');
+        // Export PDF All Device Stocks
+        $('#btnExportAllDevicePdf').click(function(){
+            const url = "{{ url(config('backpack.base.route_prefix') . '/dashboard/export-device-stock-pdf') }}?category_id=all";
+            window.open(url, '_blank');
+        });
+
+        // Close modals handler (supports data-bs-dismiss, .btn-close, and .btn-modal-close)
+        $(document).on('click', '.modal .btn-close, .modal [data-bs-dismiss="modal"], .btn-modal-close', function(e) {
+            e.preventDefault();
+            var $modal = $(this).closest('.modal');
+            if ($modal.length) {
+                $modal.modal('hide');
+                try {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var inst = bootstrap.Modal.getInstance($modal[0]);
+                        if (inst) {
+                            inst.hide();
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error hiding modal:', err);
+                }
+            } else {
+                $('#modalInfoLabaRutin, #modalInfoLabaNonRutin, #modalInfoLabaRutinPenjualan, #modalInfoLabaNonRutinPenjualan, #modalDeviceStock, #modalCategoryStockDetail').modal('hide');
+            }
         });
 
         $('#filter_year').change(function(){
@@ -897,11 +944,26 @@
                                 </tr>
                             @endforelse
                         </tbody>
+                        <tfoot class="bg-light sticky-bottom" style="z-index: 1;">
+                            <tr class="align-middle fw-bold border-top">
+                                <td colspan="4" class="text-end text-dark pe-3">TOTAL:</td>
+                                <td class="text-center text-dark" id="allDeviceTotalQty">
+                                    {{ number_format($data_device_stock['list_stocks']->sum('qty'), 0, ',', '.') }}
+                                </td>
+                                <td colspan="2" class="text-end text-dark pe-3">TOTAL HPP:</td>
+                                <td class="text-end text-success fs-6" id="allDeviceTotalHpp">
+                                    Rp {{ \App\Http\Helpers\CustomHelper::formatRupiah($data_device_stock['list_stocks']->sum('total_hpp_base')) }}
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer px-4 py-2 border-top bg-light d-flex justify-content-end">
+            <div class="modal-footer px-4 py-2 border-top bg-light d-flex justify-content-end gap-2">
                 <button type="button" class="btn btn-secondary btn-sm px-3 fw-semibold" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnExportAllDevicePdf">
+                    <i class="la la-file-pdf me-1"></i> Ekspor PDF
+                </button>
             </div>
         </div>
     </div>
