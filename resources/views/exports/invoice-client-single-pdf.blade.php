@@ -468,7 +468,7 @@
             <tbody>
                 @foreach ($items as $key => $item)
                     @php
-                        $qty = (int) ($item->qty ?? 1);
+                        $qty = (int) ($item->qty ?? 0);
                         if ($qty <= 1) {
                             $qty = 1;
                             $unit_price = $item->price;
