@@ -468,28 +468,11 @@
             <tbody>
                 @foreach ($items as $key => $item)
                     @php
-                        $qty = (int) ($item->qty ?? 0);
-                        if ($qty <= 1) {
+                        $qty = (int) ($item->qty ?? 1);
+                        if ($qty < 1) {
                             $qty = 1;
-                            $unit_price = $item->price;
-
-                            // Smart direct match parser for GPS Tracker EG02
-                            if (str_contains(strtolower($item->name), 'gps tracker eg02') && (int)$item->price == 22500000) {
-                                $qty = 50;
-                                $unit_price = 450000;
-                            } else {
-                                // Regex parser for any other item names with parenthesized qty e.g. "Item Name (50 pcs)"
-                                if (preg_match('/[\(\[\s](\d+)\s*(pcs|unit|box|pack|x)?[\)\]\s]/i', $item->name, $matches)) {
-                                    $parsed_qty = (int)$matches[1];
-                                    if ($parsed_qty > 0 && (int)$item->price % $parsed_qty == 0) {
-                                        $qty = $parsed_qty;
-                                        $unit_price = (int)$item->price / $parsed_qty;
-                                    }
-                                }
-                            }
-                        } else {
-                            $unit_price = (float)$item->price;
                         }
+                        $unit_price = (float) ($item->price ?? 0);
                     @endphp
 
                     <tr>
