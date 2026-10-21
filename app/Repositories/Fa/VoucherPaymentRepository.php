@@ -316,7 +316,7 @@ class VoucherPaymentRepository
             ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
             ->leftJoinSub($a_p, 'a_p', function ($join) {
                 $join->on('a_p.model_id', '=', 'vouchers.id')
-                    ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\Voucher"'));
+                    ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\VoucherEdit"'));
             })
             ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id')
             ->leftJoin('spk', function ($join) {
