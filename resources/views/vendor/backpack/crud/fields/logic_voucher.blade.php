@@ -218,8 +218,12 @@
                     });
 
                     // Subkon Account Source Selection
-                    this.getEl('select[name="subkon_id"]').off('select2:select').on('select2:select', function(e) {
+                    this.getEl('select[name="subkon_id"]').off('select2:select select2:unselect').on('select2:select', function(e) {
                         self.fetchSubkonAccountDetail(e.params.data.id);
+                    }).on('select2:unselect', function() {
+                        self.getEl('input[name="bank_name"]').val(null);
+                        self.getEl('input[name="no_account"]').val(null);
+                        self.getEl('input[name="account_holder_name"]').val(null);
                     });
 
                     // Trigger Calculation on Keyup / Input Change
@@ -277,6 +281,7 @@
                                 self.getEl('select[name="subkon_id"]').append(subkonOption).trigger('change');
                                 self.getEl('input[name="bank_name"]').val(data.company.bank_name || null);
                                 self.getEl('input[name="no_account"]').val(data.company.bank_account || null);
+                                self.getEl('input[name="account_holder_name"]').val(data.company.account_holder_name || null);
                             }
                             if (data.po) {
                                 self.getEl('input[name="job_name"]').val(data.po.job_name);
@@ -298,6 +303,7 @@
                                 self.getEl('select[name="subkon_id"]').append(subkonOption).trigger('change');
                                 self.getEl('input[name="bank_name"]').val(data.company.bank_name || null);
                                 self.getEl('input[name="no_account"]').val(data.company.bank_account || null);
+                                self.getEl('input[name="account_holder_name"]').val(data.company.account_holder_name || null);
                             }
                             if (data.po) {
                                 self.getEl('input[name="job_name"]').val(data.po.job_name);
@@ -309,13 +315,20 @@
 
                 fetchSubkonAccountDetail: function(id) {
                     var self = this;
+                    if (!id) {
+                        self.getEl('input[name="bank_name"]').val(null);
+                        self.getEl('input[name="no_account"]').val(null);
+                        self.getEl('input[name="account_holder_name"]').val(null);
+                        return;
+                    }
                     $.ajax({
                         url: "{{ url($crud->route) }}/get_account_source_selected_ajax?id=" + id,
                         type: 'GET',
                         dataType: 'json',
                         success: function(data) {
-                            self.getEl('input[name="bank_name"]').val(data.bank_name || null);
-                            self.getEl('input[name="no_account"]').val(data.bank_account || null);
+                            self.getEl('input[name="bank_name"]').val(data ? (data.bank_name || null) : null);
+                            self.getEl('input[name="no_account"]').val(data ? (data.bank_account || null) : null);
+                            self.getEl('input[name="account_holder_name"]').val(data ? (data.account_holder_name || null) : null);
                         }
                     });
                 },
@@ -343,6 +356,11 @@
                         }
 
                         this.getEl('input[name="job_name_disabled"]').val(dataEntry.job_name);
+                        if (dataEntry.account_holder_name) {
+                            this.getEl('input[name="account_holder_name"]').val(dataEntry.account_holder_name);
+                        } else if (dataEntry.subkon && dataEntry.subkon.account_holder_name) {
+                            this.getEl('input[name="account_holder_name"]').val(dataEntry.subkon.account_holder_name);
+                        }
 
                         var self = this;
                         setTimeout(function() {
