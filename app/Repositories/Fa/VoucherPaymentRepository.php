@@ -311,11 +311,18 @@ class VoucherPaymentRepository
             ->select(DB::raw('MAX(id) as id'), 'model_type', 'model_id')
             ->groupBy('model_type', 'model_id');
 
+        $voucher_edit = DB::table('voucher_edit')
+            ->select(DB::raw('MAX(id) as id'), 'voucher_id')
+            ->groupBy('voucher_id');
+
         $query = Voucher::leftJoin('accounts', 'accounts.id', '=', 'vouchers.account_id')
             ->leftJoin('subkons', 'subkons.id', '=', 'vouchers.subkon_id')
             ->leftJoin('companies', 'companies.id', '=', 'vouchers.company_id')
+            ->leftJoinSub($voucher_edit, 've', function ($join) {
+                $join->on('ve.voucher_id', '=', 'vouchers.id');
+            })
             ->leftJoinSub($a_p, 'a_p', function ($join) {
-                $join->on('a_p.model_id', '=', 'vouchers.id')
+                $join->on('a_p.model_id', '=', 've.id')
                     ->where('a_p.model_type', '=', DB::raw('"App\\\\Models\\\\VoucherEdit"'));
             })
             ->leftJoin('approvals', 'approvals.id', '=', 'a_p.id')
