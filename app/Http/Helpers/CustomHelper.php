@@ -1381,7 +1381,7 @@ class CustomHelper
     {
         $v_supp = DB::table('vouchers')
             ->select('client_po_id', DB::raw('SUM(bill_value_base) as total_voucher_supplier_base'))
-            ->where('po_type', 'supplier')
+            ->whereIn('po_type', ['supplier', 'penjualan'])
             ->groupBy('client_po_id');
 
         $supplierSubQuery = DB::table('invoice_clients as ic')

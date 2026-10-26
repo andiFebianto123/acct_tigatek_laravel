@@ -103,12 +103,12 @@ class VoucherRequest extends FormRequest
                 }
             ],
             'invoice_client_id' => [
-                $this->input('po_type') === 'subkon' ? 'required' : 'nullable',
+                in_array($this->input('po_type'), ['subkon', 'penjualan']) ? 'required' : 'nullable',
                 'exists:invoice_clients,id',
             ],
             'job_name' => 'nullable',
             'company_id' => 'required|exists:companies,id',
-            'po_type' => 'required|in:subkon,supplier',
+            'po_type' => 'required|in:subkon,supplier,penjualan',
             'currency_code' => [
                 'nullable',
                 'in:IDR,USD',

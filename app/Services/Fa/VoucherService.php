@@ -90,6 +90,13 @@ class VoucherService
         if ($item->po_type === 'supplier') {
             $item->client_po_id = $data->client_po_id ?? null;
             $item->no_po_spk = $no_po_spk;
+        } else if ($item->po_type === 'penjualan') {
+            // Voucher Penjualan (Biaya Tambahan) terikat pada Invoice Client -> Client PO
+            $item->client_po_id = $data->client_po_id ?? null;
+            $clientPo = ClientPo::find($item->client_po_id);
+            $item->reference_type = ClientPo::class;
+            $item->reference_id = $item->client_po_id;
+            $item->no_po_spk = $clientPo ? $clientPo->po_number : null;
         } else {
             $item->client_po_id = $data->client_po_id;
             $clientPo = ClientPo::find($data->client_po_id);
@@ -246,6 +253,13 @@ class VoucherService
         if ($item->po_type === 'supplier') {
             $item->client_po_id = $data->client_po_id ?? null;
             $item->no_po_spk = $no_po_spk;
+        } else if ($item->po_type === 'penjualan') {
+            // Voucher Penjualan (Biaya Tambahan) terikat pada Invoice Client -> Client PO
+            $item->client_po_id = $data->client_po_id ?? null;
+            $clientPo = ClientPo::find($item->client_po_id);
+            $item->reference_type = ClientPo::class;
+            $item->reference_id = $item->client_po_id;
+            $item->no_po_spk = $clientPo ? $clientPo->po_number : '';
         } else {
             $item->client_po_id = $data->client_po_id;
             $clientPo = ClientPo::find($data->client_po_id);
@@ -371,7 +385,7 @@ class VoucherService
             }
         }
 
-        if ($item->reference_type == ClientPo::class) {
+        if ($item->reference_type == ClientPo::class && $item->po_type !== 'penjualan') {
             if ($item->reference && $item->reference->status == 'TANPA PO') {
                 $client = ClientPo::find($item->reference_id);
                 if ($client) {

@@ -144,7 +144,22 @@
                         invoiceClientWrapper.show();
                         this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
                         
-                        jobNameWrapper.find('label').text("Deskripsi Pesanan");
+                        jobNameWrapper.find('label').text(@json(trans('backpack::crud.client_po.field.job_name.label_supplier')));
+                        this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.client_po.field.job_name.placeholder_supplier')));
+                    } else if (poType === 'penjualan') {
+                        // penjualan: biaya tambahan pada invoice client (tanpa PO Vendor)
+                        clientPoWrapper.hide();
+                        this.getEl('select[name="client_po_id"]').attr('disabled', true);
+
+                        invoiceClientWrapper.show();
+                        this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
+
+                        // Voucher penjualan tidak memakai referensi PO/SPK.
+                        referenceWrapper.hide();
+                        this.getEl('select[name="reference_id"]').attr('disabled', true);
+
+                        jobNameWrapper.find('label').text(@json(trans('backpack::crud.voucher.field.job_name.label_penjualan')));
+                        this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.voucher.field.job_name.placeholder_penjualan')));
                     } else {
                         // subkon
                         clientPoWrapper.hide();
@@ -153,7 +168,8 @@
                         invoiceClientWrapper.show();
                         this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
                         
-                        jobNameWrapper.find('label').text("Nama Pekerjaan");
+                        jobNameWrapper.find('label').text(@json(trans('backpack::crud.voucher.field.job_name.label')));
+                        this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.voucher.field.job_name.placeholder')));
                     }
 
                     if (!isInit) {

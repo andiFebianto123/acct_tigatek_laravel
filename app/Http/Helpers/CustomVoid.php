@@ -18,6 +18,21 @@ use App\Models\PaymentVoucherPlan;
 
 class CustomVoid
 {
+    /**
+     * Label akun hutang (payable) berdasarkan po_type voucher.
+     */
+    public static function payableAccountLabel(?string $poType): string
+    {
+        switch ($poType) {
+            case 'supplier':
+                return 'Hutang Supplier ';
+            case 'penjualan':
+                return 'Hutang Penjualan ';
+            default:
+                return 'Hutang Subkon ';
+        }
+    }
+
     public static function voucherCreate(Voucher $voucher, $invoice_not_exists = false)
     {
         $log_payment = [];
@@ -231,16 +246,18 @@ class CustomVoid
             ];
         }
 
-        // Tentukan Kode Akun Hutang berdasarkan po_type (subkon: 20101, supplier: 20102)
-        $payableCode = ($voucher->po_type === 'supplier') ? '20102' : '20101';
+        // Tentukan Kode Akun Hutang berdasarkan po_type (subkon: 20101, supplier & penjualan: 20102)
+        $isSupplierPayable = in_array($voucher->po_type, ['supplier', 'penjualan'], true);
+        $payableCode = $isSupplierPayable ? '20102' : '20101';
         $payableAccount = Account::where('code', $payableCode)->first();
+        $payableDescription = "Hutang voucher " . $voucher->no_voucher;
 
         if ($payableAccount) {
             $trans_payable = CustomHelper::updateOrCreateJournalEntry([
                 'account_id' => $payableAccount->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'description' => $payableDescription,
                 'date' => Carbon::now(),
                 'currency_code' => $currency_code,
                 'exchange_rate' => $exchange_rate,
@@ -258,7 +275,7 @@ class CustomVoid
                 'account_id' => $payableAccount->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Hutang voucher " . $voucher->no_voucher,
+                'description' => $payableDescription,
                 'date' => Carbon::now(),
                 'debit' => $bill_value,
                 'credit' => 0,
@@ -547,8 +564,8 @@ class CustomVoid
         $cast_account = CastAccount::where('id', $voucher->account_source_id)->first();
         $log_payment = [];
 
-        // Akun hutang (Kredit pada akun 20102 untuk Supplier, atau 20101 untuk Subkon)
-        $isSupplier = ($voucher->po_type === 'supplier');
+        // Akun hutang (Kredit pada akun 20102 untuk Supplier/Penjualan, atau 20101 untuk Subkon)
+        $isSupplier = in_array($voucher->po_type, ['supplier', 'penjualan'], true);
         $accountCode = $isSupplier ? '20102' : '20101';
         $hutang = Account::where('code', $accountCode)->first();
         if ($hutang) {
@@ -556,12 +573,13 @@ class CustomVoid
             $exchange_rate = (float) ($voucher->exchange_rate ?? 1.0);
             $bill_val = (float) $voucher->bill_value;
             $bill_val_base = (float) ($voucher->bill_value_base ?? ($bill_val * $exchange_rate));
+            $payableLabel = self::payableAccountLabel($voucher->po_type);
 
             $trans_1 = CustomHelper::insertJournalEntry([
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Pelunasan " . ($isSupplier ? "Hutang Supplier " : "Hutang Subkon ") . $voucher->no_voucher,
+                'description' => "Pelunasan " . $payableLabel . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'currency_code' => $currency_code,
                 'exchange_rate' => $exchange_rate,
@@ -575,7 +593,7 @@ class CustomVoid
                 'account_id' => $hutang->id,
                 'reference_id' => $voucher->id,
                 'reference_type' => Voucher::class,
-                'description' => "Pelunasan " . ($isSupplier ? "Hutang Supplier " : "Hutang Subkon ") . $voucher->no_voucher,
+                'description' => "Pelunasan " . $payableLabel . $voucher->no_voucher,
                 'date' => Carbon::now(),
                 'type' => JournalEntry::class,
                 'debit' => 0,

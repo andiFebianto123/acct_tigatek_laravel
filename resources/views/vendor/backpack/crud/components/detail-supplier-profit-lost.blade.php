@@ -28,7 +28,7 @@
                             <td class="text-right">{{ $report['cogs_gross'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr>
-                            <td class="indent">Biaya Lain - Lain (Voucher Supplier)</td>
+                            <td class="indent">Biaya Lain - Lain (Voucher Supplier / Penjualan)</td>
                             <td class="text-right">{{ $report['voucher_supplier_value'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr class="total-row">
@@ -86,10 +86,10 @@
         </div>
     @endif
 
-    <!-- Rincian Detail Voucher Supplier (Biaya Lain-Lain) -->
+    <!-- Rincian Detail Voucher Supplier / Penjualan (Biaya Lain-Lain) -->
     @if (!empty($report['vouchers']) && count($report['vouchers']) > 0)
         <div class="mt-4">
-            <h6 class="bold mb-2"><i class="la la-file-text"></i> Rincian Voucher Supplier (Biaya Lain - Lain)</h6>
+            <h6 class="bold mb-2"><i class="la la-file-text"></i> Rincian Voucher Supplier / Penjualan (Biaya Lain - Lain)</h6>
             <table class="table table-bordered table-striped table-sm" style="font-size: 14px;">
                 <thead class="thead-light">
                     <tr>

@@ -632,6 +632,7 @@ return [
                 'label' => 'Jenis PO',
                 'subkon' => 'Subkon',
                 'supplier' => 'Supplier',
+                'penjualan' => 'Penjualan',
             ],
             'purchase_order_id' => [
                 'label' => 'Pilih PO Supplier',
@@ -1763,6 +1764,8 @@ return [
             'job_name' => [
                 'label' => 'Nama Pekerjaan',
                 'placeholder' => 'Nama pekerjaan',
+                'label_penjualan' => 'Deskripsi Biaya Penjualan',
+                'placeholder_penjualan' => 'Masukan deskripsi biaya penjualan',
             ],
             'for_voucher' => [
                 'label' => 'For Voucher',

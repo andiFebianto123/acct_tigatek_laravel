@@ -306,7 +306,7 @@ class ProfitLostRepository
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
             ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
-            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type = "supplier" GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
+            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',
@@ -649,7 +649,7 @@ class ProfitLostRepository
         if (!empty($invoice->client_po_id)) {
             $voucherSupplierValue = (float) DB::table('vouchers')
                 ->where('client_po_id', $invoice->client_po_id)
-                ->where('po_type', 'supplier')
+                ->whereIn('po_type', ['supplier', 'penjualan'])
                 ->sum('bill_value_base');
         }
 
@@ -683,7 +683,7 @@ class ProfitLostRepository
         if (!empty($invoice->client_po_id)) {
             $vouchersData = DB::table('vouchers')
                 ->where('client_po_id', $invoice->client_po_id)
-                ->where('po_type', 'supplier')
+                ->whereIn('po_type', ['supplier', 'penjualan'])
                 ->get();
 
             foreach ($vouchersData as $v) {
@@ -751,7 +751,7 @@ class ProfitLostRepository
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
             ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
-            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type = "supplier" GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
+            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',

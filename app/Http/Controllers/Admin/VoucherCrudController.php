@@ -1466,6 +1466,7 @@ class VoucherCrudController extends CrudController
             'options'     => [
                 'subkon' => trans('backpack::crud.client_po.field.po_type.subkon') ?? 'Subkon',
                 'supplier' => trans('backpack::crud.client_po.field.po_type.supplier') ?? 'Supplier',
+                'penjualan' => trans('backpack::crud.client_po.field.po_type.penjualan') ?? 'Penjualan',
             ],
             'allows_null' => false,
             'default'     => 'subkon',

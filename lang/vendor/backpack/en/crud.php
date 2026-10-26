@@ -517,6 +517,7 @@ return [
                 'label' => 'PO Type',
                 'subkon' => 'Subkon',
                 'supplier' => 'Supplier',
+                'penjualan' => 'Sales',
             ],
             'purchase_order_id' => [
                 'label' => 'Select Supplier PO',
@@ -795,6 +796,14 @@ return [
     'voucher' => [
         'confirm' => [
             'account_loan' => 'Account cannot be a loan account',
+        ],
+        'field' => [
+            'job_name' => [
+                'label' => 'Job Name',
+                'placeholder' => 'Job name',
+                'label_penjualan' => 'Sales Cost Description',
+                'placeholder_penjualan' => 'Enter sales cost description',
+            ],
         ],
     ],
     'profit_lost' => [
