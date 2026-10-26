@@ -568,6 +568,26 @@ class ProfitLostRepository
         $query->where('type_device', "App\\Models\\DeviceStock");
             // ->with('subkon');
 
+        // Filter: nomor invoice yang sudah dibuatkan laba rugi jangan muncul (menghindari data dobel)
+        $existingInvoiceIds = ProjectProfitLost::where('orderable_type', 'App\\Models\\InvoiceClient')
+            ->pluck('orderable_id')
+            ->filter()
+            ->unique()
+            ->toArray();
+
+        // Jika dalam konteks update/edit, jangan exclude invoice milik entry saat ini agar tetap tampil
+        $currentId = request()->input('id');
+        if ($currentId) {
+            $currentProfitLost = ProjectProfitLost::find($currentId);
+            if ($currentProfitLost && $currentProfitLost->orderable_type === 'App\\Models\\InvoiceClient' && $currentProfitLost->orderable_id) {
+                $existingInvoiceIds = array_diff($existingInvoiceIds, [$currentProfitLost->orderable_id]);
+            }
+        }
+
+        if (!empty($existingInvoiceIds)) {
+            $query->whereNotIn('id', $existingInvoiceIds);
+        }
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%$search%");

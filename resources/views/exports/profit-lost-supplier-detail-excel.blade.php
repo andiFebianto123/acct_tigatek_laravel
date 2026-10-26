@@ -1,7 +1,7 @@
 <table>
     <thead>
         <tr>
-            <th colspan="2" style="font-weight: bold; text-align: center; font-size: 14pt;">LAPORAN LABA RUGI SUPPLIER</th>
+            <th colspan="2" style="font-weight: bold; text-align: center; font-size: 14pt;">LAPORAN LABA RUGI PENJUALAN</th>
         </tr>
         <tr>
             <th colspan="2" style="text-align: center; font-size: 12pt;">No. Invoice: {{ $report['invoice_number'] ?? '-' }}</th>
@@ -32,7 +32,7 @@
             <td style="text-align: right;">{{ $report['cogs_gross'] ?? 0 }}</td>
         </tr>
         <tr>
-            <td style="padding-left: 20px;">   2. Biaya Lain - Lain (Voucher Supplier / Penjualan)</td>
+            <td style="padding-left: 20px;">   2. Biaya Tambahan (Voucher Penjualan)</td>
             <td style="text-align: right;">{{ $report['voucher_supplier_value'] ?? 0 }}</td>
         </tr>
         <tr>
@@ -40,7 +40,7 @@
             <td style="font-weight: bold; text-align: right;">{{ $report['purchase_value'] ?? 0 }}</td>
         </tr>
         <tr>
-            <td style="font-weight: bold;">C. Laba Rugi Supplier</td>
+            <td style="font-weight: bold;">C. Laba Rugi Penjualan</td>
             <td style="font-weight: bold; text-align: right;">{{ $report['profit_supplier'] ?? 0 }}</td>
         </tr>
         <tr>
@@ -84,7 +84,7 @@
         <tr></tr>
         <thead>
             <tr>
-                <th colspan="5" style="font-weight: bold;">Rincian Voucher Supplier / Penjualan (Biaya Lain - Lain)</th>
+                <th colspan="5" style="font-weight: bold;">Rincian Voucher Penjualan (Biaya Tambahan)</th>
             </tr>
             <tr>
                 <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">No</th>

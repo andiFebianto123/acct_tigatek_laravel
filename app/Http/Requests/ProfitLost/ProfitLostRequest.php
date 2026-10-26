@@ -36,7 +36,20 @@ class ProfitLostRequest extends FormRequest
             } else {
                 return [
                     'purchase_order_id' => 'nullable',
-                    'supplier_invoice_id' => 'nullable',
+                    'supplier_invoice_id' => [
+                        'required_without:orderable_id',
+                        'nullable',
+                        Rule::unique('project_profit_lost', 'orderable_id')
+                            ->where('orderable_type', 'App\\Models\\InvoiceClient')
+                            ->ignore($this->id)
+                    ],
+                    'orderable_id' => [
+                        'required_without:supplier_invoice_id',
+                        'nullable',
+                        Rule::unique('project_profit_lost', 'orderable_id')
+                            ->where('orderable_type', 'App\\Models\\InvoiceClient')
+                            ->ignore($this->id)
+                    ],
                     'category' => 'nullable',
                     'company_id' => 'required|exists:companies,id',
                     'price_after_year' => 'nullable',
@@ -53,6 +66,24 @@ class ProfitLostRequest extends FormRequest
                 Rule::unique('consolidate_income_account_items', 'account_id')->ignore($this->id)
             ],
             'header_id' => 'required|exists:consolidate_income_headers,id',
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'supplier_invoice_id.unique' => 'Nomor Invoice Penjualan ini sudah pernah dibuatkan laporan laba rugi.',
+            'orderable_id.unique' => 'Nomor Invoice Penjualan ini sudah pernah dibuatkan laporan laba rugi.',
+            'work_code.unique' => 'Data Laba Rugi untuk pekerjaan ini sudah ada.',
+        ];
+    }
+
+    public function attributes()
+    {
+        return [
+            'supplier_invoice_id' => 'No. Invoice Penjualan',
+            'orderable_id' => 'No. Invoice Penjualan',
+            'work_code' => 'No. PO/Invoice Client',
         ];
     }
 }

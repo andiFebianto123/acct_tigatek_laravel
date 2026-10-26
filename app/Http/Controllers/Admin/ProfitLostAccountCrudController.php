@@ -236,10 +236,10 @@ class ProfitLostAccountCrudController extends CrudController
                         ],
                     ],
 
-                    // Tab 2: Supplier (kolom FIFO)
+                    // Tab 2: Penjualan (kolom FIFO)
                     [
                         'name'   => 'supplier',
-                        'label'  => trans('backpack::crud.profit_lost.supplier_income_statement') ?? 'Laporan Laba Rugi Supplier',
+                        'label'  => trans('backpack::crud.profit_lost.supplier_income_statement') ?? 'Laporan Laba Rugi Penjualan',
                         'active' => false,
                         'view'   => 'crud::components.datatable',
                         'params' => [
@@ -308,7 +308,7 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Lain - Lain',
+                                    'label'     => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Tambahan',
                                     'type'      => 'text',
                                     'name'      => 'voucher_supplier_value',
                                     'orderable' => true,
@@ -339,9 +339,9 @@ class ProfitLostAccountCrudController extends CrudController
                             ],
                             'route'               => url($this->crud->route . '/search?type=supplier&tab=supplier'),
                             'route_export_pdf'    => url($this->crud->route . '/export-pdf?type=supplier&tab=supplier'),
-                            'title_export_pdf'    => 'Laporan-Laba-Rugi-Supplier.pdf',
+                            'title_export_pdf'    => 'Laporan-Laba-Rugi-Penjualan.pdf',
                             'route_export_excel'  => url($this->crud->route . '/export-excel?type=supplier&tab=supplier'),
-                            'title_export_excel'  => 'Laporan-Laba-Rugi-Supplier.xlsx',
+                            'title_export_excel'  => 'Laporan-Laba-Rugi-Penjualan.xlsx',
                         ],
                     ],
                 ],
@@ -620,7 +620,7 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'        => 'select2_array',
                 'options'     => [
                     'App\\Models\\ClientPo'      => 'Subkon',
-                    'App\\Models\\InvoiceClient' => 'Supplier',
+                    'App\\Models\\InvoiceClient' => 'Penjualan',
                 ],
                 'allows_null' => false,
                 'default'     => 'App\\Models\\ClientPo',
@@ -657,11 +657,11 @@ class ProfitLostAccountCrudController extends CrudController
                 'include_all_form_fields' => true,
             ]);
 
-            // Field Invoice Supplier (hanya tampil saat orderable_type = PurchaseOrder)
+            // Field Invoice Penjualan (hanya tampil saat orderable_type = InvoiceClient)
             // Digunakan untuk mencari invoice by kode invoice
             CRUD::addField([
                 'name'        => 'supplier_invoice_id',
-                'label'       => trans('backpack::crud.profit_lost.fields.supplier_invoice.label') ?? 'No. Invoice Supplier',
+                'label'       => trans('backpack::crud.profit_lost.fields.supplier_invoice.label') ?? 'No. Invoice Penjualan',
                 'type'        => 'select2_ajax_custom',
                 'attribute'   => 'invoice_number',
                 'entity'      => 'purchaseOrder',
@@ -1632,7 +1632,7 @@ class ProfitLostAccountCrudController extends CrudController
 
         if ($isSupplier) {
             $report = $this->total_detail_supplier($id, 1);
-            $name = "Laporan-laba-rugi-supplier-detail.xlsx";
+            $name = "Laporan-laba-rugi-penjualan-detail.xlsx";
 
             return response()->streamDownload(function () use ($profitLost, $report) {
                 echo Excel::raw(new ProfitLostSupplierExcel($profitLost, $report), \Maatwebsite\Excel\Excel::XLSX);

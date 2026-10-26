@@ -1,6 +1,6 @@
 <div id="detail-supplier">
     <div class="text-center mb-2">
-        <h5>LAPORAN LABA RUGI SUPPLIER</h5>
+        <h5>LAPORAN LABA RUGI PENJUALAN</h5>
         <h5>({{ $report['invoice_number'] ?? '-' }})</h5>
         <h5>({{ $report['supplier_name'] ?? '-' }})</h5>
     </div>
@@ -28,7 +28,7 @@
                             <td class="text-right">{{ $report['cogs_gross'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr>
-                            <td class="indent">Biaya Lain - Lain (Voucher Supplier / Penjualan)</td>
+                            <td class="indent">Biaya Tambahan (Voucher Penjualan)</td>
                             <td class="text-right">{{ $report['voucher_supplier_value'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr class="total-row">
@@ -40,7 +40,7 @@
             </tr>
 
             <tr>
-                <td><span class="bold">C. Laba Rugi Supplier</span></td>
+                <td><span class="bold">C. Laba Rugi Penjualan</span></td>
                 <td class="text-right bold">
                     @if (($report['profit_supplier_raw'] ?? 0) >= 0)
                         <span>{{ $report['profit_supplier'] }}</span>
@@ -86,10 +86,10 @@
         </div>
     @endif
 
-    <!-- Rincian Detail Voucher Supplier / Penjualan (Biaya Lain-Lain) -->
+    <!-- Rincian Detail Voucher Penjualan (Biaya Tambahan) -->
     @if (!empty($report['vouchers']) && count($report['vouchers']) > 0)
         <div class="mt-4">
-            <h6 class="bold mb-2"><i class="la la-file-text"></i> Rincian Voucher Supplier / Penjualan (Biaya Lain - Lain)</h6>
+            <h6 class="bold mb-2"><i class="la la-file-text"></i> Rincian Voucher Penjualan (Biaya Tambahan)</h6>
             <table class="table table-bordered table-striped table-sm" style="font-size: 14px;">
                 <thead class="thead-light">
                     <tr>

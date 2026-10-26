@@ -1470,7 +1470,7 @@ return [
         'empty_account' => 'Belum ada akun',
         'consolidation_income_statement' => 'Laporan Laba Rugi Konsolidasi',
         'project_income_statement' => 'Laporan Laba Rugi Proyek',
-        'supplier_income_statement' => 'Laporan Laba Rugi Supplier',
+        'supplier_income_statement' => 'Laporan Laba Rugi Penjualan',
         'choose_create' => [
             'consolidation_account' => 'Akun Laba Rugi Konsolidasi',
             'project_account' => 'Laba Rugi Proyek Proyek',

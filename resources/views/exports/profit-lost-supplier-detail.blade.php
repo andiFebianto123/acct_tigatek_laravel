@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Laba Rugi Supplier</title>
+    <title>Laporan Laba Rugi Penjualan</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -101,7 +101,7 @@
 </head>
 <body>
     <div class="report-header">
-        <h1>LAPORAN LABA RUGI SUPPLIER</h1>
+        <h1>LAPORAN LABA RUGI PENJUALAN</h1>
         <h2>No. Invoice: {{ $report['invoice_number'] ?? '-' }}</h2>
         <h2>Supplier / Klien: {{ $report['supplier_name'] ?? '-' }}</h2>
         <h2>Tanggal Invoice: {{ $report['invoice_date'] ?? '-' }} | Currency: {{ $report['currency_code'] ?? 'IDR' }}</h2>
@@ -130,7 +130,7 @@
                             <td class="text-right">{{ $report['cogs_gross'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr>
-                            <td class="indent">Biaya Lain - Lain (Voucher Supplier / Penjualan)</td>
+                            <td class="indent">Biaya Tambahan (Voucher Penjualan)</td>
                             <td class="text-right">{{ $report['voucher_supplier_value'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr class="total-row">
@@ -142,7 +142,7 @@
             </tr>
 
             <tr>
-                <td><span class="bold">C. Laba Rugi Supplier</span></td>
+                <td><span class="bold">C. Laba Rugi Penjualan</span></td>
                 <td class="text-right bold">
                     @if (($report['profit_supplier_raw'] ?? 0) >= 0)
                         <span>{{ $report['profit_supplier'] }}</span>
@@ -186,9 +186,9 @@
         </table>
     @endif
 
-    <!-- Rincian Voucher Supplier / Penjualan (Biaya Lain-Lain) -->
+    <!-- Rincian Voucher Penjualan (Biaya Tambahan) -->
     @if (!empty($report['vouchers']) && count($report['vouchers']) > 0)
-        <div class="section-header">Rincian Voucher Supplier / Penjualan (Biaya Lain - Lain)</div>
+        <div class="section-header">Rincian Voucher Penjualan (Biaya Tambahan)</div>
         <table class="table-data">
             <thead>
                 <tr>
