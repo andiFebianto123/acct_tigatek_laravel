@@ -138,35 +138,41 @@
                     this.getEl('select[name="reference_id"]').removeAttr('disabled');
 
                     if (poType === 'supplier') {
+                        // Kondisi 2: Supplier -> Hanya muncul PO/SPK. No. Invoice dihilangkan.
                         clientPoWrapper.hide();
                         this.getEl('select[name="client_po_id"]').attr('disabled', true);
                         
-                        invoiceClientWrapper.show();
-                        this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
+                        invoiceClientWrapper.hide();
+                        this.getEl('select[name="invoice_client_id"]').attr('disabled', true);
+
+                        referenceWrapper.show();
+                        this.getEl('select[name="reference_id"]').removeAttr('disabled');
                         
                         jobNameWrapper.find('label').text(@json(trans('backpack::crud.client_po.field.job_name.label_supplier')));
                         this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.client_po.field.job_name.placeholder_supplier')));
                     } else if (poType === 'penjualan') {
-                        // penjualan: biaya tambahan pada invoice client (tanpa PO Vendor)
+                        // Kondisi 3: Penjualan -> Hanya muncul No. Invoice. PO/SPK dihilangkan.
                         clientPoWrapper.hide();
                         this.getEl('select[name="client_po_id"]').attr('disabled', true);
 
                         invoiceClientWrapper.show();
                         this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
 
-                        // Voucher penjualan tidak memakai referensi PO/SPK.
                         referenceWrapper.hide();
                         this.getEl('select[name="reference_id"]').attr('disabled', true);
 
                         jobNameWrapper.find('label').text(@json(trans('backpack::crud.voucher.field.job_name.label_penjualan')));
                         this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.voucher.field.job_name.placeholder_penjualan')));
                     } else {
-                        // subkon
+                        // Kondisi 1: Subkon (Default) -> No. Invoice dan PO/SPK keduanya muncul.
                         clientPoWrapper.hide();
                         this.getEl('select[name="client_po_id"]').attr('disabled', true);
                         
                         invoiceClientWrapper.show();
                         this.getEl('select[name="invoice_client_id"]').removeAttr('disabled');
+
+                        referenceWrapper.show();
+                        this.getEl('select[name="reference_id"]').removeAttr('disabled');
                         
                         jobNameWrapper.find('label').text(@json(trans('backpack::crud.voucher.field.job_name.label')));
                         this.getEl('input[name="job_name_disabled"]').attr('placeholder', @json(trans('backpack::crud.voucher.field.job_name.placeholder')));
@@ -179,6 +185,9 @@
                         this.getEl('select[name="subkon_id"]').val(null).trigger('change');
                         this.getEl('input[name="job_name"]').val(null);
                         this.getEl('input[name="job_name_disabled"]').val(null);
+                        this.getEl('input[name="bank_name"]').val(null);
+                        this.getEl('input[name="no_account"]').val(null);
+                        this.getEl('input[name="account_holder_name"]').val(null);
                     }
                 },
 

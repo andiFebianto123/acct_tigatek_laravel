@@ -33,6 +33,8 @@ class VoucherRequest extends FormRequest
         //     return [];
         // }
 
+        $poType = $this->input('po_type', 'subkon');
+
         $rules = [
             'no_payment' => 'nullable|max:150',
             'account_id' => 'required|exists:accounts,id',
@@ -67,7 +69,6 @@ class VoucherRequest extends FormRequest
                     }
                 }
             ],
-            'reference_id' => 'nullable',
             'subkon_id' => [
                 'nullable',
                 function ($attribute, $value, $fail) {
@@ -102,10 +103,6 @@ class VoucherRequest extends FormRequest
                     }
                 }
             ],
-            'invoice_client_id' => [
-                in_array($this->input('po_type'), ['subkon', 'penjualan']) ? 'required' : 'nullable',
-                'exists:invoice_clients,id',
-            ],
             'job_name' => 'nullable',
             'company_id' => 'required|exists:companies,id',
             'po_type' => 'required|in:subkon,supplier,penjualan',
@@ -129,6 +126,21 @@ class VoucherRequest extends FormRequest
                 }
             ],
         ];
+
+        // Validasi kondisional berdasarkan jenis voucher:
+        if ($poType === 'supplier') {
+            // Kondisi 2: Supplier -> PO/SPK wajib, No. Invoice nullable
+            $rules['reference_id'] = 'required';
+            $rules['invoice_client_id'] = 'nullable';
+        } elseif ($poType === 'penjualan') {
+            // Kondisi 3: Penjualan -> No. Invoice wajib, PO/SPK nullable
+            $rules['reference_id'] = 'nullable';
+            $rules['invoice_client_id'] = 'required|exists:invoice_clients,id';
+        } else {
+            // Kondisi 1: Subkon -> input salah satu (No. Invoice atau PO/SPK)
+            $rules['reference_id'] = 'required_without:invoice_client_id|nullable';
+            $rules['invoice_client_id'] = 'required_without:reference_id|nullable|exists:invoice_clients,id';
+        }
 
         if ($factur_status == 'ADA') {
             $rules['no_factur'] = 'required';

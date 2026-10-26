@@ -1373,8 +1373,14 @@ class VoucherCrudController extends CrudController
         $q = request()->q;
         $po_type = request()->input('po_type', 'subkon');
 
+        // Kondisi 3: Penjualan -> PO/SPK tidak digunakan
+        if ($po_type === 'penjualan') {
+            return response()->json(['results' => []]);
+        }
+
+        // Kondisi 2: Supplier -> hanya PO Supplier
         if ($po_type === 'supplier') {
-            $query = PurchaseOrder::select(DB::raw("id, po_number, 'subkon' as type"))
+            $query = PurchaseOrder::select(DB::raw("id, po_number, 'supplier' as type"))
                 ->where('po_type', 'supplier');
             if (request()->has('company_id') && request()->company_id != '') {
                 $query->where('company_id', request()->company_id);
@@ -1388,22 +1394,24 @@ class VoucherCrudController extends CrudController
                 $results[] = [
                     'id' => $item->id,
                     'text' => $item->po_number . ' (Supplier)',
-                    'type' => $item->type,
+                    'type' => 'subkon',
                 ];
             }
             return response()->json(['results' => $results]);
         }
 
-        $po_subkon = PurchaseOrder::select(DB::raw("id, po_number, 'subkon' as type"));
-        if (request()->has('company_id')) {
-            $company_id = request()->company_id;
-            $po_subkon->where('company_id', $company_id);
+        // Kondisi 1: Subkon -> hanya PO Subkon dan SPK
+        $po_subkon = PurchaseOrder::select(DB::raw("id, po_number, 'subkon' as type"))
+            ->where(function ($sq) {
+                $sq->where('po_type', 'subkon')->orWhereNull('po_type');
+            });
+        if (request()->has('company_id') && request()->company_id != '') {
+            $po_subkon->where('company_id', request()->company_id);
         }
 
         $po_spk = Spk::select(DB::raw("id, no_spk as po_number, 'spk' as type"));
-        if (request()->has('company_id')) {
-            $company_id = request()->company_id;
-            $po_spk->where('company_id', $company_id);
+        if (request()->has('company_id') && request()->company_id != '') {
+            $po_spk->where('company_id', request()->company_id);
         }
 
         $union = $po_subkon
@@ -1528,7 +1536,7 @@ class VoucherCrudController extends CrudController
             'attributes' => [
                 'placeholder' => 'Pilih Kode Invoice',
             ],
-            'dependencies' => ['company_id'],
+            'dependencies' => ['company_id', 'po_type'],
             'include_all_form_fields' => true,
             'value' => $invoice_client_id_value,
         ]);
@@ -1570,7 +1578,7 @@ class VoucherCrudController extends CrudController
             'attributes' => [
                 'placeholder' => trans('backpack::crud.voucher.field.no_po_spk.placeholder'),
             ],
-            'dependencies' => ['company_id'],
+            'dependencies' => ['company_id', 'po_type'],
             'include_all_form_fields' => true,
         ]);
 
@@ -2208,24 +2216,62 @@ class VoucherCrudController extends CrudController
     public function select2Invoice()
     {
         $search = request()->input('q');
+        $po_type = request()->input('po_type', 'subkon');
+
+        // Kondisi 2: Supplier -> No. Invoice tidak digunakan
+        if ($po_type === 'supplier') {
+            return response()->json(['results' => []]);
+        }
 
         $invoices = \App\Models\InvoiceClient::query();
 
         if ($search) {
-            $invoices->where('invoice_number', 'LIKE', "%$search%");
+            $invoices->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'LIKE', "%$search%")
+                  ->orWhere('name', 'LIKE', "%$search%")
+                  ->orWhere('description', 'LIKE', "%$search%");
+            });
         }
 
         if (request()->has('company_id') && request()->input('company_id') != '') {
             $invoices->where('company_id', request()->input('company_id'));
         }
 
+        if ($po_type === 'penjualan') {
+            // Kondisi 3: Penjualan -> menampilkan invoice client penjualan barang
+            $invoices->where(function ($q) {
+                $q->where('type_device', 'App\\Models\\DeviceStock')
+                  ->orWhereNotNull('delivery_note_id')
+                  ->orWhereHas('client_po', function ($sq) {
+                      $sq->where('po_type', 'supplier');
+                  });
+            });
+        } else {
+            // Kondisi 1: Subkon -> menampilkan invoice client pekerjaan proyek / subkon
+            $invoices->where(function ($q) {
+                $q->whereNull('type_device')
+                  ->orWhere('type_device', '!=', 'App\\Models\\DeviceStock');
+            })->where(function ($q) {
+                $q->whereNull('client_po_id')
+                  ->orWhereHas('client_po', function ($sq) {
+                      $sq->where('po_type', '!=', 'supplier');
+                  });
+            });
+        }
+
         $dataset = $invoices->paginate(20);
 
         $results = [];
         foreach ($dataset as $item) {
+            $label = $item->invoice_number;
+            if (!empty($item->name)) {
+                $label .= ' - ' . $item->name;
+            } elseif (!empty($item->description)) {
+                $label .= ' - ' . \Illuminate\Support\Str::limit($item->description, 40);
+            }
             $results[] = [
                 'id' => $item->id,
-                'text' => $item->invoice_number,
+                'text' => $label,
             ];
         }
         return response()->json(['results' => $results]);
