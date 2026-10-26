@@ -1462,10 +1462,9 @@ return [
         'title_modal_create_consolidation' => 'Akun Laba Rugi Konsolidasi',
         'title_modal_edit_consolidation' => 'Akun Laba Rugi Konsolidasi',
         'title_modal_delete_consolidation' => 'Akun Laba Rugi Konsolidasi',
-        'title_modal_create_project' => '',
         "total_profit_lost" => "Jumlah Laba/Rugi Akhir",
-        'title_modal_create_project' => 'Tambah Laporan Laba Rugi Proyek',
-        'title_modal_edit_project' => 'Edit Laporan Laba Rugi Proyek',
+        'title_modal_create_project' => 'Tambah Laporan Laba Rugi Proyek & Penjualan',
+        'title_modal_edit_project' => 'Edit Laporan Laba Rugi Proyek & Penjualan',
         'title_modal_delete' => 'Akun Biaya',
         'empty_account' => 'Belum ada akun',
         'consolidation_income_statement' => 'Laporan Laba Rugi Konsolidasi',
@@ -1473,7 +1472,7 @@ return [
         'supplier_income_statement' => 'Laporan Laba Rugi Penjualan',
         'choose_create' => [
             'consolidation_account' => 'Akun Laba Rugi Konsolidasi',
-            'project_account' => 'Laba Rugi Proyek Proyek',
+            'project_account' => 'Laba Rugi Proyek & Penjualan',
         ],
         'show_detail' => 'LIHAT DETAIL',
         'fields' => [

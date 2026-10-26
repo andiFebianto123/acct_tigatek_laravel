@@ -456,8 +456,38 @@ class ProfitLostRepository
             return [];
         }
 
+        // Ambil data hanya dari invoice yang terhubung dengan PO Client yang jenisnya subkon
         $query = \App\Models\InvoiceClient::with('client_po')
+            ->whereHas('client_po', function ($q) {
+                $q->where(function ($sq) {
+                    $sq->where('po_type', 'subkon')
+                       ->orWhereNull('po_type');
+                });
+            })
+            ->where(function ($q) {
+                $q->whereNull('type_device')
+                  ->orWhere('type_device', '!=', 'App\\Models\\DeviceStock');
+            })
             ->where('invoice_number', 'like', "%$search%");
+
+        // Filter: PO yang sudah dibuatkan laba rugi jangan muncul lagi (menghindari duplikasi)
+        $existingPoIds = ProjectProfitLost::where('orderable_type', 'App\\Models\\ClientPo')
+            ->pluck('orderable_id')
+            ->filter()
+            ->unique()
+            ->toArray();
+
+        $currentId = request()->input('id');
+        if ($currentId) {
+            $currentProfitLost = ProjectProfitLost::find($currentId);
+            if ($currentProfitLost && $currentProfitLost->orderable_type === 'App\\Models\\ClientPo' && $currentProfitLost->orderable_id) {
+                $existingPoIds = array_diff($existingPoIds, [$currentProfitLost->orderable_id]);
+            }
+        }
+
+        if (!empty($existingPoIds)) {
+            $query->whereNotIn('client_po_id', $existingPoIds);
+        }
 
         $user = backpack_user();
         if ($user && !$user->canAccessAllCompanies()) {
