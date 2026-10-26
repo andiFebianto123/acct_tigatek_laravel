@@ -1572,6 +1572,7 @@ return [
             'profit_lost_final' => 'Laba/Rugi Akhir',
             'category' => 'Kategori',
             'invoice_date' => 'Tgl Invoice',
+            'client_name' => 'Nama Client',
             'supplier_name' => 'Nama Supplier',
             'supplier_po_number' => 'No. PO Supplier',
             'supplier_invoice_number' => 'No. Invoice',

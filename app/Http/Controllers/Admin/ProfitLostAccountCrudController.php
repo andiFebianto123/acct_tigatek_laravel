@@ -1113,7 +1113,7 @@ class ProfitLostAccountCrudController extends CrudController
 
             // Nama Klien / Supplier
             CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.supplier_name') ?? 'Klien / Supplier',
+                'label'  => trans('backpack::crud.profit_lost.column.client_name') ?? 'Klien / Supplier',
                 'name'   => 'supplier_name',
                 'type'   => 'closure',
                 'function' => function ($entry) {
@@ -1425,7 +1425,7 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column([
-                'label' => trans('backpack::crud.profit_lost.column.supplier_name') ?? 'Klien / Supplier',
+                'label' => trans('backpack::crud.profit_lost.column.client_name') ?? 'Klien / Supplier',
                 'name'  => 'supplier_name',
                 'type'  => 'closure',
                 'function' => function ($entry) { return $entry->supplier_name ?? '-'; }

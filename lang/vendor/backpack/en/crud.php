@@ -814,6 +814,7 @@ return [
         ],
         'column' => [
             'total_qty_sold' => 'Qty Sold',
+            'client_name' => 'Client Name',
             'sell_value' => 'Total Sell (Revenue)',
             'avg_harga_jual_satuan' => 'Avg Sell Unit',
             'purchase_value' => 'Total Purchase (COGS FIFO)',
