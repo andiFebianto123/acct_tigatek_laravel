@@ -31,6 +31,7 @@ class CustomHelper
         $accountMapping = [
             // Assets & Accounts Receivable
             'RECEIVABLES_INVOICE' => '10201',
+            'PPN_MASUKAN' => '10203',
 
             // Liabilities & Taxes
             'DEBT_VOUCHER' => '20101',
@@ -691,7 +692,7 @@ class CustomHelper
             ];
         }
         if ($voucher->total > 0) {
-            $ppn = Account::where('code', self::getAccountMapping('TAX'))->first();
+            $ppn = Account::where('code', self::getAccountMapping('PPN_MASUKAN'))->first();
             $total_ppn = (float) ($voucher->bill_value * ($voucher->tax_ppn / 100));
             if ($ppn) {
                 $trans_2 = CustomHelper::updateOrCreateJournalEntry([

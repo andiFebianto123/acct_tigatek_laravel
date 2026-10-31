@@ -366,7 +366,7 @@ class CustomVoid
         //     ];
         // }
         if ($voucher->total > 0) {
-            $ppn = Account::where('code', CustomHelper::getAccountMapping('TAX'))->first();
+            $ppn = Account::where('code', CustomHelper::getAccountMapping('PPN_MASUKAN'))->first();
             $total_ppn = (float) ($voucher->bill_value * ($voucher->tax_ppn / 100));
             if ($ppn && $total_ppn != 0) {
                 $trans_2 = CustomHelper::updateOrCreateJournalEntry([
@@ -846,8 +846,8 @@ class CustomVoid
         }
 
 
-        // keluar PPN
-        $acct_ppn = Account::where('code', CustomHelper::getAccountMapping('TAX'))->first();
+        // PPN Keluaran
+        $acct_ppn = Account::where('code', CustomHelper::getAccountMapping('DEBT_PPN'))->first();
         if ($acct_ppn) {
             $price_ppn = (float) ($invoice->price_total_exclude_ppn * ($invoice->tax_ppn / 100));
             if ($price_ppn != 0) {
@@ -859,10 +859,10 @@ class CustomVoid
                     'date' => Carbon::now(),
                     'currency_code' => $currency_code,
                     'exchange_rate' => $exchange_rate,
-                    'debit' => 0,
-                    'credit' => $price_ppn,
-                    'debit_base' => 0,
-                    'credit_base' => $price_ppn * $exchange_rate,
+                    'debit' => $price_ppn,
+                    'credit' => 0,
+                    'debit_base' => $price_ppn * $exchange_rate,
+                    'credit_base' => 0,
                 ], [
                     'account_id' => $acct_ppn->id,
                     'reference_id' => $invoice->id,
@@ -875,8 +875,8 @@ class CustomVoid
                     'reference_type' => InvoiceClient::class,
                     'description' => "PPN invoice " . $invoice->invoice_number,
                     'date' => Carbon::now(),
-                    'debit' => 0,
-                    'credit' => $price_ppn,
+                    'debit' => $price_ppn,
+                    'credit' => 0,
                     'type' => JournalEntry::class,
                 ];
             }
