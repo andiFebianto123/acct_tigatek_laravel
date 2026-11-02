@@ -471,7 +471,7 @@
                 <tr>
                     <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPh {{ $pph_percent_display }}%</td>
                     <td class="text-right col-price" style="padding: 4px 4px;">
-                        - {{ \App\Http\Helpers\CustomHelper::formatCurrency($pph_nominal, $currencyCode) }}
+                        {{ \App\Http\Helpers\CustomHelper::formatCurrency($pph_nominal, $currencyCode) }}
                     </td>
                 </tr>
                 @endif

@@ -523,7 +523,7 @@
                 <tr>
                     <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPh {{ $pph_percent_display }}%</td>
                     <td class="text-right col-price" style="padding: 4px 4px;">
-                        - {{ $formatPrice($pph_nominal) }}
+                        {{ $formatPrice($pph_nominal) }}
                     </td>
                 </tr>
                 @endif
