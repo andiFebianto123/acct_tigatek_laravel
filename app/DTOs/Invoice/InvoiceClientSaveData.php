@@ -62,10 +62,10 @@ class InvoiceClientSaveData
                 return (float) $str;
             }
 
-            // IDR: jika berformat float string seperti "7500000.00"
+            // IDR: jika berformat float string seperti "7500000.00" atau "7500000.50" (desimal <= 2 digit)
             if (strpos($str, '.') !== false && strpos($str, ',') === false) {
                 $parts = explode('.', $str);
-                if (count($parts) === 2 && (strlen($parts[1]) <= 2 || preg_match('/^0+$/', $parts[1]))) {
+                if (count($parts) === 2 && strlen($parts[1]) <= 2) {
                     return (float) $str;
                 }
             }

@@ -320,6 +320,17 @@
         }
         
         $ppn_percent_display = (float)$ppn_percent == (int)$ppn_percent ? (int)$ppn_percent : (float)$ppn_percent;
+
+        $pph_percent = (float) ($header->pph ?? 0);
+        $pph_nominal = (float) ($header->discount_pph ?? 0);
+        if ($pph_nominal == 0 && $pph_percent > 0 && $subtotal > 0) {
+            $pph_nominal = round(($subtotal * $pph_percent) / 100, 2);
+        }
+        $pph_percent_display = (float)$pph_percent == (int)$pph_percent ? (int)$pph_percent : (float)$pph_percent;
+
+        if ($pph_nominal > 0) {
+            $grand_total = round($grand_total - $pph_nominal, 2);
+        }
         
         // Consolidate details
         $isRecurring = !empty($header->is_recurring);
@@ -508,6 +519,14 @@
                         {{ $formatPrice($ppn_nominal) }}
                     </td>
                 </tr>
+                @if($pph_percent > 0 || $pph_nominal > 0)
+                <tr>
+                    <td colspan="4" class="text-right" style="padding: 4px 4px; font-weight: normal;">PPh {{ $pph_percent_display }}%</td>
+                    <td class="text-right col-price" style="padding: 4px 4px;">
+                        - {{ $formatPrice($pph_nominal) }}
+                    </td>
+                </tr>
+                @endif
                 <tr style="border-top: 0px solid #000; border-bottom: 0px solid #000;">
                     <td colspan="4" class="text-right" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">GRAND TOTAL</td>
                     <td class="text-right col-price" style="padding: 6px 4px; font-weight: bold; font-size: 11pt;">

@@ -180,7 +180,7 @@
                     $(this.form + ' input[data-alt="price_masked"]').each(function() {
                         var $maskedInput = $(this);
                         var $row = $maskedInput.closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
-                        var $hiddenInput = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                        var $hiddenInput = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
                         if (!$hiddenInput.length) {
                             $hiddenInput = $maskedInput.parent().next('input[type="hidden"]');
                         }
@@ -203,30 +203,48 @@
                     var total_price = 0;
                     var curr = $(this.form + ' select[name="currency_code"]').val() || 'IDR';
 
-                    // Cari seluruh baris repeatable item (baik invoice_client_details maupun invoice_client_details_edit)
-                    $(this.form + ' [data-repeatable-holder]').children().each(function() {
-                        var $row = $(this);
-                        var $masked = $row.find('input[data-alt="price_masked"]');
-                        var $hidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
-                        
-                        var priceVal = 0;
-                        var rawValue = ($hidden.length && $hidden.val() !== '') ? $hidden.val() : ($masked.length ? $masked.val() : '0');
-                        priceVal = parseFloat(self.cleanValue(rawValue, curr, false)) || 0;
+                    // Cari holder aktif (invoice_client_details_edit pada form edit, invoice_client_details pada form create)
+                    var $holder = $(this.form).find('[data-repeatable-holder="invoice_client_details_edit"], [data-repeatable-holder="invoice_client_details"]').first();
+                    if (!$holder.length) {
+                        $holder = $(this.form).find('[data-repeatable-holder]').first();
+                    }
 
-                        var qtyVal = parseFloat($row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name*="qty"]').val() || 1) || 1;
+                    if ($holder.length) {
+                        $holder.find('> .repeatable-element, > .well').each(function() {
+                            var $row = $(this);
+                            var $masked = $row.find('input[data-alt="price_masked"]');
+                            var $hidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                            if (!$hidden.length && $masked.length) {
+                                $hidden = $masked.parent().next('input[type="hidden"]');
+                            }
+                            
+                            var priceVal = 0;
+                            var rawValue = ($hidden.length && $hidden.val() !== '') ? $hidden.val() : ($masked.length ? $masked.val() : '0');
+                            priceVal = parseFloat(self.cleanValue(rawValue, curr, false)) || 0;
 
-                        total_price += (priceVal * qtyVal);
-                    });
+                            var $qtyInput = $row.find('input[data-repeatable-input-name="qty"], input[name*="[qty]"], input[name="qty"]');
+                            var qtyVal = parseFloat($qtyInput.val() || 1) || 1;
+
+                            total_price += (priceVal * qtyVal);
+                        });
+                    }
 
                     return total_price;
                 }
 
                 convertAllItems(previousCurrency, newCurrency, usdRate) {
-                    $(this.form + ' input[data-alt="price_masked"]').each(function() {
-                        var $masked = $(this);
-                        var $row = $masked.closest('.repeatable-element, .repeatable-group, [data-repeatable-holder], div.row');
-                        var $hidden = $row.find('input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
-                        if (!$hidden.length) {
+                    var self = this;
+                    var $holder = $(this.form).find('[data-repeatable-holder="invoice_client_details_edit"], [data-repeatable-holder="invoice_client_details"]').first();
+                    if (!$holder.length) {
+                        $holder = $(this.form).find('[data-repeatable-holder]').first();
+                    }
+
+                    var $rows = $holder.length ? $holder.find('> .repeatable-element, > .well') : $(this.form + ' .repeatable-element');
+                    $rows.each(function() {
+                        var $row = $(this);
+                        var $masked = $row.find('input[data-alt="price_masked"]');
+                        var $hidden = $row.find('input[type="hidden"][data-repeatable-input-name="price"], input[type="hidden"][name*="[price]"], input[type="hidden"][name="price"]').last();
+                        if (!$hidden.length && $masked.length) {
                             $hidden = $masked.parent().next('input[type="hidden"]');
                         }
 
@@ -567,7 +585,7 @@
                     });
 
                     // Event listener client_po_id untuk auto-fill Mata Uang, Nominal Exclude PPn, dan PPn
-                    var lastFetchedPoId = null;
+                    var lastFetchedPoId = (entry && entry.client_po_id) ? entry.client_po_id : null;
                     $(form).off('change.po_select', 'select[name="client_po_id"]')
                            .on('change.po_select', 'select[name="client_po_id"]', function(e) {
                         var poId = $(this).val();
@@ -605,24 +623,12 @@
                                     }
                                 }
 
-                                // 3. Update Nominal Exclude PPn dari job_value
-                                var rawJobValue = (poData.job_value !== undefined && poData.job_value !== null) ? poData.job_value : 0;
-                                var cleanJobValue = Number((parseFloat(rawJobValue) || 0).toFixed(2));
-
-                                var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
-                                var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
-
-                                if ($hiddenExc.length) $hiddenExc.val(cleanJobValue);
-                                if ($maskedExc.length) {
-                                    $maskedExc.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(cleanJobValue, activeCurr) : cleanJobValue);
-                                }
-
-                                // 4. Update PPn
+                                // 3. Update PPn
                                 if (poData.tax_ppn !== undefined && poData.tax_ppn !== null) {
                                     $(form + ' input[name="tax_ppn"]').val(poData.tax_ppn);
                                 }
 
-                                // 5. Update Deskripsi / Job Name jika kosong
+                                // 4. Update Deskripsi / Job Name jika kosong
                                 if (poData.job_name) {
                                     var $desc = $(form + ' textarea[name="description"], ' + form + ' input[name="description"]');
                                     if ($desc.length && !$desc.val()) {
@@ -630,13 +636,33 @@
                                     }
                                 }
 
-                                // 6. Update Alamat jika ada
+                                // 5. Update Alamat jika ada
                                 if (poData.address || poData.address_po) {
                                     $(form + ' input[name="address_po"]').val(poData.address || poData.address_po);
                                 }
 
-                                // 7. Hitung ulang total include PPn & Diskon PPh
-                                instance.logicFormulaNoPO();
+                                // 6. Update Nominal Exclude PPn:
+                                // JIKA form memiliki baris item (repeatable), prioritaskan akumulasi total harga item.
+                                // HANYA gunakan poData.job_value jika form tidak memiliki baris item repeatable.
+                                var $holder = $(form).find('[data-repeatable-holder="invoice_client_details_edit"], [data-repeatable-holder="invoice_client_details"]').first();
+                                if (!$holder.length) $holder = $(form).find('[data-repeatable-holder]').first();
+                                var hasItems = $holder.length && $holder.find('> .repeatable-element, > .well').length > 0;
+
+                                if (hasItems) {
+                                    countTotalPrice();
+                                } else {
+                                    var rawJobValue = (poData.job_value !== undefined && poData.job_value !== null) ? poData.job_value : 0;
+                                    var cleanJobValue = Number((parseFloat(rawJobValue) || 0).toFixed(2));
+
+                                    var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+                                    var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+
+                                    if ($hiddenExc.length) $hiddenExc.val(cleanJobValue);
+                                    if ($maskedExc.length) {
+                                        $maskedExc.val(typeof window.formatCurrency === 'function' ? window.formatCurrency(cleanJobValue, activeCurr) : cleanJobValue);
+                                    }
+                                    instance.logicFormulaNoPO();
+                                }
                             },
                             error: function(xhr) {
                                 console.warn('[InvoiceClient] Error fetching Client PO details:', xhr);
@@ -663,22 +689,28 @@
                     var countTotalPrice = function() {
                         var curr = $(form + ' select[name="currency_code"]').val() || 'IDR';
                         var total_items = instance.repeatableManager.calculateTotalItems();
-                        
-                        var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
-                        var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
 
-                        var formattedVal = (typeof window.formatCurrency === 'function')
-                            ? window.formatCurrency(total_items, curr)
-                            : total_items;
+                        var $holder = $(form).find('[data-repeatable-holder="invoice_client_details_edit"], [data-repeatable-holder="invoice_client_details"]').first();
+                        if (!$holder.length) $holder = $(form).find('[data-repeatable-holder]').first();
+                        var hasItems = $holder.length && $holder.find('> .repeatable-element, > .well').length > 0;
 
-                        if ($maskedExc.length) {
-                            $maskedExc.val(formattedVal);
+                        if (hasItems) {
+                            var $maskedExc = $(form + ' #nominal_exclude_ppn_masked, ' + form + ' input[data-alt="nominal_exclude_ppn_masked"]');
+                            var $hiddenExc = $(form + ' #nominal_exclude_ppn, ' + form + ' input[name="nominal_exclude_ppn"]');
+
+                            var formattedVal = (typeof window.formatCurrency === 'function')
+                                ? window.formatCurrency(total_items, curr)
+                                : total_items;
+
+                            if ($maskedExc.length) {
+                                $maskedExc.val(formattedVal);
+                            }
+                            if ($hiddenExc.length) {
+                                $hiddenExc.val(total_items);
+                            }
+
+                            instance.logicFormulaNoPO();
                         }
-                        if ($hiddenExc.length) {
-                            $hiddenExc.val(total_items);
-                        }
-
-                        instance.logicFormulaNoPO();
                     }
 
                     // Inisialisasi Repeatable Handlers
@@ -691,7 +723,9 @@
 
                     // Listener Hapus & Tambah Item
                     $(document).on("click", ".delete-element", function() {
-                        countTotalPrice();
+                        setTimeout(() => {
+                            countTotalPrice();
+                        }, 100);
                     });
 
                     $(form + ' .add-repeatable-element-button').on('click', function() {
