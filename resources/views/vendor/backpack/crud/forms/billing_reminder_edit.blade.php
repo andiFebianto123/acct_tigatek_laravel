@@ -97,54 +97,12 @@
 
 <script>
     (function() {
-        function addMonthsToDate(dateStr, months) {
-            if (!dateStr) return '';
-            var d = new Date(dateStr);
-            if (isNaN(d.getTime())) return '';
-            
-            var originalDay = d.getDate();
-            d.setMonth(d.getMonth() + months);
-            if (d.getDate() !== originalDay) {
-                d.setDate(0);
-            }
-            var year = d.getFullYear();
-            var month = ('0' + (d.getMonth() + 1)).slice(-2);
-            var day = ('0' + d.getDate()).slice(-2);
-            return year + '-' + month + '-' + day;
-        }
-
-        function calculateEndDate() {
-            var selectedPeriod = $('#input_period').val();
-            var startDateVal = $('#reminder_start_date').val();
-            if (!startDateVal || !selectedPeriod) return;
-
-            var months = 0;
-            if (selectedPeriod === '1_month') months = 1;
-            else if (selectedPeriod === '3_months') months = 3;
-            else if (selectedPeriod === '6_months') months = 6;
-            else if (selectedPeriod === '1_year') months = 12;
-
-            if (months > 0) {
-                var calculated = addMonthsToDate(startDateVal, months);
-                if (calculated) {
-                    $('#reminder_end_date').val(calculated);
-                }
-            }
-        }
-
         $('.period-checkbox').off('change').on('change', function() {
             if ($(this).is(':checked')) {
                 $('.period-checkbox').not(this).prop('checked', false);
                 $('#input_period').val($(this).val());
-                calculateEndDate();
             } else {
                 $('#input_period').val('');
-            }
-        });
-
-        $('#reminder_start_date').off('change').on('change', function() {
-            if ($('#input_period').val()) {
-                calculateEndDate();
             }
         });
 

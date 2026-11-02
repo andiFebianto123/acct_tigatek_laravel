@@ -150,6 +150,11 @@ class InvoiceClientService
                 $this->processDeliveryNoteReconciliation($invoice, $dto);
             }
 
+            // Jika invoice berasal dari recurring billing notification, majukan reminder ke siklus berikutnya
+            if (!empty($invoice->billing_notification_id)) {
+                $this->advanceBillingReminderOnInvoiceCreation($invoice);
+            }
+
             CustomVoid::invoiceMakeVoucherMoveAccount($invoice);
             CustomVoid::invoiceCreate($invoice);
 
@@ -985,5 +990,17 @@ class InvoiceClientService
         $masterStock->save();
 
         return $totalCogsBase;
+    }
+
+    /**
+     * Advance recurring billing reminder and refresh notifications after recurring invoice is created.
+     */
+    private function advanceBillingReminderOnInvoiceCreation(InvoiceClient $invoice): void
+    {
+        try {
+            app(\App\Services\ClientManagement\BillingNotificationService::class)->generateNotifications();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('advanceBillingReminderOnInvoiceCreation failed: ' . $e->getMessage());
+        }
     }
 }

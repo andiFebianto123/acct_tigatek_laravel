@@ -31,47 +31,62 @@ class BillingNotificationService
     {
         return DB::transaction(function () {
             $today = Carbon::today();
-            $targetH7 = Carbon::today()->addDays(7);
             $count = 0;
 
-            // Process active reminders by code_billing
-            $reminders = \App\Models\BillingReminder::whereNotNull('next_notification_date')->get();
+            $reminders = \App\Models\BillingReminder::whereNotNull('start_date')
+                ->whereNotNull('period')
+                ->get();
+
+            $advanceCycle = function (Carbon $date, string $period): Carbon {
+                return match ($period) {
+                    '1_month'  => $date->copy()->addMonth(),
+                    '3_months' => $date->copy()->addMonths(3),
+                    '6_months' => $date->copy()->addMonths(6),
+                    '1_year'   => $date->copy()->addYear(),
+                    default    => $date->copy()->addMonth(),
+                };
+            };
 
             foreach ($reminders as $reminder) {
-                if (empty($reminder->code_billing)) {
+                if (empty($reminder->code_billing) || empty($reminder->start_date) || empty($reminder->period)) {
                     continue;
                 }
 
-                $nextDate = Carbon::parse($reminder->next_notification_date)->startOfDay();
+                $startDate = Carbon::parse($reminder->start_date)->startOfDay();
                 $endDate = !empty($reminder->end_date) ? Carbon::parse($reminder->end_date)->startOfDay() : null;
 
-                // Check if current date reached next_notification_date or within target window (H-7)
-                $shouldNotify = false;
-                if (($today->gte($nextDate) || $targetH7->gte($nextDate)) && (!$endDate || $today->lte($endDate))) {
-                    $shouldNotify = true;
-                }
+                // Siklus pertama dihitung dari start_date + periode
+                $cycleDate = $advanceCycle($startDate, $reminder->period);
 
-                if ($shouldNotify) {
-                    $checkDate = $reminder->next_notification_date->toDateString();
+                // Telusuri seluruh siklus yang telah jatuh tempo hingga hari ini (Opsi 1: Akumulasi Notifikasi)
+                while ($cycleDate->lte($today) && (!$endDate || $cycleDate->lte($endDate))) {
+                    $cycleDateStr = $cycleDate->toDateString();
 
-                    // Prevent duplicate if invoice already exists for this code_billing
-                    if ($this->invoiceClientRepository->hasInvoiceForCodeBilling($reminder->code_billing, $checkDate)) {
-                        $shouldNotify = false;
+                    // Cek apakah invoice untuk kode billing pada periode siklus ini sudah dibuat
+                    $hasInvoice = $this->invoiceClientRepository->hasInvoiceForCodeBilling($reminder->code_billing, $cycleDateStr);
+
+                    if (!$hasInvoice) {
+                        $dueDateFormatted = $cycleDate->format('d/m/Y');
+                        $message = "Tagihan Kode Billing {$reminder->code_billing} jatuh tempo pada {$dueDateFormatted}.";
+
+                        BillingNotification::updateOrCreate([
+                            'company_id'        => $reminder->company_id,
+                            'code_billing'      => $reminder->code_billing,
+                            'notification_date' => $cycleDateStr,
+                        ], [
+                            'message'           => $message,
+                        ]);
+                        $count++;
                     }
+
+                    // Maju ke siklus berikutnya
+                    $cycleDate = $advanceCycle($cycleDate, $reminder->period);
                 }
 
-                if ($shouldNotify) {
-                    $dueDateFormatted = Carbon::parse($reminder->next_notification_date)->format('d/m/Y');
-                    $message = "Tagihan Kode Billing {$reminder->code_billing} jatuh tempo pada {$dueDateFormatted}.";
-
-                    BillingNotification::updateOrCreate([
-                        'company_id'        => $reminder->company_id,
-                        'code_billing'      => $reminder->code_billing,
-                        'notification_date' => $today,
-                    ], [
-                        'message'           => $message,
-                    ]);
-                    $count++;
+                // Simpan tanggal jatuh tempo siklus mendatang (next_notification_date)
+                $nextNotificationDate = (!$endDate || $cycleDate->lte($endDate)) ? $cycleDate->toDateString() : null;
+                if ($reminder->next_notification_date !== $nextNotificationDate) {
+                    $reminder->update(['next_notification_date' => $nextNotificationDate]);
                 }
             }
 

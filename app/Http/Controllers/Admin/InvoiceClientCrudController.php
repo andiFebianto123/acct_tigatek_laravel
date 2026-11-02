@@ -930,6 +930,9 @@ class InvoiceClientCrudController extends CrudController
                 $invoice->status = 'Unpaid';
                 $invoice->is_recurring = 1;
                 $invoice->billing_notification_id = $notificationId;
+                if (!empty($notification->notification_date)) {
+                    $invoice->invoice_date = $notification->notification_date;
+                }
                 $invoice->type_device = 'App\\Models\\DeviceStock';
 
                 // Cari Client PO terakhir dari klien tersebut jika ada
