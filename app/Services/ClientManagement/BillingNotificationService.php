@@ -43,7 +43,7 @@ class BillingNotificationService
                 ->where(function ($q) {
                     $q->where(function ($sub) {
                         $sub->whereNotNull('billing_reminders.start_date')
-                            ->where('billing_notifications.notification_date', '<', DB::raw('billing_reminders.start_date'));
+                            ->where('billing_notifications.notification_date', '<=', DB::raw('billing_reminders.start_date'));
                     })->orWhere(function ($sub) {
                         $sub->whereNotNull('billing_reminders.end_date')
                             ->where('billing_notifications.notification_date', '>', DB::raw('billing_reminders.end_date'));

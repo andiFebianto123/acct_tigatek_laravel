@@ -112,7 +112,7 @@ class BillingReminderService
                     ->when($data->company_id, fn($q) => $q->where('company_id', $data->company_id))
                     ->where(function ($q) use ($data) {
                         if (!empty($data->start_date)) {
-                            $q->where('notification_date', '<', $data->start_date);
+                            $q->where('notification_date', '<=', $data->start_date);
                         }
                         if (!empty($data->end_date)) {
                             $q->orWhere('notification_date', '>', $data->end_date);

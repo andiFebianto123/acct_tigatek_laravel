@@ -90,7 +90,7 @@ class BillingNotificationRepository
                           });
                     });
             })
-            // Sembunyikan notifikasi jika tanggalnya berada di luar rentang start_date dan end_date reminder
+            // Sembunyikan notifikasi jika tanggalnya berada di luar rentang (<= start_date karena siklus pertama baru mulai setelah start_date + period, atau > end_date)
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))
                     ->from('billing_reminders as br')
@@ -100,7 +100,7 @@ class BillingNotificationRepository
                     ->where(function ($w) {
                         $w->where(function ($sub) {
                             $sub->whereNotNull('br.start_date')
-                                ->whereColumn('billing_notifications.notification_date', '<', 'br.start_date');
+                                ->whereColumn('billing_notifications.notification_date', '<=', 'br.start_date');
                         })->orWhere(function ($sub) {
                             $sub->whereNotNull('br.end_date')
                                 ->whereColumn('billing_notifications.notification_date', '>', 'br.end_date');
