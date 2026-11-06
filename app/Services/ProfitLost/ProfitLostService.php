@@ -6,6 +6,7 @@ use App\Models\ProjectProfitLost;
 use App\Models\ProjectProfitLostLog;
 use App\Models\ConsolidateIncomeItem;
 use App\Models\ClientPo;
+use App\Models\InvoiceClient;
 use App\DTOs\ProfitLost\ProjectProfitLostSaveData;
 use App\DTOs\ProfitLost\ConsolidateItemSaveData;
 use Illuminate\Support\Facades\DB;
@@ -147,6 +148,134 @@ class ProfitLostService
             $item->save();
 
             return $item;
+        });
+    }
+
+    /**
+     * Otomatis membuat atau menyinkronkan data Laba Rugi dari Invoice Client.
+     * Mendukung invoice penjualan barang (DeviceStock) dan invoice proyek (ClientPo).
+     */
+    public function syncProfitLostFromInvoice(InvoiceClient $invoice): ?ProjectProfitLost
+    {
+        return DB::transaction(function () use ($invoice) {
+            $isDeviceSale = ($invoice->type_device === 'App\\Models\\DeviceStock' || $invoice->type_device === \App\Models\DeviceStock::class);
+
+            if ($isDeviceSale) {
+                // Skenario 1: Invoice Penjualan Barang (FIFO)
+                $profitLost = ProjectProfitLost::where('orderable_type', 'App\\Models\\InvoiceClient')
+                    ->where('orderable_id', $invoice->id)
+                    ->first();
+
+                if (!$profitLost) {
+                    $profitLost = new ProjectProfitLost();
+                    $profitLost->orderable_type = 'App\\Models\\InvoiceClient';
+                    $profitLost->orderable_id = $invoice->id;
+                    $profitLost->client_po_id = null;
+                    $profitLost->voucher_id = null;
+                    $profitLost->price_after_year = 0;
+                    $profitLost->price_voucher = 0;
+                    $profitLost->price_small_cash = 0;
+                    $profitLost->price_total = 0;
+                    $profitLost->price_profit_lost_po = 0;
+                    $profitLost->price_general = 0;
+                    $profitLost->price_prift_lost_final = 0;
+                    $profitLost->contract_value = 0;
+                    $profitLost->total_project = 0;
+                }
+
+                $profitLost->company_id = $invoice->company_id;
+                $profitLost->category = strtoupper($invoice->category ?? 'RUTIN');
+                $profitLost->save();
+
+                return $profitLost;
+            }
+
+            if (!empty($invoice->client_po_id)) {
+                // Skenario 2: Invoice Proyek / Subkon (ClientPo)
+                $po = ClientPo::find($invoice->client_po_id);
+                if (!$po) {
+                    return null;
+                }
+
+                $profitLost = ProjectProfitLost::where('orderable_type', 'App\\Models\\ClientPo')
+                    ->where('orderable_id', $po->id)
+                    ->first();
+
+                if (!$profitLost) {
+                    // Cari voucher pertama dan akumulasi biaya voucher yang terhubung dengan PO ini
+                    $voucherQuery = \App\Models\Voucher::where('client_po_id', $po->id);
+                    $firstVoucher = (clone $voucherQuery)->first();
+                    $totalVoucherBiaya = (float) (clone $voucherQuery)->sum('total');
+
+                    $priceAfterYear = (float) ($po->price_after_year ?? 0);
+                    $priceVoucher = $totalVoucherBiaya;
+                    $priceSmallCash = 0;
+                    $priceTotal = $priceAfterYear + $priceVoucher + $priceSmallCash;
+
+                    $jobValueExcludePpn = (float) ($po->job_value ?? 0);
+                    $priceProfitLostPo = $jobValueExcludePpn - $priceTotal;
+                    $priceGeneral = (float) ($po->load_general_value ?? 0);
+                    $priceProfitLostFinal = $priceProfitLostPo - $priceGeneral;
+
+                    $profitLost = new ProjectProfitLost();
+                    $profitLost->orderable_type = 'App\\Models\\ClientPo';
+                    $profitLost->orderable_id = $po->id;
+                    $profitLost->client_po_id = $po->id;
+                    $profitLost->voucher_id = $firstVoucher?->id;
+                    $profitLost->price_after_year = $priceAfterYear;
+                    $profitLost->price_voucher = $priceVoucher;
+                    $profitLost->price_small_cash = $priceSmallCash;
+                    $profitLost->price_total = $priceTotal;
+                    $profitLost->price_profit_lost_po = $priceProfitLostPo;
+                    $profitLost->price_general = $priceGeneral;
+                    $profitLost->price_prift_lost_final = $priceProfitLostFinal;
+                    $profitLost->contract_value = 0;
+                    $profitLost->total_project = 0;
+                }
+
+                $profitLost->company_id = $invoice->company_id ?? $po->company_id;
+                $profitLost->category = strtoupper($invoice->category ?? $po->category ?? 'RUTIN');
+                $profitLost->save();
+
+                // Sinkronkan ke ClientPo
+                $po->price_after_year = $profitLost->price_after_year;
+                $po->price_total = $profitLost->price_total;
+                $po->profit_and_loss = $profitLost->price_profit_lost_po;
+                $po->load_general_value = $profitLost->price_general;
+                $po->profit_and_lost_final = $profitLost->price_prift_lost_final;
+                $po->category = $profitLost->category;
+                $po->save();
+
+                return $profitLost;
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * Menghapus data Laba Rugi yang terhubung saat invoice dihapus.
+     */
+    public function deleteProfitLostFromInvoice(InvoiceClient $invoice): void
+    {
+        DB::transaction(function () use ($invoice) {
+            // Hapus laba rugi jika invoice bertipe penjualan barang
+            ProjectProfitLost::where('orderable_type', 'App\\Models\\InvoiceClient')
+                ->where('orderable_id', $invoice->id)
+                ->delete();
+
+            // Jika invoice proyek dan tidak ada invoice lain untuk Client PO ini, hapus data laba rugi proyeknya
+            if (!empty($invoice->client_po_id)) {
+                $otherInvoicesCount = InvoiceClient::where('client_po_id', $invoice->client_po_id)
+                    ->where('id', '!=', $invoice->id)
+                    ->count();
+
+                if ($otherInvoicesCount === 0) {
+                    ProjectProfitLost::where('orderable_type', 'App\\Models\\ClientPo')
+                        ->where('orderable_id', $invoice->client_po_id)
+                        ->delete();
+                }
+            }
         });
     }
 }

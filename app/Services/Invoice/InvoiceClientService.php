@@ -11,11 +11,17 @@ use App\Models\DeviceStockMutation;
 use App\Models\InvoiceClient;
 use App\Models\InvoiceClientDetail;
 use App\Models\LogPayment;
+use App\Services\ProfitLost\ProfitLostService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class InvoiceClientService
 {
+    public function __construct(
+        protected ?ProfitLostService $profitLostService = null
+    ) {
+        $this->profitLostService = $profitLostService ?? app(ProfitLostService::class);
+    }
     public function createInvoice(InvoiceClientSaveData $dto): InvoiceClient
     {
         return DB::transaction(function () use ($dto) {
@@ -157,6 +163,9 @@ class InvoiceClientService
 
             CustomVoid::invoiceMakeVoucherMoveAccount($invoice);
             CustomVoid::invoiceCreate($invoice);
+
+            // Buat / sinkronkan data Laba Rugi (Penjualan / Proyek) secara otomatis
+            $this->profitLostService->syncProfitLostFromInvoice($invoice);
 
             return $invoice;
         });
@@ -330,6 +339,9 @@ class InvoiceClientService
                 CustomVoid::invoiceUpdate($invoice, $old_client_po_id);
             }
 
+            // Perbarui / sinkronkan data Laba Rugi
+            $this->profitLostService->syncProfitLostFromInvoice($invoice);
+
             return $invoice;
         });
     }
@@ -364,6 +376,10 @@ class InvoiceClientService
             // if ($clientPo) {
             // $clientPo->delete();
             // }
+
+            // Hapus data Laba Rugi yang terhubung dengan invoice ini
+            $this->profitLostService->deleteProfitLostFromInvoice($invoice);
+
             $invoice->delete();
         });
     }
