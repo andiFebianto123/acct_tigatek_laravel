@@ -33,6 +33,50 @@ class BillingNotificationService
             $today = Carbon::today();
             $count = 0;
 
+            // 1. Bersihkan notifikasi usang yang tanggalnya di luar start_date atau end_date reminder aktif
+            $obsoleteIds = DB::table('billing_notifications')
+                ->join('billing_reminders', function ($join) {
+                    $join->on('billing_notifications.code_billing', '=', 'billing_reminders.code_billing')
+                         ->on('billing_notifications.company_id', '=', 'billing_reminders.company_id');
+                })
+                ->whereNull('billing_reminders.deleted_at')
+                ->where(function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->whereNotNull('billing_reminders.start_date')
+                            ->where('billing_notifications.notification_date', '<', DB::raw('billing_reminders.start_date'));
+                    })->orWhere(function ($sub) {
+                        $sub->whereNotNull('billing_reminders.end_date')
+                            ->where('billing_notifications.notification_date', '>', DB::raw('billing_reminders.end_date'));
+                    });
+                })
+                ->pluck('billing_notifications.id')
+                ->toArray();
+
+            if (!empty($obsoleteIds)) {
+                BillingNotification::whereIn('id', $obsoleteIds)->delete();
+            }
+
+            // 2. Bersihkan notifikasi yang kode billing-nya belum diatur start_date / period di reminder
+            $noReminderIds = DB::table('billing_notifications')
+                ->leftJoin('billing_reminders', function ($join) {
+                    $join->on('billing_notifications.code_billing', '=', 'billing_reminders.code_billing')
+                         ->on('billing_notifications.company_id', '=', 'billing_reminders.company_id')
+                         ->whereNull('billing_reminders.deleted_at');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('billing_reminders.id')
+                      ->orWhereNull('billing_reminders.start_date')
+                      ->orWhereNull('billing_reminders.period');
+                })
+                ->whereNull('billing_notifications.deleted_at')
+                ->pluck('billing_notifications.id')
+                ->toArray();
+
+            if (!empty($noReminderIds)) {
+                BillingNotification::whereIn('id', $noReminderIds)->delete();
+            }
+
+            // 3. Ambil seluruh reminder yang memiliki start_date dan period aktif
             $reminders = \App\Models\BillingReminder::whereNotNull('start_date')
                 ->whereNotNull('period')
                 ->get();

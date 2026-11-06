@@ -106,6 +106,28 @@ class BillingReminderService
                     ->update(['expired_date' => $data->end_date]);
             }
 
+            // Hapus notifikasi usang yang berada di luar rentang tanggal start_date dan end_date yang baru
+            if (!empty($data->code_billing)) {
+                BillingNotification::where('code_billing', $data->code_billing)
+                    ->when($data->company_id, fn($q) => $q->where('company_id', $data->company_id))
+                    ->where(function ($q) use ($data) {
+                        if (!empty($data->start_date)) {
+                            $q->where('notification_date', '<', $data->start_date);
+                        }
+                        if (!empty($data->end_date)) {
+                            $q->orWhere('notification_date', '>', $data->end_date);
+                        }
+                    })
+                    ->delete();
+            }
+
+            // Sinkronisasi ulang notifikasi yang sah
+            try {
+                app(\App\Services\ClientManagement\BillingNotificationService::class)->generateNotifications();
+            } catch (\Throwable $e) {
+                Log::warning('BillingReminderService::saveReminder generateNotifications failed: ' . $e->getMessage());
+            }
+
             return $reminder;
         });
     }

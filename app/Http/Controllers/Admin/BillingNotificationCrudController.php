@@ -358,24 +358,7 @@ class BillingNotificationCrudController extends CrudController
 
         $notification = BillingNotification::find($id);
         if ($notification) {
-            $codeBilling = $notification->code_billing;
-            $companyId = $notification->company_id;
-
-            if (!empty($codeBilling)) {
-                $notificationsToDelete = BillingNotification::where('company_id', $companyId)
-                    ->where(function ($q) use ($codeBilling) {
-                        $q->whereHasMorph('billable', [\App\Models\BillingDevice::class, \App\Models\BillingSimcard::class], function ($subQuery) use ($codeBilling) {
-                            $subQuery->where('code_billing', $codeBilling);
-                        });
-                    })
-                    ->get();
-
-                foreach ($notificationsToDelete as $item) {
-                    $item->delete();
-                }
-            } else {
-                $notification->delete();
-            }
+            $notification->delete();
         }
 
         $messages['success'][] = trans('backpack::crud.delete_confirmation_message') ?? 'Item has been deleted.';

@@ -90,6 +90,23 @@ class BillingNotificationRepository
                           });
                     });
             })
+            // Sembunyikan notifikasi jika tanggalnya berada di luar rentang start_date dan end_date reminder
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('billing_reminders as br')
+                    ->whereColumn('br.code_billing', 'billing_notifications.code_billing')
+                    ->whereColumn('br.company_id', 'billing_notifications.company_id')
+                    ->whereNull('br.deleted_at')
+                    ->where(function ($w) {
+                        $w->where(function ($sub) {
+                            $sub->whereNotNull('br.start_date')
+                                ->whereColumn('billing_notifications.notification_date', '<', 'br.start_date');
+                        })->orWhere(function ($sub) {
+                            $sub->whereNotNull('br.end_date')
+                                ->whereColumn('billing_notifications.notification_date', '>', 'br.end_date');
+                        });
+                    });
+            })
             ->with(['company'])
             ->orderBy('billing_notifications.notification_date', 'DESC')
             ->orderBy('billing_notifications.id', 'DESC');
