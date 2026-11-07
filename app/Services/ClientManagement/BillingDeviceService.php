@@ -46,6 +46,26 @@ class BillingDeviceService
     }
 
     /**
+     * Bulk soft delete BillingDevices.
+     *
+     * @param int[] $ids
+     * @return int Count of successfully deleted records
+     */
+    public function bulkDeleteBillingDevices(array $ids): int
+    {
+        return DB::transaction(function () use ($ids) {
+            $deletedCount = 0;
+            foreach ($ids as $id) {
+                $device = BillingDevice::find($id);
+                if ($device && $device->delete()) {
+                    $deletedCount++;
+                }
+            }
+            return $deletedCount;
+        });
+    }
+
+    /**
      * Restore a soft-deleted BillingDevice.
      */
     public function restoreBillingDevice(int $id): bool

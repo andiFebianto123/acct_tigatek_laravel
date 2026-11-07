@@ -45,6 +45,26 @@ class BillingSimcardService
     }
 
     /**
+     * Bulk soft delete BillingSimcards.
+     *
+     * @param int[] $ids
+     * @return int Count of successfully deleted records
+     */
+    public function bulkDeleteBillingSimcards(array $ids): int
+    {
+        return DB::transaction(function () use ($ids) {
+            $deletedCount = 0;
+            foreach ($ids as $id) {
+                $simcard = BillingSimcard::find($id);
+                if ($simcard && $simcard->delete()) {
+                    $deletedCount++;
+                }
+            }
+            return $deletedCount;
+        });
+    }
+
+    /**
      * Restore a soft-deleted BillingSimcard.
      */
     public function restoreBillingSimcard(int $id): bool

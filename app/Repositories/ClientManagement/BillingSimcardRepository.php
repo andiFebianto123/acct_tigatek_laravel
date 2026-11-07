@@ -37,23 +37,24 @@ class BillingSimcardRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        // Map indeks kolom ke field database (Index 1 is always company)
+        // Map indeks kolom ke field database (Index 0 is row_number, Index 1 is bulk_action, Index 2 is company)
         $filterMap = [
-            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-            2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-            3 => ['field' => 'code_billing', 'type' => 'like'],
-            4 => ['field' => 'product', 'type' => 'like'],
-            5 => ['field' => 'device_name', 'type' => 'like'],
-            6 => ['field' => 'technology', 'type' => 'like'],
-            7 => ['field' => 'device_profile_id', 'type' => 'like'],
-            8 => ['field' => 'iccid', 'type' => 'like'],
-            9 => ['field' => 'msisdn', 'type' => 'like'],
-            10 => ['field' => 'status', 'type' => 'like'],
-            11 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
-            12 => ['field' => 'rate_plan', 'type' => 'like'],
-            13 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-            14 => ['field' => 'installation_date', 'type' => 'like'],
-            15 => ['field' => 'expired_date', 'type' => 'like'],
+            2 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            4 => ['field' => 'code_billing', 'type' => 'like'],
+            5 => ['field' => 'product', 'type' => 'like'],
+            6 => ['field' => 'device_name', 'type' => 'like'],
+            7 => ['field' => 'technology', 'type' => 'like'],
+            8 => ['field' => 'device_profile_id', 'type' => 'like'],
+            9 => ['field' => 'iccid', 'type' => 'like'],
+            10 => ['field' => 'msisdn', 'type' => 'like'],
+            11 => ['field' => 'status', 'type' => 'like'],
+            12 => ['field' => 'simcard_status', 'type' => 'simcard_status'],
+            13 => ['field' => 'rate_plan', 'type' => 'like'],
+            14 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
+            15 => ['field' => 'installation_date', 'type' => 'like'],
+            16 => ['field' => 'expired_date', 'type' => 'like'],
+            17 => ['field' => 'reminder_date', 'type' => 'like'],
         ];
 
         foreach ($filterMap as $index => $config) {

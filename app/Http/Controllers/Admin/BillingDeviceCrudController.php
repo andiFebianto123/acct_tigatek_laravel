@@ -8,6 +8,7 @@ use App\Http\Controllers\Operation\PermissionAccess;
 use App\Models\BillingDevice;
 use App\DTOs\ClientManagement\BillingDeviceFilterData;
 use App\DTOs\ClientManagement\BillingDeviceData;
+use App\DTOs\ClientManagement\BillingDeviceBulkDeleteData;
 use App\Repositories\ClientManagement\BillingDeviceRepository;
 use App\Services\ClientManagement\BillingDeviceService;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
@@ -90,6 +91,14 @@ class BillingDeviceCrudController extends CrudController
                 'type'      => 'row_number',
                 'label'     => 'No',
                 'orderable' => false,
+            ],
+            [
+                'name'            => 'bulk_action',
+                'type'            => 'custom_html',
+                'label'           => '<input type="checkbox" id="bulk-select-all-device" class="form-check-input bulk-checkbox-header-device" style="cursor:pointer;" />',
+                'orderable'       => false,
+                'searchable'      => false,
+                'visibleInExport' => false,
             ],
         ];
 
@@ -200,6 +209,14 @@ class BillingDeviceCrudController extends CrudController
             ]
         ]);
 
+        $this->card->addCard([
+            'name'        => 'billing_device_bulk_action',
+            'line'        => 'top',
+            'view'        => 'crud::components.billing-device-bulk-action',
+            'parent_view' => 'crud::components.filter-parent',
+            'params'      => [],
+        ]);
+
         $this->data['crud'] = $this->crud;
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
         $this->data['title_modal_create'] = trans('backpack::crud.billing_device.title_header') ?? 'Billing Device';
@@ -228,6 +245,7 @@ class BillingDeviceCrudController extends CrudController
         $this->crud->param_uri_export = "?export=1";
 
         // Custom buttons on top of the list view
+        CRUD::addButtonFromView('top', 'bulk_delete_billing_device', 'bulk_delete_billing_device', 'beginning');
         CRUD::addButtonFromView('top', 'import_excel_billing_device', 'import_excel_billing_device', 'beginning');
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
@@ -246,6 +264,19 @@ class BillingDeviceCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        CRUD::addColumn([
+            'name'            => 'bulk_action',
+            'label'           => '<input type="checkbox" id="bulk-select-all-device" class="form-check-input bulk-checkbox-header-device" style="cursor:pointer;" />',
+            'type'            => 'custom_html',
+            'value'           => function ($entry) {
+                return '<input type="checkbox" class="form-check-input bulk-checkbox-device" data-id="' . $entry->getKey() . '" style="cursor:pointer;" />';
+            },
+            'orderable'       => false,
+            'searchable'      => false,
+            'visibleInExport' => false,
+            'escaped'         => false,
+        ]);
 
         $user = backpack_user();
         if ($user && !$user->canAccessAllCompanies()) {
@@ -469,6 +500,53 @@ class BillingDeviceCrudController extends CrudController
             'crudTable-billing_device_create_success' => true,
         ];
         return response()->json($messages);
+    }
+
+    /**
+     * AJAX Bulk Delete Operation handler.
+     */
+    public function bulkDelete()
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        $dto = BillingDeviceBulkDeleteData::fromRequest(request());
+
+        if (empty($dto->entries)) {
+            return response()->json([
+                'status'  => false,
+                'success' => false,
+                'error'   => trans('backpack::crud.bulk_no_entries_selected_message') ?? 'Tidak ada data yang dipilih.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $deletedCount = $this->service->bulkDeleteBillingDevices($dto->entries);
+
+            DB::commit();
+
+            return response()->json([
+                'status'        => true,
+                'success'       => true,
+                'deleted_count' => $deletedCount,
+                'message'       => $deletedCount . ' ' . (trans('backpack::crud.delete_confirmation_message') ?? 'data berhasil dihapus.'),
+                'events'        => [
+                    'crudTable-billing_device_create_success' => true,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Billing Device Bulk Delete Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status'  => false,
+                'success' => false,
+                'error'   => 'Bulk delete failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -792,6 +870,7 @@ class BillingDeviceCrudController extends CrudController
     public function exportPdf()
     {
         $this->setupListOperation();
+        CRUD::removeColumn('bulk_action');
 
         $columns = $this->crud->columns();
         $items = $this->crud->getEntries();
@@ -837,6 +916,7 @@ class BillingDeviceCrudController extends CrudController
     public function exportExcel()
     {
         $this->setupListOperation();
+        CRUD::removeColumn('bulk_action');
 
         $columns = $this->crud->columns();
         $items = $this->crud->getEntries();

@@ -36,23 +36,24 @@ class BillingDeviceRepository
     {
         if (empty($filters->columnFilters)) return $query;
 
-        // Map indeks kolom ke field database (Index 1 is always company)
+        // Map indeks kolom ke field database (Index 0 is row_number, Index 1 is bulk_action, Index 2 is company)
         $filterMap = [
-            1 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
-            2 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
-            3 => ['field' => 'code_billing', 'type' => 'like'],
-            4 => ['field' => 'device_id', 'type' => 'like'],
-            5 => ['field' => 'phone', 'type' => 'like'],
-            6 => ['field' => 'vehicle_uid', 'type' => 'like'],
-            7 => ['field' => 'vehicle_name', 'type' => 'like'],
-            8 => ['field' => 'imei', 'type' => 'like'],
-            9 => ['field' => 'speed_limit', 'type' => 'like'],
-            10 => ['field' => 'sim_network', 'type' => 'like'],
-            11 => ['field' => 'category', 'type' => 'like'],
-            12 => ['field' => 'model', 'type' => 'like'],
-            13 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
-            14 => ['field' => 'installation_date', 'type' => 'like'],
-            15 => ['field' => 'expired_date', 'type' => 'like'],
+            2 => ['field' => 'company.name', 'type' => 'relation', 'relation' => 'company'],
+            3 => ['field' => 'client.name', 'type' => 'relation', 'relation' => 'client'],
+            4 => ['field' => 'code_billing', 'type' => 'like'],
+            5 => ['field' => 'device_id', 'type' => 'like'],
+            6 => ['field' => 'phone', 'type' => 'like'],
+            7 => ['field' => 'vehicle_uid', 'type' => 'like'],
+            8 => ['field' => 'vehicle_name', 'type' => 'like'],
+            9 => ['field' => 'imei', 'type' => 'like'],
+            10 => ['field' => 'speed_limit', 'type' => 'like'],
+            11 => ['field' => 'sim_network', 'type' => 'like'],
+            12 => ['field' => 'category', 'type' => 'like'],
+            13 => ['field' => 'model', 'type' => 'like'],
+            14 => ['field' => 'subscription_expiry_date', 'type' => 'like'],
+            15 => ['field' => 'installation_date', 'type' => 'like'],
+            16 => ['field' => 'expired_date', 'type' => 'like'],
+            17 => ['field' => 'reminder_date', 'type' => 'like'],
         ];
 
         foreach ($filterMap as $index => $config) {

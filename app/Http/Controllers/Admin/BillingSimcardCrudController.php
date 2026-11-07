@@ -10,6 +10,7 @@ use App\DTOs\ClientManagement\BillingSimcardFilterData;
 use App\Repositories\ClientManagement\BillingSimcardRepository;
 use App\Services\ClientManagement\BillingSimcardService;
 use App\DTOs\ClientManagement\BillingSimcardData;
+use App\DTOs\ClientManagement\BillingSimcardBulkDeleteData;
 use Backpack\CRUD\app\Library\CrudPanel\CrudPanelFacade as CRUD;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,6 +91,14 @@ class BillingSimcardCrudController extends CrudController
                 'type'      => 'row_number',
                 'label'     => 'No',
                 'orderable' => false,
+            ],
+            [
+                'name'            => 'bulk_action',
+                'type'            => 'custom_html',
+                'label'           => '<input type="checkbox" id="bulk-select-all" class="form-check-input bulk-checkbox-header" style="cursor:pointer;" />',
+                'orderable'       => false,
+                'searchable'      => false,
+                'visibleInExport' => false,
             ],
         ];
 
@@ -200,6 +209,14 @@ class BillingSimcardCrudController extends CrudController
             ]
         ]);
 
+        $this->card->addCard([
+            'name'        => 'billing_simcard_bulk_action',
+            'line'        => 'top',
+            'view'        => 'crud::components.billing-simcard-bulk-action',
+            'parent_view' => 'crud::components.filter-parent',
+            'params'      => [],
+        ]);
+
         $this->data['crud'] = $this->crud;
         $this->data['title'] = $this->crud->getTitle() ?? mb_ucfirst($this->crud->entity_name_plural);
         $this->data['title_modal_create'] = trans('backpack::crud.billing_simcard.title_header') ?? 'Billing SIMCARD';
@@ -228,6 +245,7 @@ class BillingSimcardCrudController extends CrudController
         $this->crud->param_uri_export = "?export=1";
 
         // Custom buttons on top of the list view
+        CRUD::addButtonFromView('top', 'bulk_delete_billing_simcard', 'bulk_delete_billing_simcard', 'beginning');
         CRUD::addButtonFromView('top', 'import_excel_billing_simcard', 'import_excel_billing_simcard', 'beginning');
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
@@ -246,6 +264,19 @@ class BillingSimcardCrudController extends CrudController
                 'element' => 'strong',
             ]
         ])->makeFirstColumn();
+
+        CRUD::addColumn([
+            'name'            => 'bulk_action',
+            'label'           => '<input type="checkbox" id="bulk-select-all" class="form-check-input bulk-checkbox-header" style="cursor:pointer;" />',
+            'type'            => 'custom_html',
+            'value'           => function ($entry) {
+                return '<input type="checkbox" class="form-check-input bulk-checkbox" data-id="' . $entry->getKey() . '" style="cursor:pointer;" />';
+            },
+            'orderable'       => false,
+            'searchable'      => false,
+            'visibleInExport' => false,
+            'escaped'         => false,
+        ]);
 
         $user = backpack_user();
         if ($user && !$user->canAccessAllCompanies()) {
@@ -468,6 +499,53 @@ class BillingSimcardCrudController extends CrudController
             'crudTable-billing_simcard_create_success' => true,
         ];
         return response()->json($messages);
+    }
+
+    /**
+     * AJAX Bulk Delete Operation handler.
+     */
+    public function bulkDelete()
+    {
+        $this->crud->hasAccessOrFail('delete');
+
+        $dto = BillingSimcardBulkDeleteData::fromRequest(request());
+
+        if (empty($dto->entries)) {
+            return response()->json([
+                'status'  => false,
+                'success' => false,
+                'error'   => trans('backpack::crud.bulk_no_entries_selected_message') ?? 'Tidak ada data yang dipilih.',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $deletedCount = $this->service->bulkDeleteBillingSimcards($dto->entries);
+
+            DB::commit();
+
+            return response()->json([
+                'status'        => true,
+                'success'       => true,
+                'deleted_count' => $deletedCount,
+                'message'       => $deletedCount . ' ' . (trans('backpack::crud.delete_confirmation_message') ?? 'data berhasil dihapus.'),
+                'events'        => [
+                    'crudTable-billing_simcard_create_success' => true,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Billing SIMCARD Bulk Delete Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status'  => false,
+                'success' => false,
+                'error'   => 'Bulk delete failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -853,6 +931,7 @@ class BillingSimcardCrudController extends CrudController
     public function exportPdf()
     {
         $this->setupListOperation();
+        CRUD::removeColumn('bulk_action');
 
         $columns = $this->crud->columns();
         $items = $this->crud->getEntries();
@@ -898,6 +977,7 @@ class BillingSimcardCrudController extends CrudController
     public function exportExcel()
     {
         $this->setupListOperation();
+        CRUD::removeColumn('bulk_action');
 
         $columns = $this->crud->columns();
         $items = $this->crud->getEntries();
