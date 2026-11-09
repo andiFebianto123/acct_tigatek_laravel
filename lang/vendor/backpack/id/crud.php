@@ -864,6 +864,7 @@ return [
     ],
     'billing_device' => [
         'title_header' => 'Billing Device',
+        'delete_confirm' => 'Apakah anda ingin menghapus Billing Device ini?, setelah dihapus anda juga bisa menambahkannya kembali',
         'column' => [
             'client' => 'Klien',
             'code_billing' => 'Kode Billing',
@@ -884,6 +885,7 @@ return [
     ],
     'billing_simcard' => [
         'title_header' => 'Billing SIMCARD',
+        'delete_confirm' => 'Apakah anda ingin menghapus Billing SIMCARD ini?, setelah dihapus anda juga bisa menambahkannya kembali',
         'column' => [
             'client' => 'Klien',
             'code_billing' => 'Kode Billing',

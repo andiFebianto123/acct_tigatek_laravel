@@ -114,7 +114,7 @@
             }
 
             var confirmTitle = "{{ trans('backpack::crud.delete') }} " + count + " item?";
-            var confirmText = "{{ trans('backpack::crud.delete_confirm_plan') ?? 'Apakah Anda yakin ingin menghapus data yang dipilih?' }}";
+            var confirmText = "{{ trans('backpack::crud.billing_simcard.delete_confirm') ?? 'Apakah anda ingin menghapus Billing SIMCARD ini?, setelah dihapus anda juga bisa menambahkannya kembali' }}";
 
             var executeDelete = function() {
                 var $btn = $('#btn-bulk-delete-simcard');

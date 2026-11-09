@@ -662,6 +662,7 @@ return [
     ],
     'billing_device' => [
         'title_header' => 'Billing Device',
+        'delete_confirm' => 'Do you want to delete this Billing Device?, after deletion you can also add it back',
         'column' => [
             'client' => 'Client',
             'code_billing' => 'Billing Code',
@@ -682,6 +683,7 @@ return [
     ],
     'billing_simcard' => [
         'title_header' => 'Billing SIMCARD',
+        'delete_confirm' => 'Do you want to delete this Billing SIMCARD?, after deletion you can also add it back',
         'column' => [
             'client' => 'Client',
             'code_billing' => 'Billing Code',
