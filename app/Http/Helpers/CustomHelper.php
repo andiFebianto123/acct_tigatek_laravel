@@ -1308,16 +1308,16 @@ class CustomHelper
     {
         $voucher = DB::table('vouchers')->select(
             'client_po_id',
-            DB::raw("SUM(payment_transfer) as payment_transfer"),
-            DB::raw("SUM(total) as biaya")
+            DB::raw("SUM(payment_transfer_base) as payment_transfer"),
+            DB::raw("SUM(total_base) as biaya")
         )->groupBy('client_po_id');
 
         $invoice = DB::table('invoice_clients')
             ->select(
                 'invoice_clients.client_po_id',
                 DB::raw("GROUP_CONCAT(invoice_clients.invoice_date SEPARATOR ',') AS invoice_date"),
-                DB::raw("SUM(invoice_clients.price_total_exclude_ppn) as price_job_exlude_ppn"),
-                DB::raw("SUM(invoice_clients.price_total_include_ppn) as price_job_include_ppn")
+                DB::raw("SUM(invoice_clients.price_total_exclude_ppn_base) as price_job_exlude_ppn"),
+                DB::raw("SUM(invoice_clients.price_total_include_ppn_base) as price_job_include_ppn")
             )
             ->when(!empty($filter['filter_year']), function ($query) use ($filter) {
                 $filter_year = $filter['filter_year'];
@@ -1336,14 +1336,14 @@ class CustomHelper
                 "client_po.po_number",
                 "client_po.reimburse_type",
                 "client_po.job_name",
-                "client_po.job_value",
+                "client_po.job_value_base as job_value",
                 "client_po.category",
-                "client_po.job_value_include_ppn",
+                "client_po.job_value_include_ppn_base as job_value_include_ppn",
                 "client_po.date_po",
                 "invoice.invoice_date",
                 "invoice.price_job_exlude_ppn as invoice_price_job_exlude_ppn",
                 "invoice.price_job_include_ppn as invoice_price_job_include_ppn",
-                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
+                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value_base, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
                 DB::raw("IF(invoice.invoice_date IS NULL, 0, invoice.price_job_include_ppn) as job_value_include_ppn_logic")
             );
         $profitLost = ProjectProfitLost::leftJoinSub($client_po_query_exclude_ppn, 'client_po', function ($join) {

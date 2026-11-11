@@ -219,6 +219,42 @@ class DeliveryNoteService
             $qtyRemaining -= $qtyFromLayer;
         }
 
+        // Jaring Pengaman / Fallback HPP: jika sisa kuantitas belum teralokasi dari layer FIFO (misal data barang tanpa PO/history)
+        if ($qtyRemaining > 0) {
+            $fallbackBuyPriceBase = (float) ($masterStock->buy_price_base ?? 0);
+
+            $fallbackLayer = DeviceStockHistory::firstOrCreate(
+                [
+                    'device_stock_id' => $masterStock->id,
+                    'buy_price_base'  => $fallbackBuyPriceBase,
+                ],
+                [
+                    'currency_code'  => $masterStock->currency_code ?? 'IDR',
+                    'buy_price'      => (float) ($masterStock->buy_price ?? 0),
+                    'exchange_rate'  => (float) ($masterStock->exchange_rate ?? 1.0),
+                    'qty'            => max(0, (int) $masterStock->qty - $qtyNeeded),
+                ]
+            );
+
+            $cogsBaseFallback = $qtyRemaining * $fallbackBuyPriceBase;
+            $totalCogsBase += $cogsBaseFallback;
+
+            DeviceStockMutation::create([
+                'device_stock_id'         => $masterStock->id,
+                'device_stock_history_id' => $fallbackLayer->id,
+                'reference_type'          => DeliveryNote::class,
+                'reference_id'            => $deliveryNote->id,
+                'type'                    => 'OUT',
+                'qty_before'              => 0,
+                'qty_change'              => -$qtyRemaining,
+                'qty_after'               => 0,
+                'buy_price_base'          => $fallbackBuyPriceBase,
+                'note'                    => 'FIFO OUT (Fallback Master) - Surat Jalan #' . $deliveryNote->number,
+            ]);
+
+            $qtyRemaining = 0;
+        }
+
         // Update master stock qty
         $masterStock->qty = max(0, $masterStock->qty - $qtyNeeded);
         $masterStock->save();
