@@ -178,26 +178,26 @@ class DeviceStockService
             }
 
             $hasValidStockItem = false;
-            // foreach ($details as $poItem) {
-            //     if ($poItem->reference_id && $poItem->qty > 0) {
-            //         $masterStock = DeviceStock::find($poItem->reference_id);
-            //         if ($masterStock) {
-            //             $hasValidStockItem = true;
-            //             $this->recordIncomingStock(
-            //                 masterStock: $masterStock,
-            //                 qty: $poItem->qty,
-            //                 buyPrice: (float) $poItem->price,
-            //                 currencyCode: $currencyCode,
-            //                 exchangeRate: $exchangeRate,
-            //                 reference: $po
-            //             );
-            //         }
-            //     }
-            // }
+            foreach ($details as $poItem) {
+                if ($poItem->reference_id && $poItem->qty > 0) {
+                    $masterStock = DeviceStock::find($poItem->reference_id);
+                    if ($masterStock) {
+                        $hasValidStockItem = true;
+                        $this->recordIncomingStock(
+                            masterStock: $masterStock,
+                            qty: $poItem->qty,
+                            buyPrice: (float) $poItem->price,
+                            currencyCode: $currencyCode,
+                            exchangeRate: $exchangeRate,
+                            reference: $po
+                        );
+                    }
+                }
+            }
 
-            // if (!$hasValidStockItem) {
-            //     throw new \Exception(trans('backpack::crud.po.error.no_valid_stock_items') ?: "Tidak ada item barang device stock yang dapat diposting pada PO ini.");
-            // }
+            if (!$hasValidStockItem) {
+                throw new \Exception(trans('backpack::crud.po.error.no_valid_stock_items') ?: "Tidak ada item barang device stock yang dapat diposting pada PO ini.");
+            }
 
             $po->is_stock_posted = true;
             $po->stock_posted_at = now();
