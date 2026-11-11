@@ -210,8 +210,8 @@ class ProfitLostRepository
         $vouchers = DB::table('vouchers')
             ->select(
                 'client_po_id',
-                DB::raw('SUM(payment_transfer) AS payment_transfer'),
-                DB::raw('SUM(total) AS voucher_biaya')
+                DB::raw('SUM(payment_transfer_base) AS payment_transfer'),
+                DB::raw('SUM(total_base) AS voucher_biaya')
             )
             ->groupBy('client_po_id');
 
@@ -219,8 +219,8 @@ class ProfitLostRepository
             ->select(
                 'client_po_id',
                 DB::raw("GROUP_CONCAT(invoice_date SEPARATOR ',') AS invoice_date"),
-                DB::raw("SUM(price_total_exclude_ppn) AS price_job_exlude_ppn"),
-                DB::raw("SUM(price_total_include_ppn) AS price_job_include_ppn")
+                DB::raw("SUM(price_total_exclude_ppn_base) AS price_job_exlude_ppn"),
+                DB::raw("SUM(price_total_include_ppn_base) AS price_job_include_ppn")
             )
             ->when($filter_year && $filter_year != 'all', function ($query) use ($filter_year) {
                 return $query->whereYear('invoice_date', $filter_year);
@@ -233,7 +233,7 @@ class ProfitLostRepository
             })->select(
                 "client_po.id as client_po_id",
                 "client_po.category",
-                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
+                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value_base, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
                 DB::raw("IF(invoice.invoice_date IS NULL, 0, invoice.price_job_include_ppn) as job_value_include_ppn_logic")
             );
 
@@ -348,21 +348,20 @@ class ProfitLostRepository
         $po = $profitLost->clientPo;
         $account_material = Account::where('code', 50101)->first();
 
-        $filter = [];
-        if ($filterYear) {
-            $filter['filter_year'] = $filterYear;
-        }
+        $filterDto = new ProfitLostFilterData(
+            year: $filterYear,
+            category: null,
+            type: null,
+            startDate: null,
+            endDate: null,
+            id: null,
+        );
 
-        $profit_lost_all_price = CustomHelper::profitLostRepository($filter)
+        $query = ProjectProfitLost::query();
+        $this->applyListQuery($query, $filterDto);
+
+        $profit_lost_all_price = $query
             ->where('project_profit_lost.client_po_id', $po->id)
-            ->whereExists(function ($query) use ($filter) {
-                $query->select(DB::raw(1))
-                    ->from('invoice_clients')
-                    ->whereColumn('invoice_clients.client_po_id', 'client_po.client_po_id');
-                if (!empty($filter['filter_year'])) {
-                    $query->whereYear('invoice_date', $filter['filter_year']);
-                }
-            })
             ->first();
 
         if (!$profit_lost_all_price) {
@@ -373,27 +372,27 @@ class ProfitLostRepository
 
         $material_data = (float) Voucher::where('client_po_id', $po->id)
             ->where('account_id', $account_material->id)
-            ->select(DB::raw("SUM(total) as biaya"))->groupBy('client_po_id')->get()->sum('biaya');
+            ->select(DB::raw("SUM(total_base) as biaya"))->groupBy('client_po_id')->get()->sum('biaya');
 
         $account_subkon = Account::whereIn('code', [50102, 50103])->get()
             ->pluck('id')->toArray();
 
         $subkon_data = (float) Voucher::where('client_po_id', $po->id)
             ->whereIn('account_id', $account_subkon)
-            ->select(DB::raw("SUM(total) as subkon"))->groupBy('client_po_id')->get()->sum('subkon');
+            ->select(DB::raw("SUM(total_base) as subkon"))->groupBy('client_po_id')->get()->sum('subkon');
 
         $account_btkl = Account::where('code', 50104)->first();
 
         $btkl_data = (float) Voucher::where('client_po_id', $po->id)
             ->where('account_id', $account_btkl->id)
-            ->select(DB::raw("SUM(total) as btkl"))->groupBy('client_po_id')->get()->sum('btkl');
+            ->select(DB::raw("SUM(total_base) as btkl"))->groupBy('client_po_id')->get()->sum('btkl');
 
         $account_other = Account::whereIn('code', [50101, 50102, 50103, 50104])->get()
             ->pluck('id')->toArray();
 
         $price_other_data = (float) Voucher::where('client_po_id', $po->id)
             ->whereNotIn('account_id', $account_other)
-            ->select(DB::raw("SUM(total) as price_other"))->groupBy('client_po_id')->get()->sum('price_other');
+            ->select(DB::raw("SUM(total_base) as price_other"))->groupBy('client_po_id')->get()->sum('price_other');
 
         $price_profit_lost = (float) $profitLost->price_after_year;
         $price_total = $material_data + $subkon_data + $btkl_data + $price_other_data + $price_profit_lost;
@@ -522,15 +521,15 @@ class ProfitLostRepository
     {
         $voucher = Voucher::select(
             'client_po_id',
-            DB::raw("SUM(payment_transfer) as payment_transfer"),
-            DB::raw("SUM(total) as biaya")
+            DB::raw("SUM(payment_transfer_base) as payment_transfer"),
+            DB::raw("SUM(total_base) as biaya")
         )->where('client_po_id', $id)
             ->groupBy('client_po_id')->first();
 
         $invoiceClients = DB::table('invoice_clients')
             ->select(
                 'client_po_id',
-                DB::raw("SUM(price_total_exclude_ppn) AS price_job_exlude_ppn")
+                DB::raw("SUM(price_total_exclude_ppn_base) AS price_job_exlude_ppn")
             )
             ->groupBy('client_po_id');
 
@@ -539,7 +538,7 @@ class ProfitLostRepository
                 $join->on('invoice.client_po_id', '=', 'client_po.id');
             })->select(
                 "client_po.id as client_po_id",
-                DB::raw("IF(invoice.price_job_exlude_ppn IS NULL, client_po.job_value, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic")
+                DB::raw("IF(invoice.price_job_exlude_ppn IS NULL, client_po.job_value_base, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic")
             )->where('client_po.id', $id)->first();
 
         return [
@@ -711,7 +710,7 @@ class ProfitLostRepository
         $items = [];
         foreach ($invoice->invoice_client_details as $detail) {
             $itemQty = (int) ($detail->qty ?? 1);
-            $itemRevenue = (float) ($detail->price ?? 0);
+            $itemRevenue = (float) ($detail->price_base ?? $detail->price ?? 0);
             $itemCogs = (float) ($detail->cogs_amount_base ?? 0);
             $itemProfit = $itemRevenue - $itemCogs;
 
@@ -868,8 +867,8 @@ class ProfitLostRepository
     {
         $voucher = DB::table('vouchers')->select(
             'client_po_id',
-            DB::raw("SUM(payment_transfer) as payment_transfer"),
-            DB::raw("SUM(total) as biaya")
+            DB::raw("SUM(payment_transfer_base) as payment_transfer"),
+            DB::raw("SUM(total_base) as biaya")
         )
             ->groupBy('client_po_id');
 
@@ -878,8 +877,8 @@ class ProfitLostRepository
                 'invoice_clients.client_po_id',
                 DB::raw("MAX(invoice_clients.invoice_number) as invoice_number"),
                 DB::raw("GROUP_CONCAT(invoice_clients.invoice_date SEPARATOR ',') AS invoice_date"),
-                DB::raw("SUM(invoice_clients.price_total_exclude_ppn) as price_job_exlude_ppn"),
-                DB::raw("SUM(invoice_clients.price_total_include_ppn) as price_job_include_ppn")
+                DB::raw("SUM(invoice_clients.price_total_exclude_ppn_base) as price_job_exlude_ppn"),
+                DB::raw("SUM(invoice_clients.price_total_include_ppn_base) as price_job_include_ppn")
             )
             ->when($filter->year && $filter->year != 'all', function ($query) use ($filter) {
                 return $query->whereYear('invoice_date', $filter->year);
@@ -895,15 +894,15 @@ class ProfitLostRepository
                 "client_po.po_number",
                 "client_po.reimburse_type",
                 "client_po.job_name",
-                "client_po.job_value",
+                "client_po.job_value_base as job_value",
                 "client_po.category",
-                "client_po.job_value_include_ppn",
+                "client_po.job_value_include_ppn_base as job_value_include_ppn",
                 "invoice.invoice_date",
                 "invoice.invoice_number",
                 "invoice.price_job_exlude_ppn as invoice_price_job_exlude_ppn",
                 "invoice.price_job_include_ppn as invoice_price_job_include_ppn",
                 "client_po.date_po",
-                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
+                DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value_base, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
                 DB::raw("IF(invoice.invoice_date IS NULL, 0, invoice.price_job_include_ppn) as job_value_include_ppn_logic")
             );
 
