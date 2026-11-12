@@ -28,7 +28,7 @@
             <td></td>
         </tr>
         <tr>
-            <td style="padding-left: 20px;">   1. Total Modal HPP FIFO Awal (Gross)</td>
+            <td style="padding-left: 20px;">   1. Total Modal HPP FIFO Awal</td>
             <td style="text-align: right;">{{ $report['cogs_gross'] ?? 0 }}</td>
         </tr>
         <tr>
@@ -36,7 +36,7 @@
             <td style="text-align: right;">{{ $report['voucher_supplier_value'] ?? 0 }}</td>
         </tr>
         <tr>
-            <td style="font-weight: bold; padding-left: 20px;">   Total HPP Modal Bersih (Net)</td>
+            <td style="font-weight: bold; padding-left: 20px;">   Total HPP Modal</td>
             <td style="font-weight: bold; text-align: right;">{{ $report['purchase_value'] ?? 0 }}</td>
         </tr>
         <tr>
@@ -62,7 +62,7 @@
                 <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">Nama Barang / Item</th>
                 <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">Qty</th>
                 <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">Harga Jual</th>
-                <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">HPP Modal (FIFO)</th>
+                <th style="font-weight: bold; text-align: center; background-color: #e6e6e6;">HPP Modal</th>
             </tr>
         </thead>
         <tbody>

@@ -126,7 +126,7 @@
                             <td><center>Nilai (Rp)</center></td>
                         </tr>
                         <tr>
-                            <td class="indent">Total Modal HPP FIFO Awal (Gross)</td>
+                            <td class="indent">Total Modal HPP FIFO Awal</td>
                             <td class="text-right">{{ $report['cogs_gross'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr>
@@ -134,7 +134,7 @@
                             <td class="text-right">{{ $report['voucher_supplier_value'] ?? 'Rp 0' }}</td>
                         </tr>
                         <tr class="total-row">
-                            <td class="bold">Total HPP Modal Bersih (Net)</td>
+                            <td class="bold">Total HPP Modal</td>
                             <td class="text-right">{{ $report['purchase_value'] ?? 'Rp 0' }}</td>
                         </tr>
                     </table>
@@ -169,7 +169,7 @@
                     <th width="45%">Nama Barang / Spesifikasi</th>
                     <th width="10%" class="text-center">Qty</th>
                     <th width="20%" class="text-right">Harga Jual</th>
-                    <th width="20%" class="text-right">HPP Modal (FIFO)</th>
+                    <th width="20%" class="text-right">HPP Modal</th>
                 </tr>
             </thead>
             <tbody>

@@ -312,7 +312,7 @@ class ProfitLostRepository
                 'ic.id as invoice_id',
                 'ic.invoice_date as supplier_date',
                 'ic.price_total_exclude_ppn_base as total_harga_jual_base',
-                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base")
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base")
             ])
             ->groupBy(
                 'ic.id',
@@ -702,7 +702,7 @@ class ProfitLostRepository
                 ->sum('bill_value_base');
         }
 
-        $purchaseValueNet = $cogsGross - $voucherSupplierValue;
+        $purchaseValueNet = $cogsGross + $voucherSupplierValue;
         $avgPurchaseUnit = $qtySold > 0 ? round($purchaseValueNet / $qtySold, 2) : 0;
         $profitSupplier = $sellValue - $purchaseValueNet;
         $marginPercent = $sellValue > 0 ? round(($profitSupplier / $sellValue) * 100, 2) : 0;
@@ -814,10 +814,10 @@ class ProfitLostRepository
                 DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
                 DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_gross_base"),
                 DB::raw("COALESCE(v_supp.total_voucher_supplier_base, 0) AS total_voucher_supplier_base"),
-                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) AS total_harga_beli_base"),
-                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0)) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
-                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base"),
-                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) - COALESCE(v_supp.total_voucher_supplier_base, 0))) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
+                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0)) AS total_harga_beli_base"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0)) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base"),
+                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
                 DB::raw("CASE WHEN ic.delivery_note_id IS NOT NULL OR EXISTS (SELECT 1 FROM delivery_notes dn WHERE dn.invoice_client_id = ic.id) THEN 'Terbit Surat Jalan & FIFO Posted' ELSE 'Invoice Tanpa Surat Jalan' END AS delivery_status")
             ])
             ->groupBy(
