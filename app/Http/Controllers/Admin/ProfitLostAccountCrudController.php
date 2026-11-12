@@ -144,6 +144,12 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
+                                    'label'     => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO',
+                                    'type'      => 'text',
+                                    'name'      => 'po_number',
+                                    'orderable' => true,
+                                ],
+                                [
                                     'label'     => trans('backpack::crud.invoice_client.column.invoice_number'),
                                     'type'      => 'text',
                                     'name'      => 'invoice_number',
@@ -158,13 +164,13 @@ class ProfitLostAccountCrudController extends CrudController
                                 [
                                     'label'     => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
                                     'type'      => 'text',
-                                    'name'      => 'job_value',
+                                    'name'      => 'price_job_exlude_ppn_logic',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.client_po.column.job_value_include_ppn'),
                                     'type'      => 'text',
-                                    'name'      => 'job_value_include_ppn',
+                                    'name'      => 'job_value_include_ppn_logic',
                                     'orderable' => true,
                                 ],
                                 [
@@ -176,37 +182,37 @@ class ProfitLostAccountCrudController extends CrudController
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.price_voucher'),
                                     'type'      => 'text',
-                                    'name'      => 'price_voucher',
+                                    'name'      => 'voucher_biaya',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.price_small_cash'),
                                     'type'      => 'text',
-                                    'name'      => 'price_small_cash',
+                                    'name'      => 'total_small_cash',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.price_total'),
                                     'type'      => 'text',
-                                    'name'      => 'price_total',
+                                    'name'      => 'price_total_str',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.profit_lost_po'),
                                     'type'      => 'text',
-                                    'name'      => 'profit_lost_po',
+                                    'name'      => 'price_profit_lost_str',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.load_general_value'),
                                     'type'      => 'text',
-                                    'name'      => 'load_general_value',
+                                    'name'      => 'price_general',
                                     'orderable' => true,
                                 ],
                                 [
                                     'label'     => trans('backpack::crud.profit_lost.column.profit_lost_final'),
                                     'type'      => 'text',
-                                    'name'      => 'profit_lost_final',
+                                    'name'      => 'price_prift_lost_final_str',
                                     'orderable' => true,
                                 ],
                                 [
@@ -244,7 +250,7 @@ class ProfitLostAccountCrudController extends CrudController
                         'view'   => 'crud::components.datatable',
                         'params' => [
                             'crud_custom' => $this->crud,
-                            'filter'      => false,
+                            'filter'      => true,
                             'columns'     => [
                                 [
                                     'name'      => 'row_number',
@@ -941,7 +947,7 @@ class ProfitLostAccountCrudController extends CrudController
             ])->makeFirstColumn();
 
             CRUD::column([
-                'label'  => '',
+                'label'     => trans('backpack::crud.profit_lost.column.client_po_id') ?? 'Nama Perusahaan',
                 'type'      => 'closure',
                 'name'      => 'client_po_id',
                 'function' => function ($entry) {
@@ -954,12 +960,58 @@ class ProfitLostAccountCrudController extends CrudController
                     $query->orWhereHas('clientPo.client', function ($q) use ($searchTerm) {
                         $q->where('name', 'like', '%' . $searchTerm . '%');
                     });
+                    if (str_contains(strtolower('PT. TIGA TEKNOLOGI PERSADA'), strtolower($searchTerm))) {
+                        $query->orWhereHas('clientPo', function ($q) {
+                            $q->where('po_type', 'supplier');
+                        });
+                    }
                 }
             ]);
 
-            CRUD::column(['label'  => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
-            CRUD::column(['label'  => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
-            CRUD::column(['label'  => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
+            CRUD::column([
+                'label'       => trans('backpack::crud.client_po.column.reimburse_type'),
+                'name'        => 'reimburse_type',
+                'type'        => 'text',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.reimburse_type', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.reimburse_type', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+            CRUD::column([
+                'label'      => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO',
+                'name'       => 'po_number',
+                'type'       => 'text',
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.po_number', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.po_number', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+            CRUD::column([
+                'label'      => trans('backpack::crud.invoice_client.column.invoice_number'),
+                'name'       => 'invoice_number',
+                'type'       => 'text',
+                'orderLogic' => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.invoice_number', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.invoice_number', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+            CRUD::column([
+                'label'       => trans('backpack::crud.client_po.column.job_name'),
+                'name'        => 'job_name',
+                'type'        => 'text',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.job_name', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.job_name', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
 
             CRUD::column([
                 'label'  => trans('backpack::crud.client_po.column.job_value_exclude_ppn'),
@@ -970,6 +1022,11 @@ class ProfitLostAccountCrudController extends CrudController
                 },
                 'orderLogic' => function ($query, $column, $columnDirection) {
                     $query->orderBy('client_po.price_job_exlude_ppn_logic', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('client_po.price_job_exlude_ppn_logic', 'like', '%' . $val . '%');
                 }
             ]);
 
@@ -983,6 +1040,11 @@ class ProfitLostAccountCrudController extends CrudController
                 },
                 'orderLogic' => function ($query, $column, $columnDirection) {
                     $query->orderBy('client_po.job_value_include_ppn_logic', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('client_po.job_value_include_ppn_logic', 'like', '%' . $val . '%');
                 }
             ]);
 
@@ -993,6 +1055,11 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('project_profit_lost.price_after_year', 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1001,7 +1068,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('voucher_biaya', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('voucher_biaya', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('vouchers.biaya', 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1010,7 +1082,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('total_small_cash', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('total_small_cash', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('project_profit_lost.price_small_cash', 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1019,7 +1096,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_total_str', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_total_str', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere(DB::raw("(IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))"), 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1028,7 +1110,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_profit_lost_str', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_profit_lost_str', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9\-]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere(DB::raw("(client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0)))"), 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1037,7 +1124,12 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_general', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_general', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('project_profit_lost.price_general', 'like', '%' . $val . '%');
+                }
             ]);
 
             CRUD::column([
@@ -1046,17 +1138,35 @@ class ProfitLostAccountCrudController extends CrudController
                 'type'  => 'number',
                 'prefix' => $settings?->currency_symbol ?: "Rp.",
                 'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_prift_lost_final_str', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_prift_lost_final_str', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9\-]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere(DB::raw("((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0))"), 'like', '%' . $val . '%');
+                }
             ]);
 
-            CRUD::column(['label'  => trans('backpack::crud.profit_lost.column.category'), 'type' => 'text', 'name' => 'category']);
+            CRUD::column([
+                'label'       => trans('backpack::crud.profit_lost.column.category'),
+                'type'        => 'text',
+                'name'        => 'category',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.category', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.category', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
 
             CRUD::column([
                 'label' => trans('backpack::crud.profit_lost.column.invoice_date'),
                 'type' => 'date-multiple',
                 'name' => 'invoice_date',
                 'format' => 'DD/MM/YYYY',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('client_po.invoice_date', $columnDirection); }
+                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('client_po.invoice_date', $columnDirection); },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('client_po.invoice_date', 'like', '%' . $searchTerm . '%');
+                }
             ]);
 
         } elseif ($request->has('type') && $request->type == 'supplier') {
@@ -1085,117 +1195,176 @@ class ProfitLostAccountCrudController extends CrudController
 
             // No. Invoice Supplier
             CRUD::column([
-                'label' => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
-                'name'  => 'supplier_invoice_number',
-                'type'  => 'text',
+                'label'       => trans('backpack::crud.profit_lost.column.supplier_invoice_number') ?? 'No. Invoice',
+                'name'        => 'supplier_invoice_number',
+                'type'        => 'text',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.supplier_invoice_number', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('supplier_data.supplier_invoice_number', 'like', '%' . $searchTerm . '%');
+                }
             ]);
 
             // No. PO Client
             CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.no_po') ?? 'No. PO Client',
-                'name'   => 'po_number',
-                'type'   => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.no_po') ?? 'No. PO Client',
+                'name'        => 'po_number',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return $entry->po_number ?? '-';
                 },
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.po_number', $columnDirection);
+                },
                 'searchLogic' => function ($query, $column, $searchTerm) {
-                    $query->orWhere('cpo.po_number', 'like', '%' . $searchTerm . '%');
+                    $query->orWhere('supplier_data.po_number', 'like', '%' . $searchTerm . '%');
                 }
             ]);
 
             // Tanggal Invoice
             CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
-                'name'   => 'supplier_date',
-                'type'   => 'date',
-                'format' => 'DD/MM/YYYY',
+                'label'       => trans('backpack::crud.profit_lost.column.invoice_date') ?? 'Tgl Invoice',
+                'name'        => 'supplier_date',
+                'type'        => 'date',
+                'format'      => 'DD/MM/YYYY',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.supplier_date', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $term = $searchTerm;
+                    if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $searchTerm, $matches)) {
+                        $term = sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+                    }
+                    $query->orWhere('supplier_data.supplier_date', 'like', '%' . $term . '%');
+                }
             ]);
 
             // Nama Klien / Supplier
             CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.client_name') ?? 'Klien / Supplier',
-                'name'   => 'supplier_name',
-                'type'   => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.client_name') ?? 'Klien / Supplier',
+                'name'        => 'supplier_name',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return $entry->supplier_name ?? '-';
                 },
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.supplier_name', $columnDirection);
+                },
                 'searchLogic' => function ($query, $column, $searchTerm) {
-                    $query->orWhere('c.name', 'like', '%' . $searchTerm . '%');
+                    $query->orWhere('supplier_data.supplier_name', 'like', '%' . $searchTerm . '%');
                 }
             ]);
 
             // Total Qty Terjual
             CRUD::column([
-                'label' => trans('backpack::crud.profit_lost.column.total_qty_sold') ?? 'Qty Terjual',
-                'name'  => 'total_qty_sold',
-                'type'  => 'number',
+                'label'       => trans('backpack::crud.profit_lost.column.total_qty_sold') ?? 'Qty Terjual',
+                'name'        => 'total_qty_sold',
+                'type'        => 'number',
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.total_qty_sold', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('supplier_data.total_qty_sold', 'like', '%' . $searchTerm . '%');
+                }
             ]);
 
             // Total Jual (Revenue - Exclude PPN IDR Base)
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.sell_value') ?? 'Total Jual (Revenue)',
-                'name'     => 'sell_value',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.sell_value') ?? 'Total Jual (Revenue)',
+                'name'        => 'sell_value',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return CustomHelper::formatRupiahWithCurrency($entry->sell_value ?? 0);
                 },
-                'orderLogic' => function ($query, $column, $columnDirection) {
+                'orderLogic'  => function ($query, $column, $columnDirection) {
                     $query->orderBy('supplier_data.total_harga_jual_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.total_harga_jual_base', 'like', '%' . $val . '%');
                 }
             ]);
 
             // Rata-rata Harga Jual Satuan
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.avg_harga_jual_satuan') ?? 'Avg Jual Satuan',
-                'name'     => 'avg_harga_jual_satuan_base',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.avg_harga_jual_satuan') ?? 'Avg Jual Satuan',
+                'name'        => 'avg_harga_jual_satuan_base',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return CustomHelper::formatRupiahWithCurrency($entry->avg_harga_jual_satuan_base ?? 0);
                 },
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.avg_harga_jual_satuan_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.avg_harga_jual_satuan_base', 'like', '%' . $val . '%');
+                }
             ]);
 
             // Total Harga Beli / Modal HPP FIFO
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.purchase_value') ?? 'Total Beli (HPP FIFO)',
-                'name'     => 'purchase_value',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.purchase_value') ?? 'Total Beli (HPP FIFO)',
+                'name'        => 'purchase_value',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return CustomHelper::formatRupiahWithCurrency($entry->purchase_value ?? 0);
                 },
-                'orderLogic' => function ($query, $column, $columnDirection) {
+                'orderLogic'  => function ($query, $column, $columnDirection) {
                     $query->orderBy('supplier_data.total_harga_beli_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.total_harga_beli_base', 'like', '%' . $val . '%');
                 }
             ]);
 
             // Rata-rata Harga Beli Modal Satuan
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.avg_harga_beli_satuan') ?? 'Avg Beli Satuan',
-                'name'     => 'avg_harga_beli_satuan_base',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.avg_harga_beli_satuan') ?? 'Avg Beli Satuan',
+                'name'        => 'avg_harga_beli_satuan_base',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return CustomHelper::formatRupiahWithCurrency($entry->avg_harga_beli_satuan_base ?? 0);
                 },
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.avg_harga_beli_satuan_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.avg_harga_beli_satuan_base', 'like', '%' . $val . '%');
+                }
             ]);
 
             // Voucher Supplier
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Lain - Lain',
-                'name'     => 'voucher_supplier_value',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.voucher_supplier_value') ?? 'Biaya Tambahan',
+                'name'        => 'voucher_supplier_value',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     return CustomHelper::formatRupiahWithCurrency($entry->voucher_supplier_value ?? 0);
                 },
-                'orderLogic' => function ($query, $column, $columnDirection) {
+                'orderLogic'  => function ($query, $column, $columnDirection) {
                     $query->orderBy('supplier_data.total_voucher_supplier_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.total_voucher_supplier_base', 'like', '%' . $val . '%');
                 }
             ]);
 
             // Laba Kotor (Revenue - HPP FIFO)
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.profit_lost_supplier') ?? 'Laba Kotor',
-                'name'     => 'profit_lost_supplier',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.profit_lost_supplier') ?? 'Laba Kotor',
+                'name'        => 'profit_lost_supplier',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     $value = $entry->profit_lost_supplier ?? 0;
                     $formatted = CustomHelper::formatRupiahWithCurrency(abs($value));
                     if ($value < 0) {
@@ -1203,36 +1372,55 @@ class ProfitLostAccountCrudController extends CrudController
                     }
                     return '<span class="text-success">' . $formatted . '</span>';
                 },
-                'escaped' => false,
-                'orderLogic' => function ($query, $column, $columnDirection) {
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
                     $query->orderBy('supplier_data.laba_kotor_base', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9\-]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.laba_kotor_base', 'like', '%' . $val . '%');
                 }
             ]);
 
             // Persentase Margin Laba Kotor (%)
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
-                'name'     => 'margin_percent',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
+                'name'        => 'margin_percent',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     $margin = $entry->margin_percent ?? 0;
                     $badgeClass = $margin >= 0 ? 'bg-success' : 'bg-danger';
                     return '<span class="badge ' . $badgeClass . '">' . number_format($margin, 2, ',', '.') . '%</span>';
                 },
-                'escaped' => false,
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.margin_percent', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9\.\-]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere('supplier_data.margin_percent', 'like', '%' . $val . '%');
+                }
             ]);
 
             // Status Pengiriman (FIFO Posted)
             CRUD::column([
-                'label'    => trans('backpack::crud.profit_lost.column.delivery_status') ?? 'Status Pengiriman',
-                'name'     => 'delivery_status',
-                'type'     => 'closure',
-                'function' => function ($entry) {
+                'label'       => trans('backpack::crud.profit_lost.column.delivery_status') ?? 'Status Pengiriman',
+                'name'        => 'delivery_status',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
                     $status = $entry->delivery_status ?? '-';
                     $badge = str_contains($status, 'Dikirim') ? 'bg-info' : 'bg-secondary';
                     return '<span class="badge ' . $badge . '">' . e($status) . '</span>';
                 },
-                'escaped' => false,
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.delivery_status', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $query->orWhere('supplier_data.delivery_status', 'like', '%' . $searchTerm . '%');
+                }
             ]);
 
         } else {
@@ -1326,6 +1514,7 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column(['label' => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
+            CRUD::column(['label' => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO', 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
 
@@ -1500,8 +1689,27 @@ class ProfitLostAccountCrudController extends CrudController
             return response()->json(['error' => 'Unknown page length.'], 400);
         }
 
-        if ($search && $search['value'] ?? false) {
+        if ($search && ($search['value'] ?? false)) {
             $this->crud->applySearchTerm($search['value']);
+        }
+
+        // Apply DataTables individual column search
+        $columnsInput = request()->input('columns');
+        if (is_array($columnsInput)) {
+            foreach ($columnsInput as $colIdx => $colInput) {
+                $colSearchTerm = $colInput['search']['value'] ?? null;
+                if ($colSearchTerm !== null && trim($colSearchTerm) !== '') {
+                    $columnDef = !empty($colInput['name']) ? ($this->crud->columns()[$colInput['name']] ?? null) : null;
+                    if (!$columnDef) {
+                        $columnDef = $this->crud->findColumnById($colIdx);
+                    }
+                    if ($columnDef) {
+                        $this->crud->query->where(function ($q) use ($columnDef, $colSearchTerm) {
+                            $this->crud->applySearchLogicForColumn($q, $columnDef, trim($colSearchTerm));
+                        });
+                    }
+                }
+            }
         }
         if ($start) { $this->crud->skip($start); }
         if ($length) { $this->crud->take($length); }
@@ -1509,23 +1717,57 @@ class ProfitLostAccountCrudController extends CrudController
 
         $entries = $this->crud->getEntries();
 
-        if ($this->crud->getOperationSetting('showEntryCount')) {
-            $query_clone = $this->crud->query->toBase()->clone();
-            $outer_query = $query_clone->newQuery();
-            $subQuery = $query_clone->cloneWithout(['limit', 'offset']);
+        $type = request()->input('type');
+        $totalExclPpn = 0;
+        $totalProfitLostFinal = 0;
 
-            $totalEntryCount = $outer_query->select(DB::raw('count(*) as total_rows'))
-                ->fromSub($subQuery, 'total_aggregator')->cursor()->first()->total_rows;
+        $query_clone = $this->crud->query->toBase()->clone();
+        $outer_query = $query_clone->newQuery();
+        $subQuery = $query_clone->cloneWithout(['limit', 'offset']);
+
+        if ($type === 'project') {
+            $agg = $outer_query->fromSub($subQuery, 'total_aggregator')
+                ->selectRaw('
+                    count(*) as total_rows,
+                    COALESCE(SUM(total_aggregator.price_job_exlude_ppn_logic), 0) as total_excl_ppn,
+                    COALESCE(SUM(total_aggregator.price_prift_lost_final_str), 0) as total_profit_lost_final
+                ')->first();
+            $totalEntryCount = $agg->total_rows ?? 0;
+            $totalExclPpn = $agg->total_excl_ppn ?? 0;
+            $totalProfitLostFinal = $agg->total_profit_lost_final ?? 0;
+            $filteredEntryCount = $totalEntryCount;
+        } elseif ($type === 'supplier') {
+            $agg = $outer_query->fromSub($subQuery, 'total_aggregator')
+                ->selectRaw('
+                    count(*) as total_rows,
+                    COALESCE(SUM(total_aggregator.sell_value), 0) as total_excl_ppn,
+                    COALESCE(SUM(total_aggregator.profit_lost_supplier), 0) as total_profit_lost_final
+                ')->first();
+            $totalEntryCount = $agg->total_rows ?? 0;
+            $totalExclPpn = $agg->total_excl_ppn ?? 0;
+            $totalProfitLostFinal = $agg->total_profit_lost_final ?? 0;
             $filteredEntryCount = $totalEntryCount;
         } else {
-            $totalEntryCount = $length;
-            $entryCount = $entries->count();
-            $filteredEntryCount = $entryCount < $length ? $entryCount : $length + $start + 1;
+            if ($this->crud->getOperationSetting('showEntryCount')) {
+                $totalEntryCount = $outer_query->select(DB::raw('count(*) as total_rows'))
+                    ->fromSub($subQuery, 'total_aggregator')->cursor()->first()->total_rows;
+                $filteredEntryCount = $totalEntryCount;
+            } else {
+                $totalEntryCount = $length;
+                $entryCount = $entries->count();
+                $filteredEntryCount = $entryCount < $length ? $entryCount : $length + $start + 1;
+            }
         }
 
         $this->crud->setOperationSetting('totalEntryCount', $totalEntryCount);
 
-        return $this->crud->getEntriesAsJsonForDatatables($entries, $totalEntryCount, $filteredEntryCount, $start);
+        $result = $this->crud->getEntriesAsJsonForDatatables($entries, $totalEntryCount, $filteredEntryCount, $start);
+        if (is_array($result)) {
+            $result['total_price_exlude_ppn'] = CustomHelper::formatRupiahWithCurrency($totalExclPpn);
+            $result['total_price_prift_lost_finals'] = CustomHelper::formatRupiahWithCurrency($totalProfitLostFinal);
+        }
+
+        return $result;
     }
 
     public function exportPdf()

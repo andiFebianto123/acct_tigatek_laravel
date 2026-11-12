@@ -875,7 +875,7 @@ class ProfitLostRepository
         $invoice = DB::table('invoice_clients')
             ->select(
                 'invoice_clients.client_po_id',
-                DB::raw("MAX(invoice_clients.invoice_number) as invoice_number"),
+                DB::raw("GROUP_CONCAT(DISTINCT invoice_clients.invoice_number SEPARATOR ', ') as invoice_number"),
                 DB::raw("GROUP_CONCAT(invoice_clients.invoice_date SEPARATOR ',') AS invoice_date"),
                 DB::raw("SUM(invoice_clients.price_total_exclude_ppn_base) as price_job_exlude_ppn"),
                 DB::raw("SUM(invoice_clients.price_total_include_ppn_base) as price_job_include_ppn")

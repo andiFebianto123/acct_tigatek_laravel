@@ -11,6 +11,44 @@
 @push('after_scripts')
 <script>
     $(function(){
+        // Listen to DataTables XHR responses to synchronize aggregate totals in real time
+        $(document).on('xhr.dt', function (e, settings, json, xhr) {
+            if (!json) return;
+            const tableId = settings.sTableId;
+            if (tableId === 'crudTable-project' && json.total_price_exlude_ppn !== undefined) {
+                $('#panel-project').html(`
+                    <div class="d-flex justify-content-between mb-2">
+                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.voucher.total_exclude_ppn')}} : ${json.total_price_exlude_ppn}</strong></div>
+                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.profit_lost.total_profit_lost')}} : ${json.total_price_prift_lost_finals}</strong></div>
+                        <div class="p-2 bd-highlight"></div>
+                    </div>
+                `);
+            } else if (tableId === 'crudTable-supplier' && json.total_price_exlude_ppn !== undefined) {
+                $('#panel-supplier').html(`
+                    <div class="d-flex justify-content-between mb-2">
+                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.voucher.total_exclude_ppn')}} : ${json.total_price_exlude_ppn}</strong></div>
+                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.profit_lost.total_profit_lost')}} : ${json.total_price_prift_lost_finals}</strong></div>
+                        <div class="p-2 bd-highlight"></div>
+                    </div>
+                `);
+            }
+        });
+
+        // Trigger change on keyup with debounce (or Enter immediately) for filter inputs
+        var searchDebounceTimer = null;
+        $(document).on('keyup', '#crudTable-project thead tr.filters th input, #crudTable-supplier thead tr.filters th input', function(e) {
+            const input = $(this);
+            clearTimeout(searchDebounceTimer);
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.trigger('change');
+            } else {
+                searchDebounceTimer = setTimeout(function() {
+                    input.trigger('change');
+                }, 500);
+            }
+        });
+
         SIAOPS.setAttribute('profit_lost_plugin', function(){
             return {
                 name: 'profit_lost_plugin',
@@ -27,68 +65,7 @@
                     });
                 },
                 refresh: function(){
-                    var instance = this;
-
-                    // 1. Refresh Tab Proyek
-                    var projectTable = SIAOPS.getAttribute('crudTable-project');
-                    if (projectTable && projectTable.table) {
-                        const paramsProject = new URLSearchParams(projectTable.table.ajax.url());
-                        var category = paramsProject.get('category');
-                        var year = paramsProject.get('filter_year');
-
-                        $.ajax({
-                            url: "{{ url($crud->route.'/total') }}",
-                            type: 'GET',
-                            data: {
-                                tab: 'project',
-                                search: window.filterValues,
-                                category: category,
-                                filter_year: year,
-                            },
-                            dataType: 'json',
-                            success: function (result) {
-                                $('#panel-project').html(`
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.voucher.total_exclude_ppn')}} : ${result.total_price_exlude_ppn}</strong></div>
-                                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.profit_lost.total_profit_lost')}} : ${result.total_price_prift_lost_finals}</strong></div>
-                                        <div class="p-2 bd-highlight"></div>
-                                    </div>
-                                `);
-                            },
-                            error: function (xhr, status, error) {
-                                console.error(xhr);
-                            }
-                        });
-                    }
-
-                    // 2. Refresh Tab Supplier
-                    var supplierTable = SIAOPS.getAttribute('crudTable-supplier');
-                    if (supplierTable && supplierTable.table) {
-                        const paramsSupplier = new URLSearchParams(supplierTable.table.ajax.url());
-                        var supplierYear = paramsSupplier.get('filter_year');
-
-                        $.ajax({
-                            url: "{{ url($crud->route.'/total') }}",
-                            type: 'GET',
-                            data: {
-                                tab: 'supplier',
-                                filter_year: supplierYear,
-                            },
-                            dataType: 'json',
-                            success: function (result) {
-                                $('#panel-supplier').html(`
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.voucher.total_exclude_ppn')}} : ${result.total_price_exlude_ppn}</strong></div>
-                                        <div class="p-2 bd-highlight"><strong>{{trans('backpack::crud.profit_lost.total_profit_lost')}} : ${result.total_price_prift_lost_finals}</strong></div>
-                                        <div class="p-2 bd-highlight"></div>
-                                    </div>
-                                `);
-                            },
-                            error: function (xhr, status, error) {
-                                console.error(xhr);
-                            }
-                        });
-                    }
+                    // Totals are dynamically updated via DataTables xhr.dt event handler above
                 },
                 load: function(){
                     var instance = this;

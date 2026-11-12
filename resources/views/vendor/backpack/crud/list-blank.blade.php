@@ -205,10 +205,12 @@
         }
 
         var btnCreate = document.getElementById('btn-open-create');
-        btnCreate.addEventListener('click', function(){
-            var title = "{!! $crud->getSubheading() ?? trans('backpack::crud.add').' '.$title_modal_create !!}";
-            $('#modalCreate .modal-title').html(title);
-        });
+        if (btnCreate) {
+            btnCreate.addEventListener('click', function(){
+                var title = "{!! $crud->getSubheading() ?? trans('backpack::crud.add').' '.$title_modal_create !!}";
+                $('#modalCreate .modal-title').html(title);
+            });
+        }
     </script>
     <script>
         if(errorShowMessage === undefined && normalizeShowMessage === undefined){
