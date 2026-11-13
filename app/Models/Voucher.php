@@ -70,7 +70,7 @@ class Voucher extends Model
     }
 
     function invoice_client(){
-        return $this->hasOne(InvoiceClient::class, 'client_po_id', 'client_po_id');
+        return $this->belongsTo(InvoiceClient::class, 'invoice_client_id', 'id');
     }
 
     function account_source(){

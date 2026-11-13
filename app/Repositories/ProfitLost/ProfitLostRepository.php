@@ -305,19 +305,23 @@ class ProfitLostRepository
         $supplierSubQuery = DB::table('invoice_clients as ic')
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
-            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
-            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
+            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id');
+
+        $this->applySupplierVoucherJoins($supplierSubQuery);
+
+        $supplierSubQuery
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',
                 'ic.invoice_date as supplier_date',
                 'ic.price_total_exclude_ppn_base as total_harga_jual_base',
-                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base")
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_inv.total_voucher_invoice_base, 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base")
             ])
             ->groupBy(
                 'ic.id',
                 'ic.invoice_date',
                 'ic.price_total_exclude_ppn_base',
+                'v_inv.total_voucher_invoice_base',
                 'v_supp.total_voucher_supplier_base'
             );
 
@@ -694,13 +698,8 @@ class ProfitLostRepository
 
         $cogsGross = (float) $invoice->invoice_client_details->sum('cogs_amount_base');
 
-        $voucherSupplierValue = 0.0;
-        if (!empty($invoice->client_po_id)) {
-            $voucherSupplierValue = (float) DB::table('vouchers')
-                ->where('client_po_id', $invoice->client_po_id)
-                ->whereIn('po_type', ['supplier', 'penjualan'])
-                ->sum('bill_value_base');
-        }
+        $vouchersData = $this->getSupplierVouchersForInvoice($invoice);
+        $voucherSupplierValue = (float) $vouchersData->sum('bill_value_base');
 
         $purchaseValueNet = $cogsGross + $voucherSupplierValue;
         $avgPurchaseUnit = $qtySold > 0 ? round($purchaseValueNet / $qtySold, 2) : 0;
@@ -729,22 +728,15 @@ class ProfitLostRepository
         }
 
         $vouchersList = [];
-        if (!empty($invoice->client_po_id)) {
-            $vouchersData = DB::table('vouchers')
-                ->where('client_po_id', $invoice->client_po_id)
-                ->whereIn('po_type', ['supplier', 'penjualan'])
-                ->get();
-
-            foreach ($vouchersData as $v) {
-                $vouchersList[] = [
-                    'no_voucher' => $v->no_voucher,
-                    'date_voucher' => $v->date_voucher ? \Carbon\Carbon::parse($v->date_voucher)->format('d/m/Y') : '-',
-                    'bill_number' => $v->bill_number ?? '-',
-                    'description' => $v->payment_description ?? '-',
-                    'bill_value_base_raw' => (float) $v->bill_value_base,
-                    'bill_value_base' => $pure ? (float) $v->bill_value_base : CustomHelper::formatRupiahWithCurrency($v->bill_value_base),
-                ];
-            }
+        foreach ($vouchersData as $v) {
+            $vouchersList[] = [
+                'no_voucher' => $v->no_voucher,
+                'date_voucher' => $v->date_voucher ? \Carbon\Carbon::parse($v->date_voucher)->format('d/m/Y') : '-',
+                'bill_number' => $v->bill_number ?? '-',
+                'description' => $v->payment_description ?? '-',
+                'bill_value_base_raw' => (float) $v->bill_value_base,
+                'bill_value_base' => $pure ? (float) $v->bill_value_base : CustomHelper::formatRupiahWithCurrency($v->bill_value_base),
+            ];
         }
 
         if ($pure) {
@@ -799,8 +791,13 @@ class ProfitLostRepository
         $supplierSubQuery = DB::table('invoice_clients as ic')
             ->leftJoin('clients as c', 'c.id', '=', 'ic.client_id')
             ->leftJoin('invoice_client_details as icd', 'icd.invoice_client_id', '=', 'ic.id')
-            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id')
-            ->leftJoin(DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") GROUP BY client_po_id) as v_supp'), 'v_supp.client_po_id', '=', 'cpo.id')
+            ->leftJoin('client_po as cpo', 'cpo.id', '=', 'ic.client_po_id');
+
+        $this->applySupplierVoucherJoins($supplierSubQuery);
+
+        $voucherSumExpr = "(COALESCE(v_inv.total_voucher_invoice_base, 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))";
+
+        $supplierSubQuery
             ->where('ic.type_device', 'App\\Models\\DeviceStock')
             ->select([
                 'ic.id as invoice_id',
@@ -813,11 +810,11 @@ class ProfitLostRepository
                 DB::raw("ic.price_total_exclude_ppn_base AS total_harga_jual_base"),
                 DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
                 DB::raw("COALESCE(SUM(icd.cogs_amount_base), 0) AS total_harga_beli_gross_base"),
-                DB::raw("COALESCE(v_supp.total_voucher_supplier_base, 0) AS total_voucher_supplier_base"),
-                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0)) AS total_harga_beli_base"),
-                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0)) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
-                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) AS laba_kotor_base"),
-                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
+                DB::raw("{$voucherSumExpr} AS total_voucher_supplier_base"),
+                DB::raw("(COALESCE(SUM(icd.cogs_amount_base), 0) + {$voucherSumExpr}) AS total_harga_beli_base"),
+                DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND((COALESCE(SUM(icd.cogs_amount_base), 0) + {$voucherSumExpr}) / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_beli_satuan_base"),
+                DB::raw("(ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + {$voucherSumExpr})) AS laba_kotor_base"),
+                DB::raw("CASE WHEN ic.price_total_exclude_ppn_base > 0 THEN ROUND(((ic.price_total_exclude_ppn_base - (COALESCE(SUM(icd.cogs_amount_base), 0) + {$voucherSumExpr})) / ic.price_total_exclude_ppn_base) * 100, 2) ELSE 0 END AS margin_percent"),
                 DB::raw("CASE WHEN ic.delivery_note_id IS NOT NULL OR EXISTS (SELECT 1 FROM delivery_notes dn WHERE dn.invoice_client_id = ic.id) THEN 'Terbit Surat Jalan & FIFO Posted' ELSE 'Invoice Tanpa Surat Jalan' END AS delivery_status")
             ])
             ->groupBy(
@@ -829,6 +826,7 @@ class ProfitLostRepository
                 'ic.currency_code',
                 'ic.price_total_exclude_ppn_base',
                 'ic.delivery_note_id',
+                'v_inv.total_voucher_invoice_base',
                 'v_supp.total_voucher_supplier_base'
             );
 
@@ -948,5 +946,44 @@ class ProfitLostRepository
                 ((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0)) as price_prift_lost_final_str
            ")
         ]);
+    }
+
+    /**
+     * Join agregasi voucher untuk Laba Rugi Supplier/Penjualan:
+     * - v_inv: voucher yang terikat langsung ke invoice_client_id
+     * - v_supp: voucher supplier/legacy yang belum punya invoice_client_id, dicocokkan lewat client_po_id
+     */
+    private function applySupplierVoucherJoins($query): void
+    {
+        $query->leftJoin(
+            DB::raw('(SELECT invoice_client_id, SUM(bill_value_base) as total_voucher_invoice_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") AND invoice_client_id IS NOT NULL GROUP BY invoice_client_id) as v_inv'),
+            'v_inv.invoice_client_id',
+            '=',
+            'ic.id'
+        )->leftJoin(
+            DB::raw('(SELECT client_po_id, SUM(bill_value_base) as total_voucher_supplier_base FROM vouchers WHERE po_type IN ("supplier", "penjualan") AND invoice_client_id IS NULL AND client_po_id IS NOT NULL GROUP BY client_po_id) as v_supp'),
+            'v_supp.client_po_id',
+            '=',
+            'cpo.id'
+        );
+    }
+
+    /**
+     * Ambil daftar voucher supplier/penjualan yang terhubung ke satu invoice.
+     */
+    private function getSupplierVouchersForInvoice(\App\Models\InvoiceClient $invoice)
+    {
+        return DB::table('vouchers')
+            ->whereIn('po_type', ['supplier', 'penjualan'])
+            ->where(function ($q) use ($invoice) {
+                $q->where('invoice_client_id', $invoice->id);
+                if (!empty($invoice->client_po_id)) {
+                    $q->orWhere(function ($sub) use ($invoice) {
+                        $sub->whereNull('invoice_client_id')
+                            ->where('client_po_id', $invoice->client_po_id);
+                    });
+                }
+            })
+            ->get();
     }
 }

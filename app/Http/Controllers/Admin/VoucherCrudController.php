@@ -1520,7 +1520,8 @@ class VoucherCrudController extends CrudController
 
         $invoice_client_id_value = null;
         if ($entry = $this->crud->getCurrentEntry()) {
-            $invoice_client_id_value = \App\Models\InvoiceClient::where('client_po_id', $entry->client_po_id)->value('id');
+            $invoice_client_id_value = $entry->invoice_client_id
+                ?? ($entry->client_po_id ? \App\Models\InvoiceClient::where('client_po_id', $entry->client_po_id)->value('id') : null);
         }
 
         CRUD::addField([
@@ -2149,7 +2150,10 @@ class VoucherCrudController extends CrudController
         }
 
         $voucher->client_po = ClientPo::find($voucher->client_po_id);
-        $voucher->invoice_client = \App\Models\InvoiceClient::where('client_po_id', $voucher->client_po_id)->first();
+        $invoiceClient = $voucher->invoice_client_id
+            ? \App\Models\InvoiceClient::find($voucher->invoice_client_id)
+            : ($voucher->client_po_id ? \App\Models\InvoiceClient::where('client_po_id', $voucher->client_po_id)->first() : null);
+        $voucher->setRelation('invoice_client', $invoiceClient);
 
         $this->data['entry'] = $voucher;
 

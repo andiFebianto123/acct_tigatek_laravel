@@ -89,16 +89,19 @@ class VoucherService
 
         if ($item->po_type === 'supplier') {
             $item->client_po_id = $data->client_po_id ?? null;
+            $item->invoice_client_id = null;
             $item->no_po_spk = $no_po_spk;
         } else if ($item->po_type === 'penjualan') {
             // Voucher Penjualan (Biaya Tambahan) terikat pada Invoice Client -> Client PO
             $item->client_po_id = $data->client_po_id ?? null;
+            $item->invoice_client_id = $data->invoice_client_id;
             $clientPo = ClientPo::find($item->client_po_id);
             $item->reference_type = ClientPo::class;
             $item->reference_id = $item->client_po_id;
             $item->no_po_spk = $clientPo ? $clientPo->po_number : null;
         } else {
             $item->client_po_id = $data->client_po_id;
+            $item->invoice_client_id = $data->invoice_client_id;
             $clientPo = ClientPo::find($data->client_po_id);
             $item->no_po_spk = null;
         }
@@ -252,16 +255,19 @@ class VoucherService
 
         if ($item->po_type === 'supplier') {
             $item->client_po_id = $data->client_po_id ?? null;
+            $item->invoice_client_id = null;
             $item->no_po_spk = $no_po_spk;
         } else if ($item->po_type === 'penjualan') {
             // Voucher Penjualan (Biaya Tambahan) terikat pada Invoice Client -> Client PO
             $item->client_po_id = $data->client_po_id ?? null;
+            $item->invoice_client_id = $data->invoice_client_id;
             $clientPo = ClientPo::find($item->client_po_id);
             $item->reference_type = ClientPo::class;
             $item->reference_id = $item->client_po_id;
             $item->no_po_spk = $clientPo ? $clientPo->po_number : '';
         } else {
             $item->client_po_id = $data->client_po_id;
+            $item->invoice_client_id = $data->invoice_client_id;
             $clientPo = ClientPo::find($data->client_po_id);
             $item->no_po_spk = $clientPo ? $clientPo->po_number : '';
         }
@@ -343,7 +349,7 @@ class VoucherService
             'discount_pph_4', 'pph_21', 'discount_pph_21', 'payment_transfer', 'due_date',
             'factur_status', 'no_factur', 'date_factur', 'bank_name', 'no_account',
             'payment_type', 'payment_status', 'priority', 'information',
-            'account_source_id', 'subkon_id', 'client_po_id', 'payment_date', 'account_holder_name',
+            'account_source_id', 'subkon_id', 'client_po_id', 'invoice_client_id', 'payment_date', 'account_holder_name',
         ];
 
         $edit_flag = 0;

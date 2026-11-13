@@ -38,13 +38,15 @@ class VoucherData
         public readonly float $pph_21,
         public readonly ?string $po_type = 'subkon',
         public readonly string $currency_code = 'IDR',
+        public readonly ?int $invoice_client_id = null,
     ) {}
 
     public static function fromRequest(Request $request): self
     {
         $client_po_id = $request->client_po_id;
-        if ($request->filled('invoice_client_id')) {
-            $invoice = \App\Models\InvoiceClient::find($request->input('invoice_client_id'));
+        $invoice_client_id = $request->filled('invoice_client_id') ? (int) $request->input('invoice_client_id') : null;
+        if ($invoice_client_id) {
+            $invoice = \App\Models\InvoiceClient::find($invoice_client_id);
             if ($invoice) {
                 $client_po_id = $invoice->client_po_id;
             }
@@ -82,6 +84,7 @@ class VoucherData
             pph_21: (float) ($request->pph_21 ?? 0),
             po_type: $request->input('po_type', 'subkon'),
             currency_code: strtoupper($request->input('currency_code', 'IDR')),
+            invoice_client_id: $invoice_client_id,
         );
     }
 }
