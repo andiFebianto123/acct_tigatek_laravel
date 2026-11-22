@@ -228,20 +228,30 @@ class DashboardController extends CrudController
 
     public function totalJobRealisasion($year = null)
     {
-        $omset_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
-            ->where('client_po.category', 'RUTIN')
-            ->whereExists(function ($query) use ($year) {
-                $query->select(DB::raw(1))
-                    ->from('invoice_clients')
-                    ->whereColumn('invoice_clients.client_po_id', 'client_po.client_po_id');
-                if ($year && $year != 'all') {
-                    $query->whereYear('invoice_date', $year);
-                }
+        // Hitung seluruh Omzet (Exclude PPN) langsung dari invoice_clients.price_total_exclude_ppn_base
+        // agar 100% sinkron dengan total Exclude PPN di menu Invoice (Client)
+        $invoiceOmzet = InvoiceClient::leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
+            ->when($year && $year != 'all', function ($query) use ($year) {
+                $query->whereYear('invoice_clients.invoice_date', $year);
             })
-            // ->when($year, function ($query) use ($year) {
-            //     $query->whereYear('project_profit_lost.created_at', $year);
-            // })
-            ->select(DB::raw('SUM(IFNULL(client_po.price_job_exlude_ppn_logic, 0)) as total_omzet'))
+            ->selectRaw("
+                COALESCE(SUM(CASE
+                    WHEN (invoice_clients.type_device IS NULL OR invoice_clients.type_device = '')
+                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), NULLIF(client_po.category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin,
+                COALESCE(SUM(CASE
+                    WHEN (invoice_clients.type_device IS NULL OR invoice_clients.type_device = '')
+                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), NULLIF(client_po.category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin,
+                COALESCE(SUM(CASE
+                    WHEN (invoice_clients.type_device IS NOT NULL AND invoice_clients.type_device != '')
+                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin_penjualan,
+                COALESCE(SUM(CASE
+                    WHEN (invoice_clients.type_device IS NOT NULL AND invoice_clients.type_device != '')
+                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin_penjualan
+            ")
             ->first();
 
         $biaya_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
@@ -254,29 +264,7 @@ class DashboardController extends CrudController
                     $query->whereYear('invoice_date', $year);
                 }
             })
-            // ->when($year, function ($query) use ($year) {
-            //     $query->whereYear('project_profit_lost.created_at', $year);
-            // })
             ->select(DB::raw('SUM((IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) as nilai_biaya'))
-            ->first();
-
-        $omset_non_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
-            ->where('client_po.category', 'NON RUTIN')
-            ->whereExists(function ($query) use ($year) {
-                $query->select(DB::raw(1))
-                    ->from('invoice_clients')
-                    ->whereColumn('invoice_clients.client_po_id', 'client_po.client_po_id');
-                if ($year && $year != 'all') {
-                    $query->whereYear('invoice_date', $year);
-                }
-            })
-            // ->when($year, function ($query) use ($year) {
-            //     $query->whereYear('project_profit_lost.created_at', $year);
-            // })
-            ->select(
-                DB::raw('SUM(IFNULL(client_po.price_job_exlude_ppn_logic, 0)) as total_omzet'),
-                DB::raw("SUM(client_po.job_value) as total_job_value")
-            )
             ->first();
 
         $biaya_non_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
@@ -289,27 +277,23 @@ class DashboardController extends CrudController
                     $query->whereYear('invoice_date', $year);
                 }
             })
-            // ->when($year, function ($query) use ($year) {
-            //     $query->whereYear('project_profit_lost.created_at', $year);
-            // })
             ->select(DB::raw('SUM((IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) as nilai_biaya'))
             ->first();
 
-        $total_omzet_rutin = $omset_rutin?->total_omzet ?? 0;
-        $total_biaya_rutin = $biaya_rutin?->nilai_biaya ?? 0;
-        $total_omzet_non_rutin = $omset_non_rutin?->total_omzet ?? 0;
-        $total_biaya_non_rutin = $biaya_non_rutin?->nilai_biaya ?? 0;
+        $total_omzet_rutin = (float) ($invoiceOmzet?->total_omzet_rutin ?? 0);
+        $total_biaya_rutin = (float) ($biaya_rutin?->nilai_biaya ?? 0);
+        $total_omzet_non_rutin = (float) ($invoiceOmzet?->total_omzet_non_rutin ?? 0);
+        $total_biaya_non_rutin = (float) ($biaya_non_rutin?->nilai_biaya ?? 0);
 
         $total_laba_rutin = $total_omzet_rutin - $total_biaya_rutin;
         $total_laba_non_rutin = $total_omzet_non_rutin - $total_biaya_non_rutin;
 
-        // Perhitungan Realisasi Penjualan (Supplier DeviceStock)
+        // Perhitungan Biaya Realisasi Penjualan (Supplier DeviceStock)
         $supplierQueryRutin = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
             ->where(function ($q) {
                 $q->where(DB::raw('LOWER(supplier_data.invoice_category)'), 'rutin');
             })
             ->select(
-                DB::raw('SUM(supplier_data.sell_value) as total_omzet'),
                 DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
             )
             ->first();
@@ -319,15 +303,14 @@ class DashboardController extends CrudController
                 $q->whereIn(DB::raw('LOWER(supplier_data.invoice_category)'), ['non_rutin', 'non rutin', 'non-rutin']);
             })
             ->select(
-                DB::raw('SUM(supplier_data.sell_value) as total_omzet'),
                 DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
             )
             ->first();
 
-        $total_omzet_rutin_penjualan = $supplierQueryRutin?->total_omzet ?? 0;
-        $total_biaya_rutin_penjualan = $supplierQueryRutin?->total_biaya ?? 0;
-        $total_omzet_non_rutin_penjualan = $supplierQueryNonRutin?->total_omzet ?? 0;
-        $total_biaya_non_rutin_penjualan = $supplierQueryNonRutin?->total_biaya ?? 0;
+        $total_omzet_rutin_penjualan = (float) ($invoiceOmzet?->total_omzet_rutin_penjualan ?? 0);
+        $total_biaya_rutin_penjualan = (float) ($supplierQueryRutin?->total_biaya ?? 0);
+        $total_omzet_non_rutin_penjualan = (float) ($invoiceOmzet?->total_omzet_non_rutin_penjualan ?? 0);
+        $total_biaya_non_rutin_penjualan = (float) ($supplierQueryNonRutin?->total_biaya ?? 0);
 
         $total_laba_rutin_penjualan = $total_omzet_rutin_penjualan - $total_biaya_rutin_penjualan;
         $total_laba_non_rutin_penjualan = $total_omzet_non_rutin_penjualan - $total_biaya_non_rutin_penjualan;
