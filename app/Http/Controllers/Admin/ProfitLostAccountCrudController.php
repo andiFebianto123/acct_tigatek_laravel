@@ -1473,7 +1473,7 @@ class ProfitLostAccountCrudController extends CrudController
                         MAX(accounts.code) as code_,
                         MAX(accounts.name) as name_,
                         MAX(accounts.level) as level_,
-                        (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
+                        COALESCE(SUM(journal_entries.debit_base - journal_entries.credit_base), 0) as balance
                     ")
                 ]);
 
