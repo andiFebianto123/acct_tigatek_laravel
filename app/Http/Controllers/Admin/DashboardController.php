@@ -228,89 +228,171 @@ class DashboardController extends CrudController
 
     public function totalJobRealisasion($year = null)
     {
-        // Hitung seluruh Omzet (Exclude PPN) langsung dari invoice_clients.price_total_exclude_ppn_base
-        // agar 100% sinkron dengan total Exclude PPN di menu Invoice (Client)
+        $isPenjualanCond = "(LOWER(COALESCE(client_po.po_type, '')) = 'supplier' OR (invoice_clients.client_po_id IS NULL AND invoice_clients.type_device IS NOT NULL AND invoice_clients.type_device != ''))";
+        $isPekerjaanCond = "NOT {$isPenjualanCond}";
+        $isNonRutinCond  = "LOWER(COALESCE(NULLIF(invoice_clients.category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')";
+        $isRutinCond     = "NOT ({$isNonRutinCond})";
+
+        $applyInProfitLostFilter = function ($query) {
+            $query->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('project_profit_lost')
+                    ->where(function ($sub) {
+                        $sub->where(function ($s) {
+                            $s->where('project_profit_lost.orderable_type', 'App\\Models\\InvoiceClient')
+                                ->whereColumn('project_profit_lost.orderable_id', 'invoice_clients.id');
+                        })->orWhere(function ($s) {
+                            $s->whereNotNull('invoice_clients.client_po_id')
+                                ->where(function ($poMatch) {
+                                    $poMatch->whereColumn('project_profit_lost.client_po_id', 'invoice_clients.client_po_id')
+                                        ->orWhere(function ($ord) {
+                                            $ord->where('project_profit_lost.orderable_type', 'App\\Models\\ClientPo')
+                                                ->whereColumn('project_profit_lost.orderable_id', 'invoice_clients.client_po_id');
+                                        });
+                                });
+                        });
+                    });
+            });
+        };
+
+        // 1. Omzet (Exclude PPN) dari invoice_clients.price_total_exclude_ppn_base yang sudah masuk project_profit_lost
+        //    - Pekerjaan: client_po.po_type = 'subkon'
+        //    - Penjualan: client_po.po_type = 'supplier' (atau penjualan langsung tanpa PO yang memiliki type_device)
+        //    - Kategori Rutin / Non Rutin: mengikuti invoice_clients.category
         $invoiceOmzet = InvoiceClient::leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
+            ->when(true, $applyInProfitLostFilter)
             ->when($year && $year != 'all', function ($query) use ($year) {
                 $query->whereYear('invoice_clients.invoice_date', $year);
             })
             ->selectRaw("
-                COALESCE(SUM(CASE
-                    WHEN (invoice_clients.type_device IS NULL OR invoice_clients.type_device = '')
-                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), NULLIF(client_po.category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
-                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin,
-                COALESCE(SUM(CASE
-                    WHEN (invoice_clients.type_device IS NULL OR invoice_clients.type_device = '')
-                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), NULLIF(client_po.category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
-                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin,
-                COALESCE(SUM(CASE
-                    WHEN (invoice_clients.type_device IS NOT NULL AND invoice_clients.type_device != '')
-                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
-                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin_penjualan,
-                COALESCE(SUM(CASE
-                    WHEN (invoice_clients.type_device IS NOT NULL AND invoice_clients.type_device != '')
-                        AND LOWER(COALESCE(NULLIF(invoice_clients.category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
-                    THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin_penjualan
+                COALESCE(SUM(CASE WHEN {$isPekerjaanCond} AND {$isRutinCond} THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin,
+                COALESCE(SUM(CASE WHEN {$isPekerjaanCond} AND {$isNonRutinCond} THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin,
+                COALESCE(SUM(CASE WHEN {$isPenjualanCond} AND {$isRutinCond} THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_rutin_penjualan,
+                COALESCE(SUM(CASE WHEN {$isPenjualanCond} AND {$isNonRutinCond} THEN invoice_clients.price_total_exclude_ppn_base ELSE 0 END), 0) AS total_omzet_non_rutin_penjualan
             ")
             ->first();
 
-        $biaya_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
-            ->where('client_po.category', 'RUTIN')
-            ->whereExists(function ($query) use ($year) {
-                $query->select(DB::raw(1))
-                    ->from('invoice_clients')
-                    ->whereColumn('invoice_clients.client_po_id', 'client_po.client_po_id');
-                if ($year && $year != 'all') {
-                    $query->whereYear('invoice_date', $year);
-                }
+        // 2. Biaya Pekerjaan (PO Subkon) — hanya yang sudah masuk project_profit_lost, kategori mengikuti invoice_clients.category
+        $invCatPerPo = DB::table('invoice_clients')
+            ->whereNotNull('client_po_id')
+            ->when(true, $applyInProfitLostFilter)
+            ->when($year && $year != 'all', function ($query) use ($year) {
+                $query->whereYear('invoice_date', $year);
             })
-            ->select(DB::raw('SUM((IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) as nilai_biaya'))
+            ->select(
+                'client_po_id',
+                DB::raw("MAX(NULLIF(category, '')) as inv_category")
+            )
+            ->groupBy('client_po_id');
+
+        $pplPerPo = DB::table('project_profit_lost')
+            ->whereNotNull('client_po_id')
+            ->select(
+                'client_po_id',
+                DB::raw('SUM(IFNULL(price_after_year, 0)) as price_after_year'),
+                DB::raw('SUM(IFNULL(price_small_cash, 0)) as price_small_cash')
+            )
+            ->groupBy('client_po_id');
+
+        $vouchersPerPo = DB::table('vouchers')
+            ->whereNotNull('client_po_id')
+            ->select(
+                'client_po_id',
+                DB::raw('SUM(IFNULL(total_base, 0)) as biaya')
+            )
+            ->groupBy('client_po_id');
+
+        $biayaPekerjaan = DB::table('client_po')
+            ->joinSub($invCatPerPo, 'inv_cat', function ($join) {
+                $join->on('inv_cat.client_po_id', '=', 'client_po.id');
+            })
+            ->leftJoinSub($pplPerPo, 'ppl', function ($join) {
+                $join->on('ppl.client_po_id', '=', 'client_po.id');
+            })
+            ->leftJoinSub($vouchersPerPo, 'v', function ($join) {
+                $join->on('v.client_po_id', '=', 'client_po.id');
+            })
+            ->whereRaw("LOWER(COALESCE(client_po.po_type, 'subkon')) != 'supplier'")
+            ->selectRaw("
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(NULLIF(inv_cat.inv_category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN (IFNULL(ppl.price_after_year, 0) + IFNULL(v.biaya, 0) + IFNULL(ppl.price_small_cash, 0))
+                    ELSE 0 END), 0) AS total_biaya_rutin,
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(NULLIF(inv_cat.inv_category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN (IFNULL(ppl.price_after_year, 0) + IFNULL(v.biaya, 0) + IFNULL(ppl.price_small_cash, 0))
+                    ELSE 0 END), 0) AS total_biaya_non_rutin
+            ")
             ->first();
 
-        $biaya_non_rutin = CustomHelper::profitLostRepository(['filter_year' => $year])
-            ->where('client_po.category', 'NON RUTIN')
-            ->whereExists(function ($query) use ($year) {
-                $query->select(DB::raw(1))
-                    ->from('invoice_clients')
-                    ->whereColumn('invoice_clients.client_po_id', 'client_po.client_po_id');
-                if ($year && $year != 'all') {
-                    $query->whereYear('invoice_date', $year);
-                }
+        // 3. Biaya Penjualan (PO Supplier / Penjualan) — COGS + Voucher Supplier (mengikuti invoice_clients.category)
+        $cogsPerInvoice = DB::table('invoice_client_details')
+            ->select('invoice_client_id', DB::raw('COALESCE(SUM(cogs_amount_base), 0) as cogs_base'))
+            ->groupBy('invoice_client_id');
+
+        $voucherPerInvoice = DB::table('vouchers')
+            ->whereIn('po_type', ['supplier', 'penjualan'])
+            ->whereNotNull('invoice_client_id')
+            ->select('invoice_client_id', DB::raw('COALESCE(SUM(bill_value_base), 0) as voucher_inv_base'))
+            ->groupBy('invoice_client_id');
+
+        $biayaPenjualanInvoice = DB::table('invoice_clients')
+            ->leftJoin('client_po', 'client_po.id', '=', 'invoice_clients.client_po_id')
+            ->when(true, $applyInProfitLostFilter)
+            ->leftJoinSub($cogsPerInvoice, 'icd_sum', function ($join) {
+                $join->on('icd_sum.invoice_client_id', '=', 'invoice_clients.id');
             })
-            ->select(DB::raw('SUM((IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) as nilai_biaya'))
+            ->leftJoinSub($voucherPerInvoice, 'v_inv', function ($join) {
+                $join->on('v_inv.invoice_client_id', '=', 'invoice_clients.id');
+            })
+            ->whereRaw($isPenjualanCond)
+            ->when($year && $year != 'all', function ($query) use ($year) {
+                $query->whereYear('invoice_clients.invoice_date', $year);
+            })
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN {$isRutinCond} THEN (IFNULL(icd_sum.cogs_base, 0) + IFNULL(v_inv.voucher_inv_base, 0)) ELSE 0 END), 0) AS total_biaya_rutin,
+                COALESCE(SUM(CASE WHEN {$isNonRutinCond} THEN (IFNULL(icd_sum.cogs_base, 0) + IFNULL(v_inv.voucher_inv_base, 0)) ELSE 0 END), 0) AS total_biaya_non_rutin
+            ")
+            ->first();
+
+        // Voucher supplier legacy yang terhubung via client_po_id (tanpa invoice_client_id), dihitung 1x per PO
+        $voucherSupplierPerPo = DB::table('vouchers')
+            ->whereIn('po_type', ['supplier', 'penjualan'])
+            ->whereNull('invoice_client_id')
+            ->whereNotNull('client_po_id')
+            ->select('client_po_id', DB::raw('COALESCE(SUM(bill_value_base), 0) as voucher_po_base'))
+            ->groupBy('client_po_id');
+
+        $biayaPenjualanPoVoucher = DB::table('client_po')
+            ->joinSub($invCatPerPo, 'inv_cat', function ($join) {
+                $join->on('inv_cat.client_po_id', '=', 'client_po.id');
+            })
+            ->joinSub($voucherSupplierPerPo, 'v_supp', function ($join) {
+                $join->on('v_supp.client_po_id', '=', 'client_po.id');
+            })
+            ->whereRaw("LOWER(COALESCE(client_po.po_type, '')) = 'supplier'")
+            ->selectRaw("
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(NULLIF(inv_cat.inv_category, ''), 'rutin')) NOT IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN IFNULL(v_supp.voucher_po_base, 0) ELSE 0 END), 0) AS total_biaya_rutin,
+                COALESCE(SUM(CASE
+                    WHEN LOWER(COALESCE(NULLIF(inv_cat.inv_category, ''), 'rutin')) IN ('non_rutin', 'non rutin', 'non-rutin')
+                    THEN IFNULL(v_supp.voucher_po_base, 0) ELSE 0 END), 0) AS total_biaya_non_rutin
+            ")
             ->first();
 
         $total_omzet_rutin = (float) ($invoiceOmzet?->total_omzet_rutin ?? 0);
-        $total_biaya_rutin = (float) ($biaya_rutin?->nilai_biaya ?? 0);
+        $total_biaya_rutin = (float) ($biayaPekerjaan?->total_biaya_rutin ?? 0);
         $total_omzet_non_rutin = (float) ($invoiceOmzet?->total_omzet_non_rutin ?? 0);
-        $total_biaya_non_rutin = (float) ($biaya_non_rutin?->nilai_biaya ?? 0);
+        $total_biaya_non_rutin = (float) ($biayaPekerjaan?->total_biaya_non_rutin ?? 0);
 
         $total_laba_rutin = $total_omzet_rutin - $total_biaya_rutin;
         $total_laba_non_rutin = $total_omzet_non_rutin - $total_biaya_non_rutin;
 
-        // Perhitungan Biaya Realisasi Penjualan (Supplier DeviceStock)
-        $supplierQueryRutin = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
-            ->where(function ($q) {
-                $q->where(DB::raw('LOWER(supplier_data.invoice_category)'), 'rutin');
-            })
-            ->select(
-                DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
-            )
-            ->first();
-
-        $supplierQueryNonRutin = CustomHelper::profitLostSupplierRepository(['filter_year' => $year])
-            ->where(function ($q) {
-                $q->whereIn(DB::raw('LOWER(supplier_data.invoice_category)'), ['non_rutin', 'non rutin', 'non-rutin']);
-            })
-            ->select(
-                DB::raw('SUM(supplier_data.purchase_value) as total_biaya')
-            )
-            ->first();
-
         $total_omzet_rutin_penjualan = (float) ($invoiceOmzet?->total_omzet_rutin_penjualan ?? 0);
-        $total_biaya_rutin_penjualan = (float) ($supplierQueryRutin?->total_biaya ?? 0);
+        $total_biaya_rutin_penjualan = (float) ($biayaPenjualanInvoice?->total_biaya_rutin ?? 0) + (float) ($biayaPenjualanPoVoucher?->total_biaya_rutin ?? 0);
         $total_omzet_non_rutin_penjualan = (float) ($invoiceOmzet?->total_omzet_non_rutin_penjualan ?? 0);
-        $total_biaya_non_rutin_penjualan = (float) ($supplierQueryNonRutin?->total_biaya ?? 0);
+        $total_biaya_non_rutin_penjualan = (float) ($biayaPenjualanInvoice?->total_biaya_non_rutin ?? 0) + (float) ($biayaPenjualanPoVoucher?->total_biaya_non_rutin ?? 0);
 
         $total_laba_rutin_penjualan = $total_omzet_rutin_penjualan - $total_biaya_rutin_penjualan;
         $total_laba_non_rutin_penjualan = $total_omzet_non_rutin_penjualan - $total_biaya_non_rutin_penjualan;
