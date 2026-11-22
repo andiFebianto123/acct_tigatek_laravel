@@ -807,13 +807,16 @@ class ExpenseAccountCrudController extends CrudController
         }
 
 
+        $accCurrency = $account->currency_code ?? 'IDR';
         foreach ($entries as $entry) {
-            $cumulative_balance += ($entry->debit - $entry->credit);
+            $debitVal = ($accCurrency === 'USD') ? $entry->debit : ($entry->debit_base ?: $entry->debit);
+            $creditVal = ($accCurrency === 'USD') ? $entry->credit : ($entry->credit_base ?: $entry->credit);
+            $cumulative_balance += ($debitVal - $creditVal);
             $data[] = [
                 Carbon::parse($entry->date)->format('d/m/Y'),
                 $entry->description,
-                $entry->debit,
-                $entry->credit,
+                $debitVal,
+                $creditVal,
                 $cumulative_balance,
             ];
         }

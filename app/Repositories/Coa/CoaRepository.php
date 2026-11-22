@@ -88,7 +88,10 @@ class CoaRepository
                 MAX(accounts.name) as name,
                 MAX(accounts.level) as level,
                 MAX(accounts.currency_code) as currency_code,
-                (SUM(journal_entries.debit) - SUM(journal_entries.credit)) as balance
+                CASE
+                    WHEN MAX(accounts.currency_code) = 'USD' THEN IFNULL(SUM(journal_entries.debit - journal_entries.credit), 0)
+                    ELSE IFNULL(SUM(journal_entries.debit_base - journal_entries.credit_base), 0)
+                END as balance
             "))->where('accounts.id', $id)
             ->groupBy('accounts.id')
             ->first();
