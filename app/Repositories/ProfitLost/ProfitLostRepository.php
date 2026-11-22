@@ -216,6 +216,10 @@ class ProfitLostRepository
             ->groupBy('client_po_id');
 
         $invoiceClients = DB::table('invoice_clients')
+            ->where(function ($q) {
+                $q->whereNull('type_device')
+                    ->orWhere('type_device', '!=', 'App\\Models\\DeviceStock');
+            })
             ->select(
                 'client_po_id',
                 DB::raw("GROUP_CONCAT(invoice_date SEPARATOR ',') AS invoice_date"),
@@ -268,7 +272,11 @@ class ProfitLostRepository
         $mainQuery = $mainQuery->whereExists(function ($query) use ($filter_year) {
             $query->select(DB::raw(1))
                 ->from('invoice_clients')
-                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id');
+                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                ->where(function ($q) {
+                    $q->whereNull('invoice_clients.type_device')
+                        ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                });
             if ($filter_year && $filter_year != 'all') {
                 $query->whereYear('invoice_date', $filter_year);
             }
@@ -277,7 +285,11 @@ class ProfitLostRepository
         $total_excl_ppn_logic_query = $total_excl_ppn_logic_query->whereExists(function ($query) use ($filter_year) {
             $query->select(DB::raw(1))
                 ->from('invoice_clients')
-                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id');
+                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                ->where(function ($q) {
+                    $q->whereNull('invoice_clients.type_device')
+                        ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                });
             if ($filter_year && $filter_year != 'all') {
                 $query->whereYear('invoice_date', $filter_year);
             }
@@ -310,7 +322,10 @@ class ProfitLostRepository
         $this->applySupplierVoucherJoins($supplierSubQuery);
 
         $supplierSubQuery
-            ->where('ic.type_device', 'App\\Models\\DeviceStock')
+            ->where(function ($q) {
+                $q->where('ic.type_device', 'App\\Models\\DeviceStock')
+                    ->orWhereNull('ic.client_po_id');
+            })
             ->select([
                 'ic.id as invoice_id',
                 'ic.invoice_date as supplier_date',
@@ -798,7 +813,10 @@ class ProfitLostRepository
         $voucherSumExpr = "(COALESCE(v_inv.total_voucher_invoice_base, 0) + COALESCE(v_supp.total_voucher_supplier_base, 0))";
 
         $supplierSubQuery
-            ->where('ic.type_device', 'App\\Models\\DeviceStock')
+            ->where(function ($q) {
+                $q->where('ic.type_device', 'App\\Models\\DeviceStock')
+                    ->orWhereNull('ic.client_po_id');
+            })
             ->select([
                 'ic.id as invoice_id',
                 'ic.invoice_number as supplier_invoice_number',
@@ -871,6 +889,10 @@ class ProfitLostRepository
             ->groupBy('client_po_id');
 
         $invoice = DB::table('invoice_clients')
+            ->where(function ($q) {
+                $q->whereNull('invoice_clients.type_device')
+                    ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+            })
             ->select(
                 'invoice_clients.client_po_id',
                 DB::raw("GROUP_CONCAT(DISTINCT invoice_clients.invoice_number SEPARATOR ', ') as invoice_number"),
@@ -919,7 +941,11 @@ class ProfitLostRepository
         $query->whereExists(function ($q) use ($filter) {
             $q->select(DB::raw(1))
                 ->from('invoice_clients')
-                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id');
+                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                ->where(function ($sub) {
+                    $sub->whereNull('invoice_clients.type_device')
+                        ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                });
             if ($filter->year && $filter->year != 'all') {
                 $q->whereYear('invoice_date', $filter->year);
             }

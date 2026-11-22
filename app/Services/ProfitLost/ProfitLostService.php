@@ -159,9 +159,10 @@ class ProfitLostService
     {
         return DB::transaction(function () use ($invoice) {
             $isDeviceSale = ($invoice->type_device === 'App\\Models\\DeviceStock' || $invoice->type_device === \App\Models\DeviceStock::class);
+            $po = (!empty($invoice->client_po_id) && !$isDeviceSale) ? ClientPo::find($invoice->client_po_id) : null;
 
-            if ($isDeviceSale) {
-                // Skenario 1: Invoice Penjualan Barang (FIFO)
+            if ($isDeviceSale || !$po) {
+                // Skenario 1: Invoice Penjualan Barang (DeviceStock) atau Invoice tanpa Client PO (BillingDevice, BillingSimcard, dll.)
                 $profitLost = ProjectProfitLost::where('orderable_type', 'App\\Models\\InvoiceClient')
                     ->where('orderable_id', $invoice->id)
                     ->first();
@@ -190,12 +191,8 @@ class ProfitLostService
                 return $profitLost;
             }
 
-            if (!empty($invoice->client_po_id)) {
-                // Skenario 2: Invoice Proyek / Subkon (ClientPo)
-                $po = ClientPo::find($invoice->client_po_id);
-                if (!$po) {
-                    return null;
-                }
+            // Skenario 2: Invoice Proyek / Subkon (ClientPo)
+            if ($po) {
 
                 $profitLost = ProjectProfitLost::where('orderable_type', 'App\\Models\\ClientPo')
                     ->where('orderable_id', $po->id)
