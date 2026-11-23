@@ -104,6 +104,22 @@ class ProfitLostAccountCrudController extends CrudController
                 'NON RUTIN' => 'NON RUTIN',
             ]);
 
+        $this->crud->filter('filter_paid_status77crudTable-project')
+            ->label(trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar')
+            ->type('select2')
+            ->values([
+                'Paid'   => 'Lunas',
+                'Unpaid' => 'Belum Bayar',
+            ]);
+
+        $this->crud->filter('filter_paid_status88crudTable-supplier')
+            ->label(trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar')
+            ->type('select2')
+            ->values([
+                'Paid'   => 'Lunas',
+                'Unpaid' => 'Belum Bayar',
+            ]);
+
         // -------------------------------------------------------
         // Card dengan 2 Tab: Proyek & Supplier
         // -------------------------------------------------------
@@ -138,12 +154,6 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => trans('backpack::crud.client_po.column.reimburse_type'),
-                                    'type'      => 'text',
-                                    'name'      => 'reimburse_type',
-                                    'orderable' => true,
-                                ],
-                                [
                                     'label'     => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO',
                                     'type'      => 'text',
                                     'name'      => 'po_number',
@@ -174,21 +184,9 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => trans('backpack::crud.client_po.column.price_after_year'),
-                                    'type'      => 'text',
-                                    'name'      => 'price_after_year',
-                                    'orderable' => true,
-                                ],
-                                [
                                     'label'     => trans('backpack::crud.profit_lost.column.price_voucher'),
                                     'type'      => 'text',
                                     'name'      => 'voucher_biaya',
-                                    'orderable' => true,
-                                ],
-                                [
-                                    'label'     => trans('backpack::crud.profit_lost.column.price_small_cash'),
-                                    'type'      => 'text',
-                                    'name'      => 'total_small_cash',
                                     'orderable' => true,
                                 ],
                                 [
@@ -204,15 +202,15 @@ class ProfitLostAccountCrudController extends CrudController
                                     'orderable' => true,
                                 ],
                                 [
-                                    'label'     => trans('backpack::crud.profit_lost.column.load_general_value'),
-                                    'type'      => 'text',
-                                    'name'      => 'price_general',
-                                    'orderable' => true,
-                                ],
-                                [
                                     'label'     => trans('backpack::crud.profit_lost.column.profit_lost_final'),
                                     'type'      => 'text',
                                     'name'      => 'price_prift_lost_final_str',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
+                                    'type'      => 'text',
+                                    'name'      => 'margin_percent',
                                     'orderable' => true,
                                 ],
                                 [
@@ -226,6 +224,12 @@ class ProfitLostAccountCrudController extends CrudController
                                     'type'      => 'date-multiple',
                                     'name'      => 'invoice_date',
                                     'format'    => 'DD/MM/YYYY',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                                    'type'      => 'text',
+                                    'name'      => 'payment_status',
                                     'orderable' => true,
                                 ],
                                 [
@@ -249,9 +253,10 @@ class ProfitLostAccountCrudController extends CrudController
                         'active' => false,
                         'view'   => 'crud::components.datatable',
                         'params' => [
-                            'crud_custom' => $this->crud,
-                            'filter'      => true,
-                            'columns'     => [
+                            'crud_custom'  => $this->crud,
+                            'filter'       => true,
+                            'filter_table' => collect($this->crud->filters())->slice(2, 1),
+                            'columns'      => [
                                 [
                                     'name'      => 'row_number',
                                     'type'      => 'row_number',
@@ -335,6 +340,12 @@ class ProfitLostAccountCrudController extends CrudController
                                     'label'     => trans('backpack::crud.profit_lost.column.delivery_status') ?? 'Status Pengiriman',
                                     'type'      => 'text',
                                     'name'      => 'delivery_status',
+                                    'orderable' => true,
+                                ],
+                                [
+                                    'label'     => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                                    'type'      => 'text',
+                                    'name'      => 'payment_status',
                                     'orderable' => true,
                                 ],
                                 [
@@ -920,6 +931,7 @@ class ProfitLostAccountCrudController extends CrudController
 
         CRUD::addButtonFromView('top', 'export-excel-table', 'export-excel-table', 'beginning');
         CRUD::addButtonFromView('top', 'export-pdf-table', 'export-pdf-table', 'beginning');
+        CRUD::addButtonFromView('top', 'filter_paid_unpaid', 'filter-paid_unpaid', 'beginning');
         CRUD::addButtonFromView('top', 'filter_year', 'filter-year', 'beginning');
 
         if ($request->has('type') && $request->type == 'project') {
@@ -968,17 +980,6 @@ class ProfitLostAccountCrudController extends CrudController
                 }
             ]);
 
-            CRUD::column([
-                'label'       => trans('backpack::crud.client_po.column.reimburse_type'),
-                'name'        => 'reimburse_type',
-                'type'        => 'text',
-                'orderLogic'  => function ($query, $column, $columnDirection) {
-                    $query->orderBy('client_po.reimburse_type', $columnDirection);
-                },
-                'searchLogic' => function ($query, $column, $searchTerm) {
-                    $query->orWhere('client_po.reimburse_type', 'like', '%' . $searchTerm . '%');
-                }
-            ]);
             CRUD::column([
                 'label'      => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO',
                 'name'       => 'po_number',
@@ -1048,20 +1049,6 @@ class ProfitLostAccountCrudController extends CrudController
                 }
             ]);
 
-
-            CRUD::column([
-                'label'  => trans('backpack::crud.client_po.column.price_after_year'),
-                'name' => 'price_after_year',
-                'type'  => 'number',
-                'prefix' => $settings?->currency_symbol ?: "Rp.",
-                'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'searchLogic' => function ($query, $column, $searchTerm) {
-                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
-                    $val = $clean !== '' ? $clean : $searchTerm;
-                    $query->orWhere('project_profit_lost.price_after_year', 'like', '%' . $val . '%');
-                }
-            ]);
-
             CRUD::column([
                 'label'  => trans('backpack::crud.profit_lost.column.price_voucher'),
                 'name' => 'voucher_biaya',
@@ -1073,20 +1060,6 @@ class ProfitLostAccountCrudController extends CrudController
                     $clean = preg_replace('/[^0-9]/', '', $searchTerm);
                     $val = $clean !== '' ? $clean : $searchTerm;
                     $query->orWhere('vouchers.biaya', 'like', '%' . $val . '%');
-                }
-            ]);
-
-            CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.price_small_cash'),
-                'name' => 'total_small_cash',
-                'type'  => 'number',
-                'prefix' => $settings?->currency_symbol ?: "Rp.",
-                'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('total_small_cash', $columnDirection); },
-                'searchLogic' => function ($query, $column, $searchTerm) {
-                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
-                    $val = $clean !== '' ? $clean : $searchTerm;
-                    $query->orWhere('project_profit_lost.price_small_cash', 'like', '%' . $val . '%');
                 }
             ]);
 
@@ -1119,20 +1092,6 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column([
-                'label'  => trans('backpack::crud.profit_lost.column.load_general_value'),
-                'name' => 'price_general',
-                'type'  => 'number',
-                'prefix' => $settings?->currency_symbol ?: "Rp.",
-                'decimals' => 2, 'dec_point' => ',', 'thousands_sep' => '.',
-                'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('price_general', $columnDirection); },
-                'searchLogic' => function ($query, $column, $searchTerm) {
-                    $clean = preg_replace('/[^0-9]/', '', $searchTerm);
-                    $val = $clean !== '' ? $clean : $searchTerm;
-                    $query->orWhere('project_profit_lost.price_general', 'like', '%' . $val . '%');
-                }
-            ]);
-
-            CRUD::column([
                 'label'  => trans('backpack::crud.profit_lost.column.profit_lost_final'),
                 'name' => 'price_prift_lost_final_str',
                 'type'  => 'number',
@@ -1143,6 +1102,32 @@ class ProfitLostAccountCrudController extends CrudController
                     $clean = preg_replace('/[^0-9\-]/', '', $searchTerm);
                     $val = $clean !== '' ? $clean : $searchTerm;
                     $query->orWhere(DB::raw("((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0))"), 'like', '%' . $val . '%');
+                }
+            ]);
+
+            CRUD::column([
+                'label'       => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
+                'name'        => 'margin_percent',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
+                    $margin = (float) ($entry->margin_percent ?? 0);
+                    $badgeClass = $margin >= 0 ? 'bg-success' : 'bg-danger';
+                    return '<span class="badge ' . $badgeClass . '">' . number_format($margin, 2, ',', '.') . '%</span>';
+                },
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('margin_percent', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $clean = preg_replace('/[^0-9\.\-]/', '', $searchTerm);
+                    $val = $clean !== '' ? $clean : $searchTerm;
+                    $query->orWhere(DB::raw("
+                        CASE 
+                            WHEN client_po.price_job_exlude_ppn_logic > 0 
+                                THEN ROUND((((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0)) / client_po.price_job_exlude_ppn_logic) * 100, 2)
+                            ELSE 0 
+                        END
+                    "), 'like', '%' . $val . '%');
                 }
             ]);
 
@@ -1166,6 +1151,36 @@ class ProfitLostAccountCrudController extends CrudController
                 'orderLogic' => function ($query, $column, $columnDirection) { $query->orderBy('client_po.invoice_date', $columnDirection); },
                 'searchLogic' => function ($query, $column, $searchTerm) {
                     $query->orWhere('client_po.invoice_date', 'like', '%' . $searchTerm . '%');
+                }
+            ]);
+
+            CRUD::column([
+                'label'       => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                'name'        => 'payment_status',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
+                    $st = $entry->payment_status ?? 'Unpaid';
+                    if ($st === 'Paid') {
+                        return '<span class="badge bg-success text-white"><i class="la la-check"></i> Lunas</span>';
+                    } elseif ($st === 'Partial') {
+                        return '<span class="badge bg-warning text-dark"><i class="la la-clock"></i> Sebagian</span>';
+                    } else {
+                        return '<span class="badge bg-danger text-white"><i class="la la-times"></i> Belum Bayar</span>';
+                    }
+                },
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('client_po.payment_status', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $term = strtolower(trim($searchTerm));
+                    if (str_contains('lunas', $term) || str_contains('paid', $term)) {
+                        $query->orWhere('client_po.payment_status', 'Paid');
+                    } elseif (str_contains('belum', $term) || str_contains('unpaid', $term)) {
+                        $query->orWhere('client_po.payment_status', 'Unpaid');
+                    } else {
+                        $query->orWhere('client_po.payment_status', 'like', '%' . $searchTerm . '%');
+                    }
                 }
             ]);
 
@@ -1423,6 +1438,37 @@ class ProfitLostAccountCrudController extends CrudController
                 }
             ]);
 
+            // Status Bayar
+            CRUD::column([
+                'label'       => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                'name'        => 'payment_status',
+                'type'        => 'closure',
+                'function'    => function ($entry) {
+                    $st = $entry->payment_status ?? 'Unpaid';
+                    if ($st === 'Paid') {
+                        return '<span class="badge bg-success text-white"><i class="la la-check"></i> Lunas</span>';
+                    } elseif ($st === 'Partial') {
+                        return '<span class="badge bg-warning text-dark"><i class="la la-clock"></i> Sebagian</span>';
+                    } else {
+                        return '<span class="badge bg-danger text-white"><i class="la la-times"></i> Belum Bayar</span>';
+                    }
+                },
+                'escaped'     => false,
+                'orderLogic'  => function ($query, $column, $columnDirection) {
+                    $query->orderBy('supplier_data.payment_status', $columnDirection);
+                },
+                'searchLogic' => function ($query, $column, $searchTerm) {
+                    $term = strtolower(trim($searchTerm));
+                    if (str_contains('lunas', $term) || str_contains('paid', $term)) {
+                        $query->orWhere('supplier_data.payment_status', 'Paid');
+                    } elseif (str_contains('belum', $term) || str_contains('unpaid', $term)) {
+                        $query->orWhere('supplier_data.payment_status', 'Unpaid');
+                    } else {
+                        $query->orWhere('supplier_data.payment_status', 'like', '%' . $searchTerm . '%');
+                    }
+                }
+            ]);
+
         } else {
             // --------------------------------------------------
             // Default: Akun Laba Rugi Konsolidasi
@@ -1513,7 +1559,6 @@ class ProfitLostAccountCrudController extends CrudController
                 }
             ]);
 
-            CRUD::column(['label' => trans('backpack::crud.client_po.column.reimburse_type'), 'name' => 'reimburse_type', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.client_po.column.po_number') ?? 'No. PO', 'name' => 'po_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.invoice_client.column.invoice_number'), 'name' => 'invoice_number', 'type' => 'text']);
             CRUD::column(['label' => trans('backpack::crud.client_po.column.job_name'), 'name' => 'job_name', 'type' => 'text']);
@@ -1533,24 +1578,10 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column([
-                'label' => trans('backpack::crud.client_po.column.price_after_year'),
-                'name' => 'price_after_year',
-                'type' => 'closure',
-                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->price_after_year); }
-            ]);
-
-            CRUD::column([
                 'label' => trans('backpack::crud.profit_lost.column.price_voucher'),
                 'name' => 'voucher_biaya',
                 'type' => 'closure',
                 'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->voucher_biaya); }
-            ]);
-
-            CRUD::column([
-                'label' => trans('backpack::crud.profit_lost.column.price_small_cash'),
-                'name' => 'total_small_cash',
-                'type' => 'closure',
-                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->total_small_cash); }
             ]);
 
             CRUD::column([
@@ -1568,21 +1599,30 @@ class ProfitLostAccountCrudController extends CrudController
             ]);
 
             CRUD::column([
-                'label' => trans('backpack::crud.profit_lost.column.load_general_value'),
-                'name' => 'price_general',
-                'type' => 'closure',
-                'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->price_general); }
-            ]);
-
-            CRUD::column([
                 'label' => trans('backpack::crud.profit_lost.column.profit_lost_final'),
                 'name' => 'price_prift_lost_final_str',
                 'type' => 'closure',
                 'function' => function ($entry) use ($status_file) { return $this->priceFormatExport($status_file, $entry->price_prift_lost_final_str); }
             ]);
 
+            CRUD::column([
+                'label' => trans('backpack::crud.profit_lost.column.margin_percent') ?? 'Margin (%)',
+                'name'  => 'margin_percent',
+                'type'  => 'closure',
+                'function' => function ($entry) { return number_format((float) ($entry->margin_percent ?? 0), 2, ',', '.') . '%'; }
+            ]);
+
             CRUD::column(['label' => trans('backpack::crud.profit_lost.column.category'), 'type' => 'text', 'name' => 'category']);
             CRUD::column(['label' => trans('backpack::crud.profit_lost.column.invoice_date'), 'type' => 'text', 'name' => 'invoice_date']);
+            CRUD::column([
+                'label' => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                'name'  => 'payment_status',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    $st = $entry->payment_status ?? 'Unpaid';
+                    return $st === 'Paid' ? 'Lunas' : ($st === 'Partial' ? 'Sebagian' : 'Belum Bayar');
+                }
+            ]);
 
         } elseif ($request->has('type') && $request->type == 'supplier') {
             // --------------------------------------------------
@@ -1672,6 +1712,16 @@ class ProfitLostAccountCrudController extends CrudController
                 'label' => 'Status Pengiriman',
                 'name'  => 'delivery_status',
                 'type'  => 'text',
+            ]);
+
+            CRUD::column([
+                'label' => trans('backpack::crud.voucher.column.voucher.payment_status.label') ?? 'Status Bayar',
+                'name'  => 'payment_status',
+                'type'  => 'closure',
+                'function' => function ($entry) {
+                    $st = $entry->payment_status ?? 'Unpaid';
+                    return $st === 'Paid' ? 'Lunas' : ($st === 'Partial' ? 'Sebagian' : 'Belum Bayar');
+                }
             ]);
         }
     }

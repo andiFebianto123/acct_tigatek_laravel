@@ -220,6 +220,10 @@ class ProfitLostRepository
                 $q->whereNull('type_device')
                     ->orWhere('type_device', '!=', 'App\\Models\\DeviceStock');
             })
+            ->where(function ($q) {
+                $q->whereNull('is_recurring')
+                    ->orWhere('is_recurring', 0);
+            })
             ->select(
                 'client_po_id',
                 DB::raw("GROUP_CONCAT(invoice_date SEPARATOR ',') AS invoice_date"),
@@ -276,6 +280,10 @@ class ProfitLostRepository
                 ->where(function ($q) {
                     $q->whereNull('invoice_clients.type_device')
                         ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('invoice_clients.is_recurring')
+                        ->orWhere('invoice_clients.is_recurring', 0);
                 });
             if ($filter_year && $filter_year != 'all') {
                 $query->whereYear('invoice_date', $filter_year);
@@ -289,11 +297,56 @@ class ProfitLostRepository
                 ->where(function ($q) {
                     $q->whereNull('invoice_clients.type_device')
                         ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('invoice_clients.is_recurring')
+                        ->orWhere('invoice_clients.is_recurring', 0);
                 });
             if ($filter_year && $filter_year != 'all') {
                 $query->whereYear('invoice_date', $filter_year);
             }
         });
+
+        $paidStatus = $filter->filter_paid_status;
+        if ($paidStatus && $paidStatus !== 'all') {
+            $paidClosure = function ($q) use ($paidStatus) {
+                if ($paidStatus === 'Paid') {
+                    $q->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('invoice_clients')
+                            ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                            ->where('invoice_clients.status', 'Paid');
+                    })->whereNotExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('invoice_clients')
+                            ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                            ->where(function ($w) {
+                                $w->where('invoice_clients.status', '!=', 'Paid')
+                                  ->orWhereNull('invoice_clients.status');
+                            });
+                    });
+                } else {
+                    $q->where(function ($sub) {
+                        $sub->whereExists(function ($w) {
+                            $w->select(DB::raw(1))
+                                ->from('invoice_clients')
+                                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                                ->where(function ($s) {
+                                    $s->where('invoice_clients.status', '!=', 'Paid')
+                                      ->orWhereNull('invoice_clients.status');
+                                });
+                        })->orWhereNotExists(function ($w) {
+                            $w->select(DB::raw(1))
+                                ->from('invoice_clients')
+                                ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id');
+                        });
+                    });
+                }
+            };
+
+            $mainQuery->where($paidClosure);
+            $total_excl_ppn_logic_query->where($paidClosure);
+        }
 
         $total_excl_ppn_logic = $total_excl_ppn_logic_query->first();
         $result = DB::query()
@@ -325,6 +378,16 @@ class ProfitLostRepository
             ->where(function ($q) {
                 $q->where('ic.type_device', 'App\\Models\\DeviceStock')
                     ->orWhereNull('ic.client_po_id');
+            })
+            ->when($filter->filter_paid_status && $filter->filter_paid_status !== 'all', function ($q) use ($filter) {
+                if ($filter->filter_paid_status === 'Paid') {
+                    $q->where('ic.status', 'Paid');
+                } else {
+                    $q->where(function ($sub) {
+                        $sub->where('ic.status', '!=', 'Paid')
+                            ->orWhereNull('ic.status');
+                    });
+                }
             })
             ->select([
                 'ic.id as invoice_id',
@@ -365,7 +428,6 @@ class ProfitLostRepository
     {
         $profitLost = ProjectProfitLost::findOrFail($id);
         $po = $profitLost->clientPo;
-        $account_material = Account::where('code', 50101)->first();
 
         $filterDto = new ProfitLostFilterData(
             year: $filterYear,
@@ -389,62 +451,102 @@ class ProfitLostRepository
 
         $price_po_excl_ppn = (float) $profit_lost_all_price->price_job_exlude_ppn_logic;
 
-        $material_data = (float) Voucher::where('client_po_id', $po->id)
-            ->where('account_id', $account_material->id)
-            ->select(DB::raw("SUM(total_base) as biaya"))->groupBy('client_po_id')->get()->sum('biaya');
+        $account_konsultasi = Account::where('code', 50223)->first();
+        $konsultasi_data = $account_konsultasi
+            ? (float) Voucher::where('client_po_id', $po->id)
+                ->where('account_id', $account_konsultasi->id)
+                ->select(DB::raw("SUM(total_base) as biaya"))->groupBy('client_po_id')->get()->sum('biaya')
+            : 0.0;
 
-        $account_subkon = Account::whereIn('code', [50102, 50103])->get()
-            ->pluck('id')->toArray();
+        $account_manajemen = Account::where('code', 50224)->first();
+        $manajemen_data = $account_manajemen
+            ? (float) Voucher::where('client_po_id', $po->id)
+                ->where('account_id', $account_manajemen->id)
+                ->select(DB::raw("SUM(total_base) as biaya"))->groupBy('client_po_id')->get()->sum('biaya')
+            : 0.0;
 
-        $subkon_data = (float) Voucher::where('client_po_id', $po->id)
-            ->whereIn('account_id', $account_subkon)
-            ->select(DB::raw("SUM(total_base) as subkon"))->groupBy('client_po_id')->get()->sum('subkon');
-
-        $account_btkl = Account::where('code', 50104)->first();
-
-        $btkl_data = (float) Voucher::where('client_po_id', $po->id)
-            ->where('account_id', $account_btkl->id)
-            ->select(DB::raw("SUM(total_base) as btkl"))->groupBy('client_po_id')->get()->sum('btkl');
-
-        $account_other = Account::whereIn('code', [50101, 50102, 50103, 50104])->get()
-            ->pluck('id')->toArray();
+        $usedAccountIds = array_values(array_filter([$account_konsultasi?->id, $account_manajemen?->id]));
 
         $price_other_data = (float) Voucher::where('client_po_id', $po->id)
-            ->whereNotIn('account_id', $account_other)
+            ->when(!empty($usedAccountIds), function ($q) use ($usedAccountIds) {
+                $q->whereNotIn('account_id', $usedAccountIds);
+            })
             ->select(DB::raw("SUM(total_base) as price_other"))->groupBy('client_po_id')->get()->sum('price_other');
 
-        $price_profit_lost = (float) $profitLost->price_after_year;
-        $price_total = $material_data + $subkon_data + $btkl_data + $price_other_data + $price_profit_lost;
-        $price_profit_lost_po = (float) $profit_lost_all_price->price_profit_lost_str;
-        $price_general = (float) $profit_lost_all_price->price_general;
-        $price_profit_final = (float) $profit_lost_all_price->price_prift_lost_final_str;
+        $price_profit_lost = 0.0;
+        $price_total = $konsultasi_data + $manajemen_data + $price_other_data;
+        $price_profit_lost_po = $price_po_excl_ppn - $price_total;
+        $price_general = 0.0;
+        $price_profit_final = $price_profit_lost_po;
+
+        $margin_percent = $price_total > 0
+            ? round(($price_profit_final / $price_total) * 100, 2)
+            : ($price_po_excl_ppn > 0 ? round(($price_profit_final / $price_po_excl_ppn) * 100, 2) : 0);
+
+        $vouchersQuery = Voucher::with('account')
+            ->where('client_po_id', $po->id)
+            ->orderBy('date_voucher', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $vouchersList = [];
+        foreach ($vouchersQuery as $v) {
+            $valBase = (float) ($v->total_base ?? $v->total ?? 0);
+            $vouchersList[] = [
+                'no_voucher'          => $v->no_voucher,
+                'date_voucher'        => $v->date_voucher ? \Carbon\Carbon::parse($v->date_voucher)->format('d/m/Y') : '-',
+                'bill_number'         => $v->bill_number ?? '-',
+                'description'         => $v->payment_description ?? '-',
+                'account_name'        => ($v->account ? $v->account->code . ' - ' . $v->account->name : '-'),
+                'bill_value_base_raw' => $valBase,
+                'bill_value_base'     => $pure ? $valBase : CustomHelper::formatRupiahWithCurrency($valBase),
+            ];
+        }
 
         if ($pure) {
             return [
-                'price_po_excl_ppn' => $price_po_excl_ppn,
-                'price_material' => $material_data,
-                'price_subkon' => $subkon_data,
-                'price_btkl' => $btkl_data,
-                'price_other' => $price_other_data,
+                'price_po_excl_ppn'         => $price_po_excl_ppn,
+                'price_konsultasi_raw'      => $konsultasi_data,
+                'price_konsultasi'          => $konsultasi_data,
+                'price_manajemen_raw'       => $manajemen_data,
+                'price_manajemen'           => $manajemen_data,
+                'price_other_raw'           => $price_other_data,
+                'price_other'               => $price_other_data,
                 'price_profit_lost_project' => $price_profit_lost,
-                'price_total' => $price_total,
-                'price_profit_lost_po' => $price_profit_lost_po,
-                'price_general' => $price_general,
-                'price_profit_final' => $price_profit_final
+                'price_total_raw'           => $price_total,
+                'price_total'               => $price_total,
+                'price_profit_lost_po'      => $price_profit_lost_po,
+                'price_general'             => $price_general,
+                'price_profit_final'        => $price_profit_final,
+                'margin_percent_raw'        => $margin_percent,
+                'margin_percent'            => number_format($margin_percent, 2, ',', '.') . ' %',
+                'vouchers'                  => $vouchersList,
+                'price_material'            => 0,
+                'price_subkon'              => 0,
+                'price_btkl'                => 0,
             ];
         }
 
         return [
-            'price_po_excl_ppn' => CustomHelper::formatRupiah($price_po_excl_ppn),
-            'price_material' => CustomHelper::formatRupiah($material_data),
-            'price_subkon' => CustomHelper::formatRupiah($subkon_data),
-            'price_btkl' => CustomHelper::formatRupiah($btkl_data),
-            'price_other' => CustomHelper::formatRupiah($price_other_data),
+            'price_po_excl_ppn'         => CustomHelper::formatRupiah($price_po_excl_ppn),
+            'price_konsultasi_raw'      => $konsultasi_data,
+            'price_konsultasi'          => CustomHelper::formatRupiah($konsultasi_data),
+            'price_manajemen_raw'       => $manajemen_data,
+            'price_manajemen'           => CustomHelper::formatRupiah($manajemen_data),
+            'price_other_raw'           => $price_other_data,
+            'price_other'               => CustomHelper::formatRupiah($price_other_data),
             'price_profit_lost_project' => CustomHelper::formatRupiah($price_profit_lost),
-            'price_total' => CustomHelper::formatRupiah($price_total),
-            'price_profit_lost_po' => CustomHelper::formatRupiah($price_profit_lost_po),
-            'price_general' => CustomHelper::formatRupiah($price_general),
-            'price_profit_final' => CustomHelper::formatRupiah($price_profit_final)
+            'price_total_raw'           => $price_total,
+            'price_total'               => CustomHelper::formatRupiah($price_total),
+            'price_profit_lost_po'      => CustomHelper::formatRupiah($price_profit_lost_po),
+            'price_general'             => CustomHelper::formatRupiah($price_general),
+            'price_profit_final'        => CustomHelper::formatRupiah($price_profit_final),
+            'margin_percent_raw'        => $margin_percent,
+            'margin_percent'            => number_format($margin_percent, 2, ',', '.') . ' %',
+            'vouchers'                  => $vouchersList,
+            'price_material'            => CustomHelper::formatRupiah(0),
+            'price_subkon'              => CustomHelper::formatRupiah(0),
+            'price_btkl'                => CustomHelper::formatRupiah(0),
         ];
     }
 
@@ -817,6 +919,16 @@ class ProfitLostRepository
                 $q->where('ic.type_device', 'App\\Models\\DeviceStock')
                     ->orWhereNull('ic.client_po_id');
             })
+            ->when($filter->filter_paid_status && $filter->filter_paid_status !== 'all', function ($q) use ($filter) {
+                if ($filter->filter_paid_status === 'Paid') {
+                    $q->where('ic.status', 'Paid');
+                } else {
+                    $q->where(function ($sub) {
+                        $sub->where('ic.status', '!=', 'Paid')
+                            ->orWhereNull('ic.status');
+                    });
+                }
+            })
             ->select([
                 'ic.id as invoice_id',
                 'ic.invoice_number as supplier_invoice_number',
@@ -824,6 +936,7 @@ class ProfitLostRepository
                 'ic.invoice_date as supplier_date',
                 'c.name as supplier_name',
                 'ic.currency_code',
+                'ic.status as payment_status',
                 DB::raw("COALESCE(SUM(icd.qty), 0) AS total_qty_sold"),
                 DB::raw("ic.price_total_exclude_ppn_base AS total_harga_jual_base"),
                 DB::raw("CASE WHEN SUM(icd.qty) > 0 THEN ROUND(ic.price_total_exclude_ppn_base / SUM(icd.qty), 2) ELSE 0 END AS avg_harga_jual_satuan_base"),
@@ -842,6 +955,7 @@ class ProfitLostRepository
                 'ic.invoice_date',
                 'c.name',
                 'ic.currency_code',
+                'ic.status',
                 'ic.price_total_exclude_ppn_base',
                 'ic.delivery_note_id',
                 'v_inv.total_voucher_invoice_base',
@@ -874,6 +988,7 @@ class ProfitLostRepository
                 supplier_data.laba_kotor_base as profit_lost_supplier,
                 supplier_data.margin_percent,
                 supplier_data.delivery_status,
+                supplier_data.payment_status,
                 supplier_data.total_voucher_supplier_base as voucher_supplier_value
             ")
         ]);
@@ -893,12 +1008,22 @@ class ProfitLostRepository
                 $q->whereNull('invoice_clients.type_device')
                     ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
             })
+            ->where(function ($q) {
+                $q->whereNull('invoice_clients.is_recurring')
+                    ->orWhere('invoice_clients.is_recurring', 0);
+            })
             ->select(
                 'invoice_clients.client_po_id',
                 DB::raw("GROUP_CONCAT(DISTINCT invoice_clients.invoice_number SEPARATOR ', ') as invoice_number"),
                 DB::raw("GROUP_CONCAT(invoice_clients.invoice_date SEPARATOR ',') AS invoice_date"),
                 DB::raw("SUM(invoice_clients.price_total_exclude_ppn_base) as price_job_exlude_ppn"),
-                DB::raw("SUM(invoice_clients.price_total_include_ppn_base) as price_job_include_ppn")
+                DB::raw("SUM(invoice_clients.price_total_include_ppn_base) as price_job_include_ppn"),
+                DB::raw("CASE 
+                    WHEN COUNT(invoice_clients.id) = 0 THEN 'Unpaid'
+                    WHEN SUM(CASE WHEN invoice_clients.status = 'Paid' THEN 1 ELSE 0 END) = COUNT(invoice_clients.id) THEN 'Paid'
+                    WHEN SUM(CASE WHEN invoice_clients.status = 'Paid' THEN 1 ELSE 0 END) > 0 THEN 'Partial'
+                    ELSE 'Unpaid'
+                END as payment_status")
             )
             ->when($filter->year && $filter->year != 'all', function ($query) use ($filter) {
                 return $query->whereYear('invoice_date', $filter->year);
@@ -923,7 +1048,8 @@ class ProfitLostRepository
                 "invoice.price_job_include_ppn as invoice_price_job_include_ppn",
                 "client_po.date_po",
                 DB::raw("IF(invoice.invoice_date IS NULL, client_po.job_value_base, invoice.price_job_exlude_ppn) as price_job_exlude_ppn_logic"),
-                DB::raw("IF(invoice.invoice_date IS NULL, 0, invoice.price_job_include_ppn) as job_value_include_ppn_logic")
+                DB::raw("IF(invoice.invoice_date IS NULL, 0, invoice.price_job_include_ppn) as job_value_include_ppn_logic"),
+                DB::raw("IFNULL(invoice.payment_status, 'Unpaid') as payment_status")
             );
 
         $query->leftJoinSub($client_po_query_exclude_ppn, 'client_po', function ($join) {
@@ -945,11 +1071,50 @@ class ProfitLostRepository
                 ->where(function ($sub) {
                     $sub->whereNull('invoice_clients.type_device')
                         ->orWhere('invoice_clients.type_device', '!=', 'App\\Models\\DeviceStock');
+                })
+                ->where(function ($sub) {
+                    $sub->whereNull('invoice_clients.is_recurring')
+                        ->orWhere('invoice_clients.is_recurring', 0);
                 });
             if ($filter->year && $filter->year != 'all') {
                 $q->whereYear('invoice_date', $filter->year);
             }
         });
+
+        if ($filter->filter_paid_status && $filter->filter_paid_status !== 'all') {
+            if ($filter->filter_paid_status === 'Paid') {
+                $query->whereExists(function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('invoice_clients')
+                        ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                        ->where('invoice_clients.status', 'Paid');
+                })->whereNotExists(function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('invoice_clients')
+                        ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                        ->where(function ($sub) {
+                            $sub->where('invoice_clients.status', '!=', 'Paid')
+                                ->orWhereNull('invoice_clients.status');
+                        });
+                });
+            } elseif ($filter->filter_paid_status === 'Unpaid') {
+                $query->where(function ($q) {
+                    $q->whereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('invoice_clients')
+                            ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id')
+                            ->where(function ($s) {
+                                $s->where('invoice_clients.status', '!=', 'Paid')
+                                  ->orWhereNull('invoice_clients.status');
+                            });
+                    })->orWhereNotExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('invoice_clients')
+                            ->whereColumn('invoice_clients.client_po_id', 'project_profit_lost.client_po_id');
+                    });
+                });
+            }
+        }
 
         $query->select([
             DB::raw("
@@ -966,10 +1131,16 @@ class ProfitLostRepository
                 client_po.job_name as job_name,
                 client_po.job_value as job_value,
                 client_po.job_value_include_ppn_logic,
+                client_po.payment_status as payment_status,
                 IFNULL(project_profit_lost.price_small_cash, 0) as total_small_cash,
                 (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0)) as price_total_str,
                 (client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) as price_profit_lost_str,
-                ((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0)) as price_prift_lost_final_str
+                ((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0)) as price_prift_lost_final_str,
+                CASE 
+                    WHEN client_po.price_job_exlude_ppn_logic > 0 
+                        THEN ROUND((((client_po.price_job_exlude_ppn_logic - (IFNULL(project_profit_lost.price_after_year, 0) + IFNULL(vouchers.biaya, 0) + IFNULL(project_profit_lost.price_small_cash, 0))) - IFNULL(project_profit_lost.price_general, 0)) / client_po.price_job_exlude_ppn_logic) * 100, 2)
+                    ELSE 0 
+                END as margin_percent
            ")
         ]);
     }

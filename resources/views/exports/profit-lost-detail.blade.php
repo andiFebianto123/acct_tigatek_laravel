@@ -91,7 +91,35 @@
 
         /* Memberi indentasi pada rincian biaya */
         .indent {
-            /* padding-left: 30px !important; */
+            padding-left: 20px !important;
+        }
+
+        .table-data {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 15px;
+        }
+
+        .table-data th, .table-data td {
+            border: 1px solid #ccc;
+            padding: 5px 8px;
+        }
+
+        .table-data th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .section-header {
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        .text-center {
+            text-align: center;
         }
 
     </style>
@@ -101,71 +129,105 @@
     <div class="container">
         <div class="report-header">
             <h1><b>LAPORAN LABA RUGI</b></h1>
-            <h2><b>({{$profit_lost->clientPo->job_name}})</b></h2>
-            <h2>({{$profit_lost->clientPo->category}})</h2>
+            <h2><b>({{ $profit_lost->clientPo->job_name ?? '-' }})</b></h2>
+            @php
+                $cat = $profit_lost->clientPo->category ?? '';
+                $catClean = strtoupper(str_replace(['_', ' '], '', $cat));
+                $isNonReimburse = in_array($catClean, ['NONREIMBURSE', 'NONREIMBURSMENT']);
+            @endphp
+            @if(!empty($cat) && !$isNonReimburse)
+                <h2>({{ $cat }})</h2>
+            @endif
         </div>
 
         <table class="report-table">
             <tbody>
                 <tr>
-                    <td width="60%"><span class="bold">A. Pendapatan PO (exc PPn)</span></td>
-                    <td class="text-right bold">{{$report['price_po_excl_ppn']}}</td>
+                    <td width="60%"><span class="bold">A. Pendapatan Invoice (exc PPn)</span></td>
+                    <td class="text-right bold">{{ $report['price_po_excl_ppn'] }}</td>
                 </tr>
 
                 <tr>
                     <td colspan="2">
                         <table class="nested-table">
                             <tr>
-                                <td colspan="2" class="bold">B. Biaya Pekerjaan</td>
+                                <td colspan="2" class="bold">B. Biaya Pekerjaan Proyek</td>
                             </tr>
                             <tr>
                                 <td><center>Jenis Biaya</center></td>
                                 <td><center>Nilai (Rp)</center></td>
                             </tr>
-                            <tr>
-                                <td class="indent">Material</td>
-                                <td class="text-right">{{$report['price_material']}}</td>
-                            </tr>
-                            <tr>
-                                <td class="indent">Biaya Subkont</td>
-                                <td class="text-right">{{$report['price_subkon']}}</td>
-                            </tr>
-                            <tr>
-                                <td class="indent">Biaya Tenaga Kerja Langsung (BTKL)</td>
-                                <td class="text-right">{{$report['price_btkl']}}</td>
-                            </tr>
-                             <tr>
-                                <td class="indent">Biaya lainnya</td>
-                                <td class="text-right">{{$report['price_other']}}</td>
-                            </tr>
-                             <tr>
-                                <td class="indent">Biaya lewat Tahun</td>
-                                <td class="text-right">{{$report['price_profit_lost_project']}}</td>
-                            </tr>
+                            @if(($report['price_konsultasi_raw'] ?? 0) > 0)
+                                <tr>
+                                    <td class="indent">Biaya Konsultasi</td>
+                                    <td class="text-right">{{ $report['price_konsultasi'] }}</td>
+                                </tr>
+                            @endif
+                            @if(($report['price_manajemen_raw'] ?? 0) > 0)
+                                <tr>
+                                    <td class="indent">Biaya Manajemen Fee</td>
+                                    <td class="text-right">{{ $report['price_manajemen'] }}</td>
+                                </tr>
+                            @endif
+                            @if(($report['price_other_raw'] ?? 0) > 0)
+                                <tr>
+                                    <td class="indent">Biaya Lainnya</td>
+                                    <td class="text-right">{{ $report['price_other'] }}</td>
+                                </tr>
+                            @endif
                             <tr class="total-row">
                                 <td class="bold">Total Biaya</td>
-                                <td class="text-right bold">{{$report['price_total']}}</td>
+                                <td class="text-right bold">{{ $report['price_total'] }}</td>
                             </tr>
                         </table>
                     </td>
                 </tr>
 
                 <tr class="total-row">
-                    <td><span class="bold">C. Laba Rugi PO</span></td>
-                    <td class="text-right bold">{{$report['price_profit_lost_po']}}</td>
+                    <td><span class="bold">C. Laba Rugi invoice</span></td>
+                    <td class="text-right bold">{{ $report['price_profit_lost_po'] }}</td>
                 </tr>
 
                 <tr class="total-row">
-                    <td><span class="bold">D. Beban Umum</span></td>
-                    <td class="text-right bold">{{$report['price_general']}}</td>
+                    <td><span class="bold">D. Laba Akhir</span></td>
+                    <td class="text-right bold">{{ $report['price_profit_final'] }}</td>
                 </tr>
 
                 <tr class="total-row">
-                    <td><span class="bold">E. Laba Akhir</span></td>
-                    <td class="text-right bold">{{$report['price_profit_final']}}</td>
+                    <td><span class="bold">E. prosentase margin (%)</span></td>
+                    <td class="text-right bold">{{ $report['margin_percent'] ?? '0 %' }}</td>
                 </tr>
             </tbody>
         </table>
+
+        <!-- Rincian Voucher Pengeluaran Proyek -->
+        @if (!empty($report['vouchers']) && count($report['vouchers']) > 0)
+            <div class="section-header">Rincian Voucher Pengeluaran Proyek</div>
+            <table class="table-data">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">No</th>
+                        <th width="20%">No. Voucher</th>
+                        <th width="12%" class="text-center">Tgl Voucher</th>
+                        <th width="25%">Akun Beban</th>
+                        <th width="23%">Deskripsi / No. Bill</th>
+                        <th width="15%" class="text-right">Nilai Biaya (Base)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($report['vouchers'] as $vIdx => $vItem)
+                        <tr>
+                            <td class="text-center">{{ $vIdx + 1 }}</td>
+                            <td>{{ $vItem['no_voucher'] }}</td>
+                            <td class="text-center">{{ $vItem['date_voucher'] }}</td>
+                            <td>{{ $vItem['account_name'] }}</td>
+                            <td>{{ $vItem['description'] }} @if(!empty($vItem['bill_number']) && $vItem['bill_number'] !== '-') (Bill: {{ $vItem['bill_number'] }}) @endif</td>
+                            <td class="text-right bold">{{ $vItem['bill_value_base'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
     </div>
 
