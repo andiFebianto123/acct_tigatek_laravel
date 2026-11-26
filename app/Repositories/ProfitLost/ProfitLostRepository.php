@@ -826,7 +826,8 @@ class ProfitLostRepository
         $items = [];
         foreach ($invoice->invoice_client_details as $detail) {
             $itemQty = (int) ($detail->qty ?? 1);
-            $itemRevenue = (float) ($detail->price_base ?? $detail->price ?? 0);
+            $unitRevenue = (float) ($detail->price_base ?? $detail->price ?? 0);
+            $itemRevenue = $unitRevenue * $itemQty;
             $itemCogs = (float) ($detail->cogs_amount_base ?? 0);
             $itemProfit = $itemRevenue - $itemCogs;
 
