@@ -469,19 +469,25 @@ class ProfitLostRepository
 
         $price_other_data = (float) Voucher::where('client_po_id', $po->id)
             ->when(!empty($usedAccountIds), function ($q) use ($usedAccountIds) {
-                $q->whereNotIn('account_id', $usedAccountIds);
+                $q->where(function ($sub) use ($usedAccountIds) {
+                    $sub->whereNotIn('account_id', $usedAccountIds)
+                        ->orWhereNull('account_id');
+                });
             })
             ->select(DB::raw("SUM(total_base) as price_other"))->groupBy('client_po_id')->get()->sum('price_other');
 
-        $price_profit_lost = 0.0;
-        $price_total = $konsultasi_data + $manajemen_data + $price_other_data;
-        $price_profit_lost_po = $price_po_excl_ppn - $price_total;
-        $price_general = 0.0;
-        $price_profit_final = $price_profit_lost_po;
+        $price_after_year = (float) ($profit_lost_all_price->price_after_year ?? 0);
+        $price_small_cash = (float) ($profit_lost_all_price->price_small_cash ?? 0);
+        $price_general = (float) ($profit_lost_all_price->price_general ?? 0);
 
-        $margin_percent = $price_total > 0
-            ? round(($price_profit_final / $price_total) * 100, 2)
-            : ($price_po_excl_ppn > 0 ? round(($price_profit_final / $price_po_excl_ppn) * 100, 2) : 0);
+        $price_profit_lost = 0.0;
+        $price_total = $konsultasi_data + $manajemen_data + $price_other_data + $price_after_year + $price_small_cash;
+        $price_profit_lost_po = $price_po_excl_ppn - $price_total;
+        $price_profit_final = $price_profit_lost_po - $price_general;
+
+        $margin_percent = $price_po_excl_ppn > 0
+            ? round(($price_profit_final / $price_po_excl_ppn) * 100, 2)
+            : 0;
 
         $vouchersQuery = Voucher::with('account')
             ->where('client_po_id', $po->id)
@@ -512,10 +518,15 @@ class ProfitLostRepository
                 'price_manajemen'           => $manajemen_data,
                 'price_other_raw'           => $price_other_data,
                 'price_other'               => $price_other_data,
+                'price_after_year_raw'      => $price_after_year,
+                'price_after_year'          => $price_after_year,
+                'price_small_cash_raw'      => $price_small_cash,
+                'price_small_cash'          => $price_small_cash,
                 'price_profit_lost_project' => $price_profit_lost,
                 'price_total_raw'           => $price_total,
                 'price_total'               => $price_total,
                 'price_profit_lost_po'      => $price_profit_lost_po,
+                'price_general_raw'         => $price_general,
                 'price_general'             => $price_general,
                 'price_profit_final'        => $price_profit_final,
                 'margin_percent_raw'        => $margin_percent,
@@ -535,10 +546,15 @@ class ProfitLostRepository
             'price_manajemen'           => CustomHelper::formatRupiah($manajemen_data),
             'price_other_raw'           => $price_other_data,
             'price_other'               => CustomHelper::formatRupiah($price_other_data),
+            'price_after_year_raw'      => $price_after_year,
+            'price_after_year'          => CustomHelper::formatRupiah($price_after_year),
+            'price_small_cash_raw'      => $price_small_cash,
+            'price_small_cash'          => CustomHelper::formatRupiah($price_small_cash),
             'price_profit_lost_project' => CustomHelper::formatRupiah($price_profit_lost),
             'price_total_raw'           => $price_total,
             'price_total'               => CustomHelper::formatRupiah($price_total),
             'price_profit_lost_po'      => CustomHelper::formatRupiah($price_profit_lost_po),
+            'price_general_raw'         => $price_general,
             'price_general'             => CustomHelper::formatRupiah($price_general),
             'price_profit_final'        => CustomHelper::formatRupiah($price_profit_final),
             'margin_percent_raw'        => $margin_percent,

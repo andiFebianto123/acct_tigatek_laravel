@@ -79,6 +79,18 @@
         <td align="right">{{ $report['price_other'] }}</td>
     </tr>
     @endif
+    @if(($report['price_after_year_raw'] ?? $report['price_after_year'] ?? 0) > 0)
+    <tr>
+        <td>{{ __('backpack::crud.profit_lost.fields.price_after_year.label') }}</td>
+        <td align="right">{{ $report['price_after_year'] }}</td>
+    </tr>
+    @endif
+    @if(($report['price_small_cash_raw'] ?? $report['price_small_cash'] ?? 0) > 0)
+    <tr>
+        <td>{{ __('backpack::crud.profit_lost.fields.price_small_cash.label') }}</td>
+        <td align="right">{{ $report['price_small_cash'] }}</td>
+    </tr>
+    @endif
     <tr>
         <td><b>Total Biaya</b></td>
         <td align="right"><b>{{ $report['price_total'] }}</b></td>
@@ -88,6 +100,12 @@
         <td><b>C. Laba Rugi invoice</b></td>
         <td align="right"><b>{{ $report['price_profit_lost_po'] }}</b></td>
     </tr>
+    @if(($report['price_general_raw'] ?? $report['price_general'] ?? 0) > 0)
+    <tr>
+        <td><b>{{ __('backpack::crud.profit_lost.fields.price_general.label') }}</b></td>
+        <td align="right"><b>{{ $report['price_general'] }}</b></td>
+    </tr>
+    @endif
     <tr>
         <td><b>D. Laba Akhir</b></td>
         <td align="right"><b>{{ $report['price_profit_final'] }}</b></td>
